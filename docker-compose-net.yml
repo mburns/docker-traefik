@@ -140,13 +140,13 @@ services:
   socket-proxy:
     container_name: socket-proxy
     image: tecnativa/docker-socket-proxy
-    # security_opt:
-    #   - no-new-privileges:true
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
       socket_proxy:
-        ipv4_address: 192.168.91.254 # You can specify a static IP
+        ipv4_address: ${SOCKET_PROXY_IP:-192.168.91.254}
     # privileged: true # true for VM. False for unprivileged LXC container.
     ports:
     #  - "$ZEROTIER_IP_CLOUDSERVER:2375:2375" # Port 2375 should only ever get exposed to the internal network. When possible use this line.
@@ -168,14 +168,14 @@ services:
       # Security critical
       - AUTH=0
       - SECRETS=0
-      - POST=1 # Watchtower
+      - POST=1 # Watchtower, Sablier
       # Not always needed
       - BUILD=0
       - COMMIT=0
       - CONFIGS=0
-      - CONTAINERS=1 # Traefik, portainer, etc.
+      - CONTAINERS=1 # Traefik, portainer, Sablier, etc.
       - DISTRIBUTION=0
-      - EXEC=0
+      - EXEC=1 # Sablier needs this to start/stop containers
       - IMAGES=1 # Portainer
       - INFO=1 # Portainer
       - NETWORKS=1 # Portainer
@@ -187,6 +187,18 @@ services:
       - SYSTEM=0
       - TASKS=1 # Portainer
       - VOLUMES=1 # Portainer
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2375/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
 
   # tailscale: 
   #   container_name: tailscale 
