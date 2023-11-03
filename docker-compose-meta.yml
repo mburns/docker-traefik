@@ -1,0 +1,112 @@
+# version: "3.9"
+
+services:
+  # Docker-GC - Automatic Docker Garbage Collection
+  # Create docker-gc-exclude file
+  dockergc:
+    image: clockworksoul/docker-gc-cron:latest
+    container_name: docker-gc
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "all"]
+    networks:
+      - socket_proxy
+    volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+      - $DOCKERDIR/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
+    environment:
+      CRON: 0 0 0 * * ? # Everyday at midnight. Previously 0 0 * * *
+      FORCE_IMAGE_REMOVAL: 1
+      FORCE_CONTAINER_REMOVAL: 0
+      GRACE_PERIOD_SECONDS: 604800
+      DRY_RUN: 0
+      CLEAN_UP_VOLUMES: 1
+      TZ: $TZ
+      DOCKER_HOST: tcp://socket-proxy:2375
+
+  # Traefik Certs Dumper - Extract LetsEncrypt Certificates - Traefik2 Compatible
+  certdumper:
+    container_name: traefik_certdumper
+    image: humenius/traefik-certs-dumper:latest
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "all"]
+    network_mode: none
+    # command: --restart-containers container1,container2,container3
+    volumes:
+      - $DOCKERDIR/appdata/traefik2/acme:/traefik:ro
+      - $DOCKERDIR/shared/certs/$DOMAINNAME_CLOUD_SERVER:/output:rw
+      # - /var/run/docker.sock:/var/run/docker.sock:ro # Only needed if restarting containers (use Docker Socket Proxy instead)
+    environment:
+      DOMAIN: $DOMAINNAME_CLOUD_SERVER
+
+  # Cloudflare DDNS - Dynamic DNS Updater
+  ddns-updater:
+    image: qmcgaw/ddns-updater
+    container_name: ddns-updater
+    restart: unless-stopped
+    profiles: ["core", "all"]
+    network_mode: bridge
+    ports:
+      - 8000:8000/tcp
+    volumes:
+      - $DOCKERDIR/appdata/ddns-updater:/updater/data # Owned by UID 1000
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      PERIOD: 12h
+      UPDATE_COOLDOWN_PERIOD: 5m
+      PUBLICIP_DNS_TIMEOUT: 3s
+      HTTP_TIMEOUT: 10s
+      # Web UI
+      LISTENING_PORT: 8000
+      # Backup
+      BACKUP_PERIOD: 96h # 0 to disable
+      BACKUP_DIRECTORY: /updater/data/backups
+      # Other
+      LOG_LEVEL: info
+      # SHOUTRRR_ADDRESSES: $DISCORD_SHOUTRRR_ADDRESS
+
+  # TODO logs: "INFO Monitoring 0 containers to restart when becoming unhealthy"
+  # DeUnhealth - Restart your unhealthy containers safely (e.g. containers depending on VPN and VPN reconnects)
+  deunhealth:
+    image: qmcgaw/deunhealth
+    container_name: deunhealth
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "all"]
+    networks:
+      - socket_proxy
+    environment:
+      LOG_LEVEL: info
+      HEALTH_SERVER_ADDRESS: 127.0.0.1:9999
+      TZ: $TZ
+      DOCKER_HOST: tcp://socket-proxy:2375
+
+  # WatchTower - Automatic Docker Container Updates
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    profiles: ["meta", "all"]
+    restart: unless-stopped
+    networks:
+      - socket_proxy
+      # - t2_proxy
+    depends_on:
+      - socket-proxy
+    environment:
+      TZ: $TZ
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_REMOVE_VOLUMES: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "true"
+      WATCHTOWER_NO_STARTUP_MESSAGE: "false"
+      WATCHTOWER_SCHEDULE: "0 30 12 * * *" # Everyday at 12:30
+      WATCHTOWER_NOTIFICATIONS_LEVEL: info
+      DOCKER_HOST: tcp://socket-proxy:2375
+      DOCKER_API_VERSION: "1.40"
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock

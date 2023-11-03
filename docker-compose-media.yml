@@ -1,0 +1,561 @@
+# version: "3.9"
+
+services:
+
+  # Airsonic Advanced - Music Server
+  # airsonic:
+  #   image: lscr.io/linuxserver/airsonic-advanced:latest
+  #   container_name: airsonic
+  #   networks:
+  #     - default
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: "no"
+  #   profiles: ["media", "all"]
+  #   volumes:
+  #     - $DOCKERDIR/appdata/airsonic/playlists:/playlists
+  #     - $DOCKERDIR/appdata/airsonic/config:/config
+  #     - $DATADIR/Podcasts:/podcasts
+  #     - $DATADIR/Music:/Music
+  #   ports:
+  #     - "4040:8080"
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #     # JAVA_OPTS: '-Dserver.forward-headers-strategy=native' # optional - if you use a reverse-proxy
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.airsonic-rtr.entrypoints=https"
+  #     - "traefik.http.routers.airsonic-rtr.rule=Host(`airsonic.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.airsonic-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.airsonic-rtr.service=airsonic-svc"
+  #     - "traefik.http.services.airsonic-svc.loadbalancer.server.port=8080"
+
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf
+    container_name: audiobookshelf
+    ports:
+      - 13378:80
+    volumes:
+      - $DOCKERDIR/appdata/audiobookshelf:/config
+      - $EXTDRIVE:/data
+    restart: unless-stopped
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.audiobookshelf-rtr.entrypoints=https"
+      - "traefik.http.routers.audiobookshelf-rtr.rule=Host(`audio.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.audiobookshelf-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.audiobookshelf-rtr.service=audiobookshelf-svc"
+      - "traefik.http.services.audiobookshelf-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=AudioBookshelf
+      - homepage.icon=audiobookshelf.png
+      - homepage.href=https://audio.mirwin.net
+      - homepage.description=Read & Listen to stuff
+      - homepage.weight=2
+      # - homepage.widget.type=audiobookshelf
+      # - homepage.widget.url=http://audio:80
+      # - homepage.widget.key=${AUDIOBOOKSHELF_API_KEY}
+
+  # Book library https://github.com/linuxserver/docker-calibre-web
+  calibre:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    volumes:
+      - $DOCKERDIR/appdata/calibre:/config
+      - $EXTDRIVE/Dropbox/Calibre:/data/Library
+      - $DATADIR/Books:/data/Books
+      - $DATADIR/Comics:/data/Comics
+      - $DATADIR/Manga:/data/Manga
+    ports:
+      - 3083:8083
+    restart: unless-stopped
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.calibre-rtr.entrypoints=https"
+      - "traefik.http.routers.calibre-rtr.rule=Host(`calibre.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.calibre-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.calibre-rtr.service=calibre-svc"
+      - "traefik.http.services.calibre-svc.loadbalancer.server.port=8083"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=Calibre
+      - homepage.icon=calibre.png
+      - homepage.href=https://calibre.mirwin.net
+      - homepage.description=Book library & reader
+      - homepage.weight=2
+
+  kavita:
+    image: lscr.io/linuxserver/kavita:latest
+    container_name: kavita
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    volumes:
+      - $DOCKERDIR/appdata/kavita:/config
+      - $DATADIR/bookmarks:/kavita/config/bookmarks
+      - $DATADIR/Manga:/data/Manga
+      - $DATADIR/Comics:/data/Comics
+      - $DATADIR/Books:/data/Books
+      - $EXTDRIVE/Dropbox/Calibre:/data/Library
+      - $EXTDRIVE/Dropbox/Text:/data/Text
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.kavita-rtr.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.kavita-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.kavita-rtr.service=kavita-svc"
+      - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
+      - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
+      - homepage.group=Media
+      - homepage.name=Kavita
+      - homepage.icon=kavita.png
+      - homepage.href=http://kavita.mirwin.net/
+      - homepage.description=Book library & reader
+      - homepage.weight=3
+      # - homepage.widget.type=kavita
+      # - homepage.widget.url=http://kavita:5000/
+      # - homepage.widget.key=${KAVITA_API_KEY}
+
+  komga:
+    image: gotson/komga
+    container_name: komga
+    restart: unless-stopped
+    profiles: ["media", "web", "all"]
+    networks:
+      - t2_proxy
+    volumes:
+      - $DOCKERDIR/appdata/:/config
+      - $DATADIR:/data
+    ports:
+      - 25600:25600
+    user: "$PUID:$PGID"
+    # remove the whole environment section if you don't need it
+    environment:
+      - TZ=$TZ
+      - <ENV_VAR>=<extra configuration>
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.komga-rtr.entrypoints=https"
+      - "traefik.http.routers.komga-rtr.rule=Host(`komga.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.komga-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.komga-rtr.service=komga-svc"
+      - "traefik.http.services.komga-svc.loadbalancer.server.port=25600"
+
+  metube:
+    image: ghcr.io/alexta69/metube
+    container_name: metube
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    volumes:
+      - $DOCKERDIR/appdata/metube:/data
+      - $DATADIR/Youtube:/downloads
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      # UMASK: 002
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.metube-rtr.entrypoints=https"
+      - "traefik.http.routers.metube-rtr.rule=Host(`metube.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.metube-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.metube-rtr.service=metube-svc"
+      - "traefik.http.services.metube-svc.loadbalancer.server.port=8081"
+      ## Homepage
+      - homepage.group=Admin
+      - homepage.name=Metube
+      - homepage.href=https://metube.mirwin.net
+      - homepage.description=Youtube frontend
+      - homepage.weight=1
+
+  # https://github.com/kieraneglin/pinchflat?tab=readme-ov-file#docker
+  pinchflat:
+    image: ghcr.io/kieraneglin/pinchflat:latest
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    restart: unless-stopped
+    ports:
+      - '8945:8945'
+    volumes:
+      - $DOCKERDIR/appdata/pinchflat:/config
+      - $DATADIR/Youtube:/downloads
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.pinchflat-rtr.entrypoints=https"
+      - "traefik.http.routers.pinchflat-rtr.rule=Host(`pinchflat.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.pinchflat-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.pinchflat-rtr.service=pinchflat-svc"
+      - "traefik.http.services.pinchflat-svc.loadbalancer.server.port=8945"
+      - homepage.group=Downloaders
+      - homepage.name=Pinchflat
+      - homepage.href=http://pinchflat.mirwin.net/
+      - homepage.description=YouTube frontend
+      - homepage.weight=4
+
+  # Jellyfin - Media Server
+  # jellyfin:
+  #   image: jellyfin/jellyfin:latest
+  #   container_name: jellyfin
+  #   networks:
+  #     - default
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: "no"
+  #   profiles: ["media", "all"]
+  #   user: $PUID:$PGID
+  #   devices:
+  #     - /dev/dri:/dev/dri # for harware transcoding
+  #   ports:
+  #     - "8096:8096"
+  #     # - "8920:8920" # Emby also uses same port if running both
+  #   environment:
+  #     UMASK_SET: 022
+  #     TZ: $TZ
+  #   volumes:
+  #     - $DOCKERDIR/appdata/jellyfin:/config
+  #     - $DATADIR:/data/media
+  #     - $DOWNLOADSDIR:/data/downloads
+  #     - /dev/shm:/data/transcode # Offload transcoding to RAM if you have enough RAM
+
+  lazylibrarian:
+    image: lscr.io/linuxserver/lazylibrarian:latest
+    container_name: lazylibrarian
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+      # - DOCKER_MODS=linuxserver/mods:universal-calibre|linuxserver/mods:lazylibrarian-ffmpeg #optional
+    volumes:
+      - $DOCKERDIR/appdata/lazylibrarian:/config
+      - $DATADIR/downloads:/downloads
+      - $DATADIR:/data
+    ports:
+      - 5299:5299
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    restart: unless-stopped
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.lazylibrarian-rtr.entrypoints=https"
+      - "traefik.http.routers.lazylibrarian-rtr.rule=Host(`lazylibrarian.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.lazylibrarian-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.lazylibrarian-rtr.service=lazylibrarian-svc"
+      - "traefik.http.services.lazylibrarian-svc.loadbalancer.server.port=5299"
+      - homepage.group=Request
+      - homepage.name=LazyLibrarian
+      - homepage.icon=lazylibrarian.png
+      - homepage.href=http://lazylibrarian.mirwin.net/
+      - homepage.description=Book series & author tracking
+      - homepage.weight=4
+
+  # Picard - Music Library Tagging and Management
+  picard:
+    image: mikenye/picard:latest
+    container_name: picard
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    # ports:
+    #   - "$PICARD_PORT:5801"
+    volumes:
+      - $DATADIR:/data
+      - $DOCKERDIR/appdata/picard:/config:rw
+      - /dev/shm:/dev/shm
+    environment:
+      USER_ID: $PUID
+      GROUP_ID: $PGID
+      TZ: $TZ
+      UMASK: 002
+      DISPLAY_WIDTH: 1600
+      DISPLAY_HEIGHT: 960
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.picard-rtr.entrypoints=https"
+      - "traefik.http.routers.picard-rtr.rule=Host(`picard.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.picard-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.picard-rtr.service=picard-svc"
+      - "traefik.http.services.picard-svc.loadbalancer.server.port=5801"
+      ## Homepage
+      - homepage.group=Meta
+      - homepage.name=Picard
+      - homepage.icon=picard.png
+      - homepage.href=https://picard.mirwin.net
+      - homepage.description=Music Library Tagging and Management
+      - homepage.weight=5
+
+  # Plex Meta Manager - Automatic Metadata Manager for Plex
+  plexmm:
+    image: lscr.io/linuxserver/plex-meta-manager:latest
+    container_name: plexmm
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "all"]
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      PMM_CONFIG: /config/config.yml #optional
+      PMM_TIME: 03:00 #optional
+      PMM_RUN: "True" #optional
+      PMM_TEST: "False" #optional
+      PMM_NO_MISSING: "False" #optional
+    volumes:
+      - $DOCKERDIR/appdata/plex-meta-manager:/config
+
+  # Plex - Media Server
+  plex:
+    image: plexinc/pms-docker:latest
+    container_name: plex
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "32400:32400/tcp"
+      - "3005:3005/tcp"
+      - "8324:8324/tcp"
+      - "32469:32469/tcp"
+      - "1900:1900/udp" # conflicts with xTeVe and Synology default ports
+      - "32410:32410/udp"
+      - "32412:32412/udp"
+      - "32413:32413/udp"
+      - "32414:32414/udp"
+      - "33400:33400/tcp"
+    devices:
+      - /dev/dri:/dev/dri # for hardware transcoding
+    volumes:
+      - $DOCKERDIR/appdata/plex:/config
+      - $DOWNLOADSDIR:/data/downloads
+      - $DATADIR:/data/media
+      # - $EXTDRIVE/ssd/sitespeed:/data/files
+      - /dev/shm:/transcode # Offload transcoding to RAM if you have enough RAM
+    environment:
+      TZ: $TZ
+      HOSTNAME: "sPlex"
+      # PLEX_CLAIM_FILE: /run/secrets/plex_claim
+      PLEX_UID: $PUID
+      PLEX_GID: $PGID
+      ADVERTISE_IP: "http://$SERVER_IP:32400/,http://$SERVER_IP_LOCAL:32400,https://splex.$DOMAINNAME_CLOUD_SERVER"
+      # ALLOWED_NETWORKS: $LOCAL_NETWORK
+    secrets:
+      - plex_claim
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.plex-rtr.entrypoints=https"
+      - "traefik.http.routers.plex-rtr.rule=Host(`splex.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.plex-rtr.middlewares=chain-no-auth@file"
+      ## HTTP Services
+      - "traefik.http.routers.plex-rtr.service=plex-svc"
+      - "traefik.http.services.plex-svc.loadbalancer.server.port=32400"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=Plex
+      - homepage.icon=plex.png
+      - homepage.href=https://splex.mirwin.net
+      - homepage.description=Plex
+      # - homepage.weight=1
+      - homepage.widget.type=plex
+      - homepage.widget.url=http://plex:32400
+      - homepage.widget.key=${PLEX_API_KEY}
+
+  # romm:
+  #   image: zurdi15/romm:latest
+  #   container_name: romm
+  #   networks:
+  #     - t2_proxy
+  #   restart: "unless-stopped"
+  #   profiles: ["media", "apps", "all"]
+  #   ports:
+  #     - 9080:8080
+  #   environment:
+  #     # - TZ=$TZ
+  #     # - PUID=$PUID
+  #     # - PGID=$PGID
+  #     - ROMM_DB_DRIVER=sqlite
+  #     - IGDB_CLIENT_ID=$IGDB_CLIENT_ID
+  #     - IGDB_CLIENT_SECRET=$IGDB_CLIENT_SECRET
+  #     # [Optional - WIP] Use SteamGridDB as a source for covers
+  #     # - STEAMGRIDDB_API_KEY=$STEAMGRIDDB_API_KEY
+  #     # [Optional] Will enable user management and require authentication to access the interface (disabled by default)
+  #     - ROMM_AUTH_ENABLED=false
+  #     - ROMM_AUTH_SECRET_KEY=$ROMM_AUTH_SECRET_KEY
+  #     # - ROMM_AUTH_USERNAME=admin # default: admin
+  #     # - ROMM_AUTH_PASSWORD=$ROMM_PASSWORD
+  #     # [Optional] Only required if authentication is enabled
+  #     - ENABLE_EXPERIMENTAL_REDIS=true # default: false
+  #     - REDIS_HOST=redis # default: localhost
+  #     - REDIS_PORT=6379 # default: 6379
+  #     # - REDIS_PASSWORD=<redis password> # [Optional] Support for secured redis
+  #     # [Optional] Will enable asynchronous tasks (all disabled by default)
+  #     - ENABLE_RESCAN_ON_FILESYSTEM_CHANGE=true # Runs a quick scan on the library when a file is added or removed 
+  #     - RESCAN_ON_FILESYSTEM_CHANGE_DELAY=30 # Delay in seconds before running the quick scan (default: 5)
+  #     - ENABLE_SCHEDULED_RESCAN=true # Runs a quick scan on the library at a given time
+  #     - SCHEDULED_RESCAN_CRON=0 3 * * * # Cron expression for the scheduled scan (default: 0 3 * * * - At 3:00 AM every day)
+  #     - ENABLE_SCHEDULED_UPDATE_SWITCH_TITLEDB=true # Updates the Switch TitleDB database at a given time
+  #     - SCHEDULED_UPDATE_SWITCH_TITLEDB_CRON=0 4 * * * # Cron expression for the scheduled update (default: 0 4 * * * - At 4:00 AM every day)
+  #     - ENABLE_SCHEDULED_UPDATE_MAME_XML=true # Updates the MAME XML database at a given time
+  #     - SCHEDULED_UPDATE_MAME_XML_CRON=0 5 * * * # Cron expression for the scheduled update (default: 0 5 * * * - At 5:00 AM every day)
+  #   volumes:
+  #     - $DOCKERDIR/appdata/romm:/romm
+  #     # - $DATADIR/roms:/romm/library
+  #     - $EXTDRIVE/Dropbox/roms:/romm/library/roms
+  #     # - "/path/to/resources:/romm/resources" # [Optional] Path where roms metadata (covers) are stored
+  #     # - "/path/to/config.yml:/romm/config.yml" # [Optional] Path where config is stored
+  #     # - "/path/to/database:/romm/database" # [Optional] Only needed if ROMM_DB_DRIVER=sqlite or not set
+  #     # - "/path/to/logs:/romm/logs" # [Optional] Path where logs are stored
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers Auth Bypass
+  #     - "traefik.http.routers.romm-rtr-bypass.entrypoints=https"
+  #     - "traefik.http.routers.romm-rtr-bypass.priority=100"
+  #     ## HTTP Routers Auth
+  #     - "traefik.http.routers.romm-rtr.entrypoints=https"
+  #     - "traefik.http.routers.romm-rtr.rule=Host(`romm.$DOMAINNAME_CLOUD_SERVER`)"
+  #     - "traefik.http.routers.romm-rtr.priority=99"
+  #     ## Middlewares
+  #     - "traefik.http.routers.romm-rtr-bypass.middlewares=chain-no-auth@file"
+  #     - "traefik.http.routers.romm-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.romm-rtr.service=romm-svc"
+  #     - "traefik.http.routers.romm-rtr-bypass.service=romm-svc"
+  #     - "traefik.http.services.romm-svc.loadbalancer.server.port=8080"
+  #     ## Homepage
+  #     - homepage.group=Media
+  #     - homepage.name=Romm
+  #     - homepage.icon=romm.png
+  #     - homepage.href=https://romm.mirwin.net
+  #     - homepage.description=Game roms
+  #     - homepage.weight=2
+  #     # - homepage.widget.type=romm
+  #     # - homepage.widget.url=http://romm:8080
+  #     # - homepage.widget.key=${ROMM_API_KEY}
+
+  # Tautulli - Plex statistics and monitoring
+  # Set HTTP Root in Tautulli settings if using PathPrefix
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "metrics", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "8181:8181"
+    volumes:
+      - $DOCKERDIR/appdata/tautulli/config:/config
+      - $DOCKERDIR/appdata/plexms/Library/Application Support/Plex Media Server/Logs:/logs:ro # For tautulli Plex log viewer
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.tautulli-rtr-bypass.entrypoints=https"
+      #- "traefik.http.routers.tautulli-rtr-bypass.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$TAUTULLI_API_KEY`) || Query(`apikey`, `$TAUTULLI_API_KEY`))"
+      - "traefik.http.routers.tautulli-rtr-bypass.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      - "traefik.http.routers.tautulli-rtr-bypass.priority=100"
+      ## HTTP Routers
+      - "traefik.http.routers.tautulli-rtr.entrypoints=https"
+      - "traefik.http.routers.tautulli-rtr.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.tautulli-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.tautulli-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.tautulli-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.tautulli-rtr.service=tautulli-svc"
+      - "traefik.http.routers.tautulli-rtr-bypass.service=tautulli-svc"
+      - "traefik.http.services.tautulli-svc.loadbalancer.server.port=8181"
+      ## Homepage
+      - homepage.group=Meta
+      - homepage.name=Tautulli
+      - homepage.icon=tautulli.png
+      - homepage.href=https://tautulli.mirwin.net
+      - homepage.description=Plex Stats
+      - homepage.weight=5
+      - homepage.widget.type=tautulli
+      - homepage.widget.url=http://tautulli:8181
+      - homepage.widget.key=${TAUTULLI_API_KEY}
+

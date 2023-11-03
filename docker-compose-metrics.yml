@@ -1,0 +1,364 @@
+# version: "3.9"
+
+services:
+  # https://medium.com/@sohammohite/docker-container-monitoring-with-cadvisor-prometheus-and-grafana-using-docker-compose-b47ec78efbc
+  # cadvisor:
+  #   container_name: cadvisor
+  #   image: gcr.io/cadvisor/cadvisor:latest
+  #   network_mode: "host"
+  #   ports:
+  #     - "8080:8080"
+  #   volumes: 
+  #     - "/:/rootfs"
+  #     - "/var/run:/var/run"
+  #     - "/sys:/sys"
+  #     - "/var/lib/docker/:/var/lib/docker"
+  #     - "/dev/disk/:/dev/disk"
+  #   privileged: true
+  #   devices: 
+  #     - "/dev/kmsg"
+
+  # Prometheus - Database for sensor data
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    networks:
+      - default
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["dbs", "all"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - $DOCKERDIR/appdata/prometheus/config:/etc/prometheus
+      - $DOCKERDIR/appdata/prometheus/data:/prometheus
+    user: $PUID:$PGID
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      ## Homepage
+      # - homepage.group=Admin
+      # - homepage.name=prometheus
+      # - homepage.icon=prometheus.png
+      # - homepage.href=https://pma.mirwin.net
+      # - homepage.description=Monitoring
+      # - homepage.weight=3
+
+  # InfluxDB - Database for sensor data
+  # influxdb:
+  #   image: influxdb:latest
+  #   container_name: influxdb
+  #   networks:
+  #     - default
+  #     - t2_proxy
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: unless-stopped
+  #   # env_file: configuration.env
+  #   profiles: ["dbs", "all"]
+  #   ports:
+  #     - "8086:8086"
+  #   volumes:
+  #     - $DOCKERDIR/appdata/influxdb2/config:/etc/influxdb2
+  #     - $DOCKERDIR/appdata/influxdb2/db:/var/lib/influxdb2
+  #     # - influxdb_data:/var/lib/influxdb
+  #     # - ./:/imports
+  
+  ############################# MONITORING
+
+  # Radarr Exporter - Radarr metrics for Prometheus
+  radarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: radarr-exporter
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["all", "metrics", "arrs"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9707:9707"
+    environment:
+      PORT: 9707
+      URL: "http://radarr:7878"
+      APIKEY: $RADARR_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["radarr"]
+
+  # Readarr Exporter - Readarr metrics for Prometheus
+  readarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: readarr-exporter
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["all", "metrics", "arrs"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9716:9716"
+    environment:
+      PORT: 9716
+      URL: "http://readarr:8787"
+      APIKEY: $READARR_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["readarr"]
+
+  # Sonarr Exporter - Sonarr metrics for Prometheus
+  sonarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: sonarr-exporter
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["all", "metrics", "arrs"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9708:9708"
+    environment:
+      PORT: 9708
+      URL: "http://sonarr:8989"
+      APIKEY: $SONARR_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["sonarr"]
+
+  # Lidarr Exporter - Lidarr metrics for Prometheus
+  lidarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: lidarr-exporter
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["all", "media", "arrs"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9709:9709"
+    environment:
+      PORT: 9709
+      URL: "http://lidarr:8686"
+      APIKEY: $LIDARR_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["lidarr"]
+
+  # Prowlarr Exporter - Prowlarr metrics for Prometheus
+  prowlarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: prowlarr-exporter
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["all", "apps"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9710:9710"
+    environment:
+      PORT: 9710
+      URL: "http://prowlarr:9696"
+      APIKEY: $PROWLARR_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["prowlarr"]
+
+  # SABnzbd Exporter - SABnzbd metrics for Prometheus
+  sabnzbd-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: sabnzbd-exporter
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "unless-stopped"
+    profiles: ["all", "downloads"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9712:9712"
+    environment:
+      PORT: 9712
+      URL: "http://sabnzbd:8080"
+      APIKEY: $SABNZBD_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["sabnzbd"]
+
+  # Node Exporter - Metrics to Prometheus
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter:latest
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["monitoring", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+
+  # Grafana - Graphical data visualization for InfluxDB data
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    container_name: grafana
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "3069:3000"
+    user: "472" # $PUID
+    # depends_on:
+      # - influxdb
+      # - varken
+    volumes:
+      - $DOCKERDIR/appdata/grafana:/var/lib/grafana
+      - $DOCKERDIR/appdata/grafana/provisioning/:/etc/grafana/provisioning/
+      # - $DOCKERDIR/appdata/grafana/dashboards/:/var/lib/grafana/dashboards/
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel,cloudflare-app"
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.grafana-rtr.entrypoints=https"
+      - "traefik.http.routers.grafana-rtr.rule=Host(`grafana.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.grafana-rtr.service=grafana-svc"
+      - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
+      ## Homepage
+      - homepage.group=Admin
+      - homepage.name=Grafana
+      - homepage.icon=grafama.png
+      - homepage.href=https://grafana.mirwin.net
+      - homepage.description=Pretty graphs
+      - homepage.weight=4
+
+  # TODO influx perms: 'influxdb.exceptions.InfluxDBClientError: 401: {"code":"unauthorized","message":"Unauthorized"}'
+  # https://github.com/Boerderij/Varken/blob/master/docker-compose.yml
+  # varken:
+  #   # hostname: varken
+  #   container_name: varken
+  #   image: boerderij/varken
+  #   restart: unless-stopped
+  #   networks:
+  #     # - internal
+  #     - t2_proxy
+  #   volumes:
+  #     - $DOCKERDIR/appdata/varken:/config
+  #   depends_on:
+  #     - influxdb
+  #   environment:
+  #     - TZ=$TZ
+
+  #     - VRKN_GLOBAL_SONARR_SERVER_IDS=1
+  #     - VRKN_GLOBAL_RADARR_SERVER_IDS=1
+  #     - VRKN_GLOBAL_LIDARR_SERVER_IDS=false
+  #     - VRKN_GLOBAL_TAUTULLI_SERVER_IDS=1
+  #     - VRKN_GLOBAL_OMBI_SERVER_IDS=1
+  #     - VRKN_GLOBAL_SICKCHILL_SERVER_IDS=false
+  #     - VRKN_GLOBAL_UNIFI_SERVER_IDS=false
+  #     - VRKN_GLOBAL_MAXMIND_LICENSE_KEY=$MAXMIND_LICENSE_KEY
+
+  #     - VRKN_INFLUXDB_URL=influxdb
+  #     - VRKN_INFLUXDB_PORT=8086
+  #     - VRKN_INFLUXDB_SSL=false
+  #     - VRKN_INFLUXDB_VERIFY_SSL=false
+  #     - VRKN_INFLUXDB_USERNAME=$INFLUXDB_ADMIN_USER # TODO change
+  #     - VRKN_INFLUXDB_PASSWORD=$INFLUXDB_ADMIN_PASSWORD
+
+  #     - VRKN_TAUTULLI_1_URL=tautulli:8181
+  #     - VRKN_TAUTULLI_1_FALLBACK_IP=1.1.1.1
+  #     - VRKN_TAUTULLI_1_APIKEY=$TAUTULLI_API_KEY
+  #     - VRKN_TAUTULLI_1_SSL=false
+  #     - VRKN_TAUTULLI_1_VERIFY_SSL=false
+  #     - VRKN_TAUTULLI_1_GET_ACTIVITY=true
+  #     - VRKN_TAUTULLI_1_GET_ACTIVITY_RUN_SECONDS=30
+  #     - VRKN_TAUTULLI_1_GET_STATS=true
+  #     - VRKN_TAUTULLI_1_GET_STATS_RUN_SECONDS=3600
+
+  #     - VRKN_SONARR_1_URL=sonarr:8989
+  #     - VRKN_SONARR_1_APIKEY=$SONARR_API_KEY
+  #     - VRKN_SONARR_1_SSL=false
+  #     - VRKN_SONARR_1_VERIFY_SSL=false
+  #     - VRKN_SONARR_1_MISSING_DAYS=7
+  #     - VRKN_SONARR_1_MISSING_DAYS_RUN_SECONDS=300
+  #     - VRKN_SONARR_1_FUTURE_DAYS=1
+  #     - VRKN_SONARR_1_FUTURE_DAYS_RUN_SECONDS=300
+  #     - VRKN_SONARR_1_QUEUE=true
+  #     - VRKN_SONARR_1_QUEUE_RUN_SECONDS=300
+
+  #     - VRKN_RADARR_1_URL=radarr
+  #     - VRKN_RADARR_1_APIKEY=$RADARR_API_KEY
+  #     - VRKN_RADARR_1_SSL=false
+  #     - VRKN_RADARR_1_VERIFY_SSL=false
+  #     - VRKN_RADARR_1_QUEUE=true
+  #     - VRKN_RADARR_1_QUEUE_RUN_SECONDS=300
+  #     - VRKN_RADARR_1_GET_MISSING=true
+  #     - VRKN_RADARR_1_GET_MISSING_RUN_SECONDS=300
+
+  #     - VRKN_LIDARR_1_URL=lidarr:8686
+  #     - VRKN_LIDARR_1_APIKEY=$LIDARR_API_KEY
+  #     - VRKN_LIDARR_1_SSL=false
+  #     - VRKN_LIDARR_1_VERIFY_SSL=false
+  #     - VRKN_LIDARR_1_MISSING_DAYS=30
+  #     - VRKN_LIDARR_1_MISSING_DAYS_RUN_SECONDS=300
+  #     - VRKN_LIDARR_1_FUTURE_DAYS=30
+  #     - VRKN_LIDARR_1_FUTURE_DAYS_RUN_SECONDS=300
+  #     - VRKN_LIDARR_1_QUEUE=true
+  #     - VRKN_LIDARR_1_QUEUE_RUN_SECONDS=300
+
+  # https://github.com/bcremer/docker-telegraf-influx-grafana-stack/blob/latest/docker-compose.yml
+  # telegraf:
+  #   image: telegraf:1.18-alpine
+  #   container_name: telegraf
+  #   profiles: ["monitoring", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   volumes:
+  #     - $DOCKERDIR/appdata/telegraf:/etc/telegraf
+  #   depends_on:
+  #     - influxdb
+  #   links:
+  #     - influxdb
+  #   ports:
+  #   - '127.0.0.1:8125:8125/udp'
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    profiles: ["monitoring", "all"]
+    volumes:
+      - $DOCKERDIR/appdata/loki:/etc/loki
+    networks:
+      - t2_proxy
+      # - loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    profiles: ["monitoring", "all"]
+    networks:
+      - t2_proxy
+      # - loki
+    volumes:
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/config.yml

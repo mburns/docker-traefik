@@ -1,0 +1,301 @@
+# version: "3.9"
+
+# volumes:
+#   ipfs_path:
+#   ipfs_fuse:
+#   ipns_fuse:
+#   data:
+#     name: tor-datadir-${TOR_OR_PORT}-${TOR_PT_PORT} # appdir/tor
+
+services:
+  freshrss:
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    hostname: freshrss
+    restart: unless-stopped
+    profiles: ["tools", "web", "all"]
+    # Optional build section if you want to build the image locally:
+    # build:
+    #   # Pick #latest (stable release) or #edge (rolling release) or a specific release like #1.21.0
+    #   context: https://github.com/FreshRSS/FreshRSS.git#latest
+    #   dockerfile: Docker/Dockerfile-Alpine
+    logging:
+      options:
+        max-size: 10m
+    volumes:
+      - $DOCKERDIR/appdata/freshrss:/var/www/FreshRSS/data
+      # - $DATADIR/media:/var/www/FreshRSS/data
+      - $DOCKERDIR/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      CRON_MIN: '3,33'
+      TRUSTED_PROXY: 172.16.0.1/12 192.168.0.1/16 10.0.0.0/8
+    networks:
+      - t2_proxy
+    ports:
+      - "8765:80"
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.freshrss-rtr.entrypoints=https"
+      - "traefik.http.routers.freshrss-rtr.rule=Host(`freshrss.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
+      - "traefik.http.services.freshrss-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=FreshRSS
+      - homepage.icon=freshrss.png
+      - homepage.href=https://freshrss.mirwin.net
+      - homepage.description=Blog feeds
+      - homepage.weight=4
+      # - homepage.widget.type=freshrss
+      # - homepage.widget.url=http://freshrss:8765
+      # - homepage.widget.key=${FRESHRSS_API_KEY}
+
+  # Ladder - 12ft.io cline, website to circumvent paywalls
+  ladder:
+    image: ghcr.io/kubero-dev/ladder:latest
+    container_name: ladder
+    # build: .
+    restart: unless-stopped
+    profiles: ["tools", "web", "all"]
+    networks:
+      - t2_proxy
+    #command: sh -c ./ladder
+    environment:
+      - PORT=8091
+      #- PREFORK=true
+      #- X_FORWARDED_FOR=66.249.66.1
+      #- USER_AGENT=Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+      #- USERPASS=foo:bar
+      - LOG_URLS=true
+      #- GODEBUG=netdns=go
+    ports:
+      - "8091:8091"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.ladder-rtr.entrypoints=https"
+      - "traefik.http.routers.ladder-rtr.rule=Host(`ladder.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.ladder-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.ladder-rtr.service=ladder-svc"
+      - "traefik.http.services.ladder-svc.loadbalancer.server.port=8091"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Ladder
+      - homepage.icon=ladder.png
+      - homepage.href=https://ladder.mirwin.net
+      - homepage.description=Paywall bypass
+      # - homepage.weight=2
+
+  # via https://github.com/printfuck/xExtension-Readable
+  readability:
+    image: phpdockerio/readability-js-server
+    container_name: readability
+    restart: unless-stopped
+    profiles: ["tools", "all"]
+    ports:
+      - 127.0.0.1:3000:3000
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.readability-rtr.entrypoints=https"
+      - "traefik.http.routers.readability-rtr.rule=Host(`readability.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.readability-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.readability-rtr.service=readability-svc"
+      - "traefik.http.services.readability-svc.loadbalancer.server.port=3000"
+
+  # via https://github.com/printfuck/xExtension-Readable
+  mercury:
+    image: wangqiru/mercury-parser-api
+    container_name: mercury
+    restart: unless-stopped
+    profiles: ["tools", "all"]
+    ports:
+      - 127.0.0.1:3001:3000
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.mercury-rtr.entrypoints=https"
+      - "traefik.http.routers.mercury-rtr.rule=Host(`mercury.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.mercury-rtr.service=mercury-svc"
+      - "traefik.http.services.mercury-svc.loadbalancer.server.port=3000"
+
+  # FlareSolverr - Proxy server to bypass Cloudflare protection
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    profiles: ["tools", "all"]
+    networks:
+      t2_proxy:
+        ipv4_address: 192.168.90.160
+    environment:
+    - LOG_LEVEL=${LOG_LEVEL:-info}
+    - LOG_HTML=${LOG_HTML:-false}
+    - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+    - TZ=$TZ
+    # ports:
+    #  - "8191:8191"
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.flaresolverr-rtr.entrypoints=https"
+      - "traefik.http.routers.flaresolverr-rtr.rule=Host(`flaresolverr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.flaresolverr-rtr.tls=true"
+      ## Middlewares
+      # - "traefik.http.routers.flaresolverr-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.flaresolverr-rtr.service=flaresolverr-svc"
+      - "traefik.http.services.flaresolverr-svc.loadbalancer.server.port=8191"
+
+  # lounge - irc client
+  lounge:
+    image: ghcr.io/thelounge/thelounge:latest
+    container_name: lounge
+    profiles: ["tools", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9003:9000"
+    restart: always
+    volumes:
+      - $DOCKERDIR/appdata/lounge:/var/opt/thelounge
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.lounge-rtr.entrypoints=https"
+      - "traefik.http.routers.lounge-rtr.rule=Host(`lounge.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.lounge-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.lounge-rtr.service=lounge-svc"
+      - "traefik.http.services.lounge-svc.loadbalancer.server.port=9000"
+
+  # password manager
+  # https://www.techaddressed.com/tutorials/vaultwarden-docker-compose/#smtp-email-account
+  vaultwarden:
+    container_name: vaultwarden
+    image: vaultwarden/server:latest
+    profiles: ["tools", "all"]
+    networks:
+      - t2_proxy
+    restart: unless-stopped
+    volumes:
+      - $DOCKERDIR/appdata/vaultwarden:/data
+    ports:
+      - 9991:80
+    environment:
+      - DOMAIN=https://vaultwarden.$DOMAINNAME_CLOUD_SERVER
+      - LOGIN_RATELIMIT_MAX_BURST=10
+      - LOGIN_RATELIMIT_SECONDS=60
+      - ADMIN_RATELIMIT_MAX_BURST=10
+      - ADMIN_RATELIMIT_SECONDS=60
+      - ADMIN_TOKEN=$VAULTWARDEN_TOKEN
+      - SENDS_ALLOWED=true
+      - EMERGENCY_ACCESS_ALLOWED=true
+      - WEB_VAULT_ENABLED=true
+    labels:
+      - "sablier.enable=true"
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.vaultwarden-rtr.entrypoints=https"
+      - "traefik.http.routers.vaultwarden-rtr.rule=Host(`vaultwarden.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.vaultwarden-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.vaultwarden-rtr.service=vaultwarden-svc"
+      - "traefik.http.services.vaultwarden-svc.loadbalancer.server.port=80"
+
+  # https://github.com/benbusby/whoogle-search/blob/main/docker-compose-traefik.yaml
+  whoogle:
+    image: ${WHOOGLE_IMAGE:-benbusby/whoogle-search}
+    container_name: whoogle
+    restart: unless-stopped
+    pids_limit: 50
+    mem_limit: 256mb
+    memswap_limit: 256mb
+    profiles: ["tools", "all"]
+    # user debian-tor from tor package
+    user: whoogle
+    # security_opt:
+    #   - no-new-privileges
+    # cap_drop:
+    #   - ALL
+    networks:
+      - t2_proxy
+    tmpfs:
+      - /config/:size=10M,uid=927,gid=927,mode=1700
+      # - /var/lib/tor/:size=15M,uid=927,gid=927,mode=1700
+      # - /run/tor/:size=1M,uid=927,gid=927,mode=1700
+    environment: # Uncomment to configure environment variables
+      # Site alternative configurations, uncomment to enable
+      # Note: If not set, the feature will still be available
+      # with default values.
+      - WHOOGLE_ALT_TW=farside.link/nitter
+      - WHOOGLE_ALT_YT=farside.link/invidious
+      - WHOOGLE_ALT_IG=farside.link/bibliogram/u
+      - WHOOGLE_ALT_RD=farside.link/libreddit
+      - WHOOGLE_ALT_MD=farside.link/scribe
+      - WHOOGLE_ALT_TL=farside.link/lingva
+      - WHOOGLE_ALT_IMG=farside.link/rimgo
+      - WHOOGLE_ALT_WIKI=farside.link/wikiless
+      - WHOOGLE_ALT_IMDB=farside.link/libremdb
+      - WHOOGLE_ALT_QUORA=farside.link/quetre
+      - WHOOGLE_CONFIG_DISABLE=1
+      - WHOOGLE_CONFIG_SEARCH_LANGUAGE=lang_en
+      - WHOOGLE_CONFIG_GET_ONLY=1
+      - WHOOGLE_CONFIG_COUNTRY=US
+      - WHOOGLE_CONFIG_PREFERENCES_ENCRYPTED=1
+      # - WHOOGLE_CONFIG_PREFERENCES_KEY="NEEDS_TO_BE_MODIFIED"
+    # env_file: # Alternatively, load variables from whoogle.env
+    #   - whoogle.env
+    ports:
+      - 8202:5000
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.whoogle-rtr.entrypoints=https"
+      - "traefik.http.routers.whoogle-rtr.rule=Host(`whoogle.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.whoogle-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.whoogle-rtr.service=whoogle-svc"
+      - "traefik.http.services.whoogle-svc.loadbalancer.server.port=5000"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Whoogle
+      - homepage.icon=whoogle.png
+      - homepage.href=https://whoogle.mirwin.net
+      - homepage.description=Google proxy
+      # - homepage.weight=2
