@@ -4,15 +4,6 @@ version: "3.9"
 # This is my main docker-compose file with most of the apps. I run docker on other systems with smaller stacks (web and synology).
 # You can copy-paste services from one docker-compose file in this repo to another to add other apps.
 
-########################### SYSTEM DESCRIPTION
-# DOCKER-COMPOSE FOR MEDIA SERVER
-# PROXMOX HOST: ASROCK 4X4 BOX-4800U, 64 GB RAM, 1 TB NVME m.2 SSD, and 2 TB SATA SSD
-# LXC: 12 Cores (limit 8), 16 GB RAM, 4 GB Swap, Ubuntu 22.04, and Docker
-# Google Drive mounted using Rclone on Proxmox host, and shared with the LXC using RO bind mount. 
-
-# Docker: 24.0.6
-# Docker Compose: v2.21.0 (docker-compose-plugin for Docker)
-
 ########################### NETWORKS
 # There is no need to create any networks outside this docker-compose file.
 # You may customize the network subnets (192.168.90.0/24 and 91.0/24) below as you please.
@@ -130,7 +121,7 @@ services:
       - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
       # - --providers.file.filename=/path/to/file # Load dynamic configuration from a file
       - --providers.file.watch=true # Only works on top level files in the rules folder
-      # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
+      - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
       - --certificatesResolvers.dns-cloudflare.acme.email=$CLOUDFLARE_EMAIL
       - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
       - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
@@ -262,7 +253,6 @@ services:
   oauth:
     container_name: oauth
     image: thomseddon/traefik-forward-auth:latest
-    # image: thomseddon/traefik-forward-auth:2.1-arm # Use this image with Raspberry Pi
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -279,7 +269,7 @@ services:
       - INSECURE_COOKIE=false
       - AUTH_HOST=oauth.$DOMAINNAME_CLOUD_SERVER
       - URL_PATH=/_oauth
-      - LOG_LEVEL=warn # set to trace while testing bypass rules
+      - LOG_LEVEL=trace # warn # set to trace while testing bypass rules
       - LOG_FORMAT=text
       - LIFETIME=86400 # 1 day
       - DEFAULT_ACTION=auth
@@ -337,7 +327,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    # profiles: ["core", "all"]
+    profiles: ["core", "all"]
     network_mode: host
     cap_add:
       - NET_ADMIN
@@ -404,61 +394,61 @@ services:
       - "traefik.http.services.homepage-svc.loadbalancer.server.port=3000"
 
   # CrowdSec - Open-source & collaborative security IPS
-  crowdsec:
-    image: crowdsecurity/crowdsec
-    container_name: crowdsec
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    ports:
-      - "8080:8080"
-      - "$ZEROTIER_IP_CLOUDSERVER:6060:6060" # Exposing metrics via Zerotier IP
-    environment:
-      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux fulljackz/proxmox"
-      GID: "${GID-1000}"
-      CUSTOM_HOSTNAME: home-server
-      DISABLE_LOCAL_API: "true" # Only after successfully registering and validating remote agent below.
-      # For the following, check local_api_credentials.yaml after cscli lapi register (secondary machine) and cscli machine validate (on primary machine)
-      AGENT_USERNAME: $CROWDSEC_AGENT_USERNAME 
-      AGENT_PASSWORD: $CROWDSEC_AGENT_PASSWORD 
-      LOCAL_API_URL: $CROWDSEC_LOCAL_API_URL 
-    volumes:
-      - $DOCKERDIR/logs/cloudserver:/logs/cloudserver:ro
-      - /var/log:/var/log:ro
-      - $EXTDRIVE/zbox/var/log:/logs/zbox:ro
-      - $DOCKERDIR/appdata/crowdsec/data:/var/lib/crowdsec/data
-      - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
+  # crowdsec:
+  #   image: crowdsecurity/crowdsec
+  #   container_name: crowdsec
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   ports:
+  #     - "8080:8080"
+  #     - "$ZEROTIER_IP_CLOUDSERVER:6060:6060" # Exposing metrics via Zerotier IP
+  #   environment:
+  #     COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux fulljackz/proxmox"
+  #     GID: "${GID-1000}"
+  #     CUSTOM_HOSTNAME: home-server
+  #     DISABLE_LOCAL_API: "true" # Only after successfully registering and validating remote agent below.
+  #     # For the following, check local_api_credentials.yaml after cscli lapi register (secondary machine) and cscli machine validate (on primary machine)
+  #     AGENT_USERNAME: $CROWDSEC_AGENT_USERNAME 
+  #     AGENT_PASSWORD: $CROWDSEC_AGENT_PASSWORD 
+  #     LOCAL_API_URL: $CROWDSEC_LOCAL_API_URL 
+  #   volumes:
+  #     - $DOCKERDIR/logs/cloudserver:/logs/cloudserver:ro
+  #     - /var/log:/var/log:ro
+  #     - $EXTDRIVE/zbox/var/log:/logs/zbox:ro
+  #     - $DOCKERDIR/appdata/crowdsec/data:/var/lib/crowdsec/data
+  #     - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
 
   # CrowdSec Bouncer - Traefik
-  traefik-bouncer:
-    image: fbonalair/traefik-crowdsec-bouncer
-    container_name: traefik-bouncer
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    environment:
-      GIN_MODE: release # default is debug (more logs)
-      CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
-      CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT # CrowdSec host and port
+  # traefik-bouncer:
+  #   image: fbonalair/traefik-crowdsec-bouncer
+  #   container_name: traefik-bouncer
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   environment:
+  #     GIN_MODE: release # default is debug (more logs)
+  #     CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
+  #     CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT # CrowdSec host and port
 
   # CrowdSec Bouncer - Cloudflare
   # sudo docker exec crowdsec cscli bouncer add cloudflare-bouncer
   # Set max ip number right the first time (max 10000). Recreating container deletes all ips and readds them causing cloudflare 429 rate limiting.
-  cloudflare-bouncer:
-    image: crowdsecurity/cloudflare-bouncer
-    container_name: cloudflare-bouncer
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    volumes:
-      - $DOCKERDIR/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+  # cloudflare-bouncer:
+  #   image: crowdsecurity/cloudflare-bouncer
+  #   container_name: cloudflare-bouncer
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   volumes:
+  #     - $DOCKERDIR/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
 
   ############################# DATABASE
 
@@ -474,7 +464,7 @@ services:
     networks:
       - t2_proxy
     ports:
-      - "$MARIADB_PORT:3306"
+      - "$DB_PORT:3306"
     volumes:
       - $DOCKERDIR/appdata/mariadb/data:/config
     environment:
@@ -495,7 +485,7 @@ services:
     profiles: ["core", "all"]
     networks:
       - t2_proxy
-    entrypoint: redis-server --appendonly yes --requirepass $REDIS_PASSWORD --maxmemory 512mb --maxmemory-policy allkeys-lru
+    entrypoint: redis-server --appendonly yes --requirepass $REDIS_PASSWORD --maxmemory 1024smb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:
@@ -515,8 +505,8 @@ services:
     networks:
       - t2_proxy
     environment:
-      - PMA_HOST=$MARIADB_HOST
-      - PMA_PORT=$MARIADB_PORT
+      - PMA_HOST=$DB_HOST
+      - PMA_PORT=$DB_PORT
       #- PMA_ARBITRARY=1
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_root_password
     secrets:
@@ -587,7 +577,7 @@ services:
     # ports:
     #   - "$JDOWNLOADER_PORT:5800"
     volumes:
-      - $DATADIR/downloads:/data/downloads
+      - $DOWNLOADSDIR:/data/downloads
       - $DOCKERDIR/appdata/jdownloader:/config
     environment:
       USER_ID: $PUID
@@ -612,31 +602,31 @@ services:
 
   # qBittorrent - Torrent downloader
   # Needs trailing / if using PathPrefixStrip
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrent
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "downloads", "all"]
-    network_mode: "service:gluetun"
-    # ports:
-    #   - "8081:8080" # Explosed via gluetun. 8081 because crowdsec is using port 8080
-    volumes:
-      - $DOCKERDIR/appdata/qbittorrent:/config
-      - $DATADIR/downloads:/data/downloads # Ensure that downloads folder is set to /data/downloads in qBittorrent
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-      UMASK_SET: 002
-    healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
-      test: "curl -sf https://example.com  || exit 1"
-      interval: 1m
-      timeout: 10s
-      retries: 1
-    labels: # Traefik labels added via glueten
-      - "deunhealth.restart.on.unhealthy=true"
+  # qbittorrent:
+  #   image: lscr.io/linuxserver/qbittorrent:latest
+  #   container_name: qbittorrent
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["apps", "downloads", "all"]
+  #   network_mode: "service:gluetun"
+  #   # ports:
+  #   #   - "8081:8080" # Explosed via gluetun. 8081 because crowdsec is using port 8080
+  #   volumes:
+  #     - $DOCKERDIR/appdata/qbittorrent:/config
+  #     - $DOWNLOADSDIR:/data/downloads # Ensure that downloads folder is set to /data/downloads in qBittorrent
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #     UMASK_SET: 002
+  #   healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
+  #     test: "curl -sf https://example.com  || exit 1"
+  #     interval: 1m
+  #     timeout: 10s
+  #     retries: 1
+  #   labels: # Traefik labels added via glueten
+  #     - "deunhealth.restart.on.unhealthy=true"
 
   # SABnzbd - Binary newsgrabber (NZB downloader)
   # Disable SABNnzbd's built-in HTTPS support for traefik proxy to work
@@ -654,7 +644,7 @@ services:
       - "8084:8080"
     volumes:
       - $DOCKERDIR/appdata/sabnzbd:/config
-      - $DATADIR/downloads:/data/downloads
+      - $DOWNLOADSDIR:/data/downloads
     environment:
       PUID: $PUID
       PGID: $PGID
@@ -958,7 +948,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    # profiles: ["media", "all"]
+    profiles: ["media", "all"]
     networks:
       - t2_proxy
     ports:
@@ -977,8 +967,7 @@ services:
     volumes:
       - $DOCKERDIR/appdata/plex:/config
       - $DOWNLOADSDIR:/downloads
-      - $DATADIR1/media:/media
-      - $DATADIR2/media:/media2
+      - $DATADIR:/media
       - /dev/shm:/transcode
     environment:
       TZ: $TZ
@@ -986,14 +975,14 @@ services:
       PLEX_CLAIM_FILE: /run/secrets/plex_claim
       PLEX_UID: $PUID
       PLEX_GID: $PGID
-      ADVERTISE_IP: "http://$SERVER_IP1:32400/,http://$SERVER_IP2:32400,https://splex.$DOMAINNAME_CLOUD_SERVER,https://splex.$DOMAINNAME_HOME_SYNOLOGY,http://$ZEROTIER_IP_SYNOLOGY:32400/"
+      ADVERTISE_IP: "http://$SERVER_IP:32400/,http://$SERVER_IP_LOCAL:32400,https://splex.$DOMAINNAME_CLOUD_SERVER"
     secrets:
       - plex_claim
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.plex-rtr.entrypoints=https"
-      - "traefik.http.routers.plex-rtr.rule=Host(`splex.$DOMAINNAME_HOME_SYNOLOGY`)"
+      - "traefik.http.routers.plex-rtr.rule=Host(`splex.$DOMAINNAME_CLOUD_SERVER`)"
       ## Middlewares
       - "traefik.http.routers.plex-rtr.middlewares=chain-no-auth@file"
       ## HTTP Services
@@ -1073,7 +1062,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    # profiles: ["media", "all"]
+    profiles: ["media", "all"]
     networks:
       - t2_proxy
     ports:
@@ -1085,8 +1074,8 @@ services:
       - $DOCKERDIR/appdata/tdarr/configs:/app/configs
       - $DOCKERDIR/appdata/tdarr/logs:/app/logs
       - $DOWNLOADSDIR/transcode/tdarr:/data/temp
-      - $ZDATADIR/Photos/zVideos:/data/media:ro
-      - $DATADIR1/media/zvideos:/data/output
+      - $DATADIR/Photos/zVideos:/data/media:ro
+      - $DATADIR/media/zvideos:/data/output
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -1099,7 +1088,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.tdarr-rtr.entrypoints=https"
-      - "traefik.http.routers.tdarr-rtr.rule=Host(`tdarr.$DOMAINNAME_HOME_SYNOLOGY`)"
+      - "traefik.http.routers.tdarr-rtr.rule=Host(`tdarr.$DOMAINNAME_CLOUD_SERVER`)"
       ## Middlewares
       - "traefik.http.routers.tdarr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -1113,7 +1102,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    # profiles: ["media", "all"]
+    profiles: ["media", "all"]
     networks:
       - t2_proxy
     devices:
@@ -1132,8 +1121,8 @@ services:
       - $DOCKERDIR/appdata/tdarr/configs:/app/configs
       - $DOCKERDIR/appdata/tdarr/logs:/app/logs
       - $DOWNLOADSDIR/transcode/tdarr:/data/temp
-      - $ZDATADIR/Photos/zVideos:/data/media:ro
-      - $DATADIR1/media/zvideos:/data/output
+      - $DATADIR/Photos/zVideos:/data/media:ro
+      - $DATADIR/media/zvideos:/data/output
 
   ############################# UTILITIES
 
@@ -1181,7 +1170,7 @@ services:
       - "8083:8080"
     environment:
       GUACD_HOSTNAME: guacd
-      MYSQL_HOSTNAME: $MARIADB_HOST
+      MYSQL_HOSTNAME: $DB_HOST
       MYSQL_PORT: 3306
       MYSQL_DATABASE_FILE: /run/secrets/guac_db_name
       MYSQL_USER_FILE: /run/secrets/guac_mysql_user
@@ -1227,7 +1216,7 @@ services:
     #   - "$FIREFOX_PORT:5800"
     volumes:
       - $DOCKERDIR/appdata/firefox:/config
-      - $DATADIR/downloads:/data/downloads
+      - $DOWNLOADSDIR:/data/downloads
       - /dev/shm:/dev/shm
     environment:
       USER_ID: $PUID
@@ -1257,7 +1246,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    # profiles: ["apps", "all"]
+    profiles: ["apps", "all"]
     networks:
       - t2_proxy
     ports:
@@ -1279,7 +1268,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.qdirstat-rtr.entrypoints=https"
-      - "traefik.http.routers.qdirstat-rtr.rule=Host(`qdir.$DOMAINNAME_HOME_SYNOLOGY`)"
+      - "traefik.http.routers.qdirstat-rtr.rule=Host(`qdir.$DOMAINNAME_CLOUD_SERVER`)"
       ## Middlewares
       - "traefik.http.routers.qdirstat-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -1474,49 +1463,49 @@ services:
   # Gluetun - VPN Client for Docker Containers and More
   # Gluetun only for use by torrent clients + on demand lan devices.
   # Arr apps do not need VPN (not recommended), unless you have ISP/country restrictions.
-  gluetun:
-    image: qmcgaw/gluetun
-    container_name: gluetun
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-    ports:
-      - "8081:8080" # Exposing qBittorrent through Docker Host LAN IP
-    # #   - 8888:8888/tcp # HTTP proxy
-    # #   - 8388:8388/tcp # Shadowsocks
-    # #   - 8388:8388/udp # Shadowsocks
-    volumes:
-      - $DOCKERDIR/appdata/gluetun:/gluetun
-    environment:
-      TZ: $TZ
-      # Wireguard
-      VPN_SERVICE_PROVIDER: surfshark
-      VPN_TYPE: wireguard
-      WIREGUARD_PRIVATE_KEY: $SURFSHARK_WG_PRIVATE_KEY
-      WIREGUARD_ADDRESSES: 10.14.0.2/16
-      SERVER_COUNTRIES: Netherlands
-      # # OpenVPN
-      # VPN_SERVICE_PROVIDER: nordvpn
-      # VPN_TYPE: openvpn
-      # OPENVPN_USER: $NORDVPN_USERNAME
-      # OPENVPN_PASSWORD: $NORDVPN_PASSWORD 
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.entrypoints=https"
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.rule=Host(`qbit.$DOMAINNAME_CLOUD_SERVER`)" # qBittorrent
-      ## Middlewares
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.middlewares=chain-oauth@file" # qBittorrent
-      ## HTTP Services
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.service=gluetun-svc" # qBittorrent
-      - "traefik.http.services.gluetun-svc.loadbalancer.server.port=8080" # qBittorrent
+  # gluetun:
+  #   image: qmcgaw/gluetun
+  #   container_name: gluetun
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun
+  #   ports:
+  #     - "8081:8080" # Exposing qBittorrent through Docker Host LAN IP
+  #   # #   - 8888:8888/tcp # HTTP proxy
+  #   # #   - 8388:8388/tcp # Shadowsocks
+  #   # #   - 8388:8388/udp # Shadowsocks
+  #   volumes:
+  #     - $DOCKERDIR/appdata/gluetun:/gluetun
+  #   environment:
+  #     TZ: $TZ
+  #     # Wireguard
+  #     VPN_SERVICE_PROVIDER: surfshark
+  #     VPN_TYPE: wireguard
+  #     WIREGUARD_PRIVATE_KEY: $SURFSHARK_WG_PRIVATE_KEY
+  #     WIREGUARD_ADDRESSES: 10.14.0.2/16
+  #     SERVER_COUNTRIES: Netherlands
+  #     # # OpenVPN
+  #     # VPN_SERVICE_PROVIDER: nordvpn
+  #     # VPN_TYPE: openvpn
+  #     # OPENVPN_USER: $NORDVPN_USERNAME
+  #     # OPENVPN_PASSWORD: $NORDVPN_PASSWORD 
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.entrypoints=https"
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.rule=Host(`qbit.$DOMAINNAME_CLOUD_SERVER`)" # qBittorrent
+  #     ## Middlewares
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.middlewares=chain-oauth@file" # qBittorrent
+  #     ## HTTP Services
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.service=gluetun-svc" # qBittorrent
+  #     - "traefik.http.services.gluetun-svc.loadbalancer.server.port=8080" # qBittorrent
 
   # Autoindex - Simple Directory Index (for Sitespeed.io Results)
   sitespeed:
@@ -1691,7 +1680,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.glances-rtr.entrypoints=https"
-      - "traefik.http.routers.glances-rtr.rule=Host(`glances.$DOMAINNAME_SHB`)"
+      - "traefik.http.routers.glances-rtr.rule=Host(`glances.$DOMAINNAME_CLOUD_SERVER`)"
       ## Middlewares
       - "traefik.http.routers.glances-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -1711,7 +1700,7 @@ services:
     networks:
       - t2_proxy
     depends_on:
-      - php7
+      # - php7
       - redis
     volumes:
       - /etc/localtime:/etc/localtime:ro
@@ -1721,7 +1710,7 @@ services:
       - $DOCKERDIR/appdata/sites/shb/html:/var/www/html/shb
       - $DOCKERDIR/logs/web/wordpress/debug.log:/var/www/html/shb/wp-content/debug.log
       - $DOCKERDIR/appdata/sites/shb/beta:/var/www/html/beta
-      - $DOCKERDIR/appdata/sites/khub/html:/var/www/html/khub
+      # - $DOCKERDIR/appdata/sites/khub/html:/var/www/html/khub
       - $DOCKERDIR/appdata/sites/dash/html:/var/www/html/dash
     secrets:
       - htpasswd
@@ -1729,31 +1718,31 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers SHB (WordPress) Auth
       - "traefik.http.routers.nginx-shb-auth-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-shb-auth-rtr.rule=Host(`www.$DOMAINNAME_SHB`) && Path(`/wp-login.php`)"
+      - "traefik.http.routers.nginx-shb-auth-rtr.rule=Host(`www.$DOMAINNAME_CLOUD_SERVER`) && Path(`/wp-login.php`)"
       - "traefik.http.routers.nginx-shb-auth-rtr.priority=100"
       ## HTTP Routers SHB (WordPress) Bypass
       - "traefik.http.routers.nginx-shb-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-shb-rtr.rule=Host(`$DOMAINNAME_SHB`) || Host(`www.$DOMAINNAME_SHB`)"
+      - "traefik.http.routers.nginx-shb-rtr.rule=Host(`$DOMAINNAME_CLOUD_SERVER`) || Host(`www.$DOMAINNAME_CLOUD_SERVER`)"
       - "traefik.http.routers.nginx-shb-rtr.priority=99"
       ## HTTP Routers SHB Beta (WordPress)
       - "traefik.http.routers.nginx-shb-beta-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-shb-beta-rtr.rule=Host(`beta.$DOMAINNAME_SHB`)"
+      - "traefik.http.routers.nginx-shb-beta-rtr.rule=Host(`beta.$DOMAINNAME_CLOUD_SERVER`)"
       ## HTTP Routers DASH (non-WordPress)
       - "traefik.http.routers.nginx-dash-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-dash-rtr.rule=Host(`dash.$DOMAINNAME_SHB`)"
+      - "traefik.http.routers.nginx-dash-rtr.rule=Host(`dash.$DOMAINNAME_CLOUD_SERVER`)"
       ## HTTP Routers KHUB (non-WordPress)
-      - "traefik.http.routers.nginx-khub-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-khub-rtr.rule=Host(`$DOMAINNAME_KHUB`) || Host(`www.$DOMAINNAME_KHUB`)"
+      # - "traefik.http.routers.nginx-khub-rtr.entrypoints=https"
+      # - "traefik.http.routers.nginx-khub-rtr.rule=Host(`$DOMAINNAME_KHUB`) || Host(`www.$DOMAINNAME_KHUB`)"
       # Redirect shb non-www to www middleware
-      - "traefik.http.middlewares.shb-redirect.redirectregex.regex=^https?://$DOMAINNAME_SHB/(.*)"
-      - "traefik.http.middlewares.shb-redirect.redirectregex.replacement=https://www.$DOMAINNAME_SHB/$${1}"
+      - "traefik.http.middlewares.shb-redirect.redirectregex.regex=^https?://$DOMAINNAME_CLOUD_SERVER/(.*)"
+      - "traefik.http.middlewares.shb-redirect.redirectregex.replacement=https://www.$DOMAINNAME_CLOUD_SERVER/$${1}"
       - "traefik.http.middlewares.shb-redirect.redirectregex.permanent=true"
       # Redirect khub non-www to www middleware
-      - "traefik.http.middlewares.khub-redirect.redirectregex.regex=^https?://$DOMAINNAME_KHUB/(.*)"
-      - "traefik.http.middlewares.khub-redirect.redirectregex.replacement=https://www.$DOMAINNAME_KHUB/$${1}"
-      - "traefik.http.middlewares.khub-redirect.redirectregex.permanent=true"
+      # - "traefik.http.middlewares.khub-redirect.redirectregex.regex=^https?://$DOMAINNAME_KHUB/(.*)"
+      # - "traefik.http.middlewares.khub-redirect.redirectregex.replacement=https://www.$DOMAINNAME_KHUB/$${1}"
+      # - "traefik.http.middlewares.khub-redirect.redirectregex.permanent=true"
       ## Middlewares
-      - "traefik.http.routers.nginx-khub-rtr.middlewares=khub-redirect,chain-no-auth@file"
+      # - "traefik.http.routers.nginx-khub-rtr.middlewares=khub-redirect,chain-no-auth@file"
       - "traefik.http.routers.nginx-shb-rtr.middlewares=shb-redirect,chain-no-auth-wp@file"
       #- "traefik.http.routers.nginx-shb-auth-rtr.middlewares=shb-redirect,chain-oauth-wp@file"
       - "traefik.http.routers.nginx-shb-auth-rtr.middlewares=shb-redirect,chain-no-auth-wp@file"
@@ -1762,57 +1751,57 @@ services:
       ## HTTP Services
       - "traefik.http.routers.nginx-shb-rtr.service=nginx-svc"
       - "traefik.http.routers.nginx-shb-auth-rtr.service=nginx-svc"
-      - "traefik.http.routers.nginx-khub-rtr.service=nginx-svc"
+      # - "traefik.http.routers.nginx-khub-rtr.service=nginx-svc"
       - "traefik.http.routers.nginx-dash-rtr.service=nginx-svc"
       - "traefik.http.routers.nginx-shb-beta-rtr.service=nginx-svc"
       - "traefik.http.services.nginx-svc.loadbalancer.server.port=80"
 
   # PHP - Hypertext Preprocessor
-  php7:
-    container_name: php7
-    image: php:7.4-fpm-custom
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    build:
-      context: $DOCKERDIR/custom/
-      dockerfile: Dockerfile-php7
-    user: $PUID:$PGID # allows upgrading WP and plugins
-    volumes:
-      - $DOCKERDIR/appdata/sites/shb/html:/var/www/html/shb
-      - $DOCKERDIR/appdata/sites/shb/beta:/var/www/html/beta
-      - $DOCKERDIR/appdata/php/php7:/usr/local/etc/php
-      - $DOCKERDIR/appdata/sites/khub/html:/var/www/html/khub
-      - $DOCKERDIR/appdata/sites/dash/html:/var/www/html/dash
+  # php7:
+  #   container_name: php7
+  #   image: php:7.4-fpm-custom
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   build:
+  #     context: $DOCKERDIR/custom/
+  #     dockerfile: Dockerfile-php7
+  #   user: $PUID:$PGID # allows upgrading WP and plugins
+  #   volumes:
+  #     - $DOCKERDIR/appdata/sites/shb/html:/var/www/html/shb
+  #     - $DOCKERDIR/appdata/sites/shb/beta:/var/www/html/beta
+  #     - $DOCKERDIR/appdata/php/php7:/usr/local/etc/php
+  #     # - $DOCKERDIR/appdata/sites/khub/html:/var/www/html/khub
+  #     - $DOCKERDIR/appdata/sites/dash/html:/var/www/html/dash
 
   ############################# MAINTENANCE
 
   # Docker-GC - Automatic Docker Garbage Collection
   # Create docker-gc-exclude file
-  dockergc:
-    image: clockworksoul/docker-gc-cron:latest
-    container_name: docker-gc
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "all"]
-    networks:
-      - socket_proxy
-    volumes:
-      # - /var/run/docker.sock:/var/run/docker.sock # Use Docker Socket Proxy instead for improved security
-      - $DOCKERDIR/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
-    environment:
-      CRON: 0 0 0 * * ? # Everyday at midnight. Previously 0 0 * * *
-      FORCE_IMAGE_REMOVAL: 1
-      FORCE_CONTAINER_REMOVAL: 0
-      GRACE_PERIOD_SECONDS: 604800
-      DRY_RUN: 0
-      CLEAN_UP_VOLUMES: 1
-      TZ: $TZ
-      DOCKER_HOST: tcp://socket-proxy:2375
+  # dockergc:
+  #   image: clockworksoul/docker-gc-cron:latest
+  #   container_name: docker-gc
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["apps", "all"]
+  #   networks:
+  #     - socket_proxy
+  #   volumes:
+  #     # - /var/run/docker.sock:/var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+  #     - $DOCKERDIR/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
+  #   environment:
+  #     CRON: 0 0 0 * * ? # Everyday at midnight. Previously 0 0 * * *
+  #     FORCE_IMAGE_REMOVAL: 1
+  #     FORCE_CONTAINER_REMOVAL: 0
+  #     GRACE_PERIOD_SECONDS: 604800
+  #     DRY_RUN: 0
+  #     CLEAN_UP_VOLUMES: 1
+  #     TZ: $TZ
+  #     DOCKER_HOST: tcp://socket-proxy:2375
 
   # WhoAmI - For Testing and Troubleshooting
   whoami:
@@ -1847,10 +1836,10 @@ services:
     # command: --restart-containers container1,container2,container3
     volumes:
       - $DOCKERDIR/appdata/traefik2/acme:/traefik:ro
-      - $DOCKERDIR/shared/certs/$DOMAINNAME_SHB:/output:rw
+      - $DOCKERDIR/shared/certs/$DOMAINNAME_CLOUD_SERVER:/output:rw
       # - /var/run/docker.sock:/var/run/docker.sock:ro # Only needed if restarting containers (use Docker Socket Proxy instead)
     environment:
-      DOMAIN: $DOMAINNAME_SHB
+      DOMAIN: $DOMAINNAME_CLOUD_SERVER
 
   # Cloudflare DDNS - Dynamic DNS Updater
   ddns-updater:
@@ -1877,7 +1866,7 @@ services:
       BACKUP_DIRECTORY: /updater/data/backups
       # Other
       LOG_LEVEL: info
-      SHOUTRRR_ADDRESSES: $DISCORD_SHOUTRRR_ADDRESS
+      # SHOUTRRR_ADDRESSES: $DISCORD_SHOUTRRR_ADDRESS
 
   # DeUnhealth - Restart your unhealthy containers safely (e.g. containers depending on VPN and VPN reconnects)
   deunhealth:
