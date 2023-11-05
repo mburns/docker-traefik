@@ -73,8 +73,8 @@ services:
   traefik:
     container_name: traefik
     image: traefik:2.10
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -201,8 +201,8 @@ services:
   socket-proxy:
     container_name: socket-proxy
     image: tecnativa/docker-socket-proxy
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -253,8 +253,8 @@ services:
   oauth:
     container_name: oauth
     image: thomseddon/traefik-forward-auth:latest
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -293,8 +293,8 @@ services:
   portainer:
     container_name: portainer
     image: portainer/portainer-ee:latest # Use portainer-ce if you do no have a Business Edition license key
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -324,8 +324,8 @@ services:
   zerotier:
     image: zerotier/zerotier-synology:latest
     container_name: zerotier
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     network_mode: host
@@ -341,8 +341,8 @@ services:
   autoindex:
     container_name: autoindex
     image: dceoy/nginx-autoindex:latest
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -367,8 +367,8 @@ services:
   homepage:
     image: ghcr.io/benphelps/homepage:latest
     container_name: homepage
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -421,19 +421,19 @@ services:
   #     - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
 
   # CrowdSec Bouncer - Traefik
-  # traefik-bouncer:
-  #   image: fbonalair/traefik-crowdsec-bouncer
-  #   container_name: traefik-bouncer
-  #   security_opt:
-  #     - no-new-privileges:true
-  #   restart: unless-stopped
-  #   profiles: ["core", "all"]
-  #   networks:
-  #     - t2_proxy
-  #   environment:
-  #     GIN_MODE: release # default is debug (more logs)
-  #     CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
-  #     CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT # CrowdSec host and port
+  traefik-bouncer:
+    image: fbonalair/traefik-crowdsec-bouncer
+    container_name: traefik-bouncer
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["core", "all"]
+    networks:
+      - t2_proxy
+    environment:
+      GIN_MODE: release # default is debug (more logs)
+      CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
+      CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT # CrowdSec host and port
 
   # CrowdSec Bouncer - Cloudflare
   # sudo docker exec crowdsec cscli bouncer add cloudflare-bouncer
@@ -457,8 +457,8 @@ services:
   mariadb:
     container_name: mariadb
     image: lscr.io/linuxserver/mariadb
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -479,8 +479,8 @@ services:
   redis:
     container_name: redis
     image: redis:latest
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -498,8 +498,8 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: phpmyadmin
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -528,8 +528,8 @@ services:
     container_name: prometheus
     networks:
       - default
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["dbs", "all"]
     ports:
@@ -552,8 +552,8 @@ services:
     container_name: influxdb
     networks:
       - default
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["dbs", "all"]
     ports:
@@ -568,8 +568,8 @@ services:
   jdownloader:
     image: jlesage/jdownloader-2:latest
     container_name: jdownloader
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -634,8 +634,8 @@ services:
   sabnzbd:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "downloads", "all"]
     networks:
@@ -675,8 +675,8 @@ services:
   prowlarr:
     image: ghcr.io/linuxserver/prowlarr:develop
     container_name: prowlarr
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -708,8 +708,8 @@ services:
   sonarr:
     image: lscr.io/linuxserver/sonarr
     container_name: sonarr
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media","arrs", "all"]
     networks:
@@ -748,8 +748,8 @@ services:
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media","arrs", "all"]
     networks:
@@ -788,8 +788,8 @@ services:
   radarr:
     image: lscr.io/linuxserver/radarr:latest # latest was causing "Error parsing column 45"
     container_name: radarr
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media", "arrs", "all"]
     networks:
@@ -828,8 +828,8 @@ services:
   readarr:
     image: hotio/readarr:nightly
     container_name: readarr
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media","arrs", "all"]
     networks:
@@ -865,8 +865,8 @@ services:
     container_name: airsonic-advanced
     networks:
       - default
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media", "all"]
     volumes:
@@ -886,8 +886,8 @@ services:
   plexmm:
     image: lscr.io/linuxserver/plex-meta-manager:latest
     container_name: plexmm
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media", "all"]
     environment:
@@ -907,8 +907,8 @@ services:
   tautulli:
     image: lscr.io/linuxserver/tautulli:latest
     container_name: tautulli
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media", "all"]
     networks:
@@ -945,8 +945,8 @@ services:
   plex:
     image: plexinc/pms-docker:plexpass
     container_name: plex
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["media", "all"]
     networks:
@@ -995,8 +995,8 @@ services:
   bazarr:
     image: lscr.io/linuxserver/bazarr
     container_name: bazarr
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media", "arrs", "all"]
     networks:
@@ -1025,8 +1025,8 @@ services:
   picard:
     image: mikenye/picard:latest
     container_name: picard
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["media", "all"]
     networks:
@@ -1059,8 +1059,8 @@ services:
   tdarr:
     image: haveagitgat/tdarr:latest
     container_name: tdarr
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["media", "all"]
     networks:
@@ -1099,8 +1099,8 @@ services:
   tdarr-node1:
     image: haveagitgat/tdarr_node:latest
     container_name: tdarr-node1
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["media", "all"]
     networks:
@@ -1130,8 +1130,8 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1159,8 +1159,8 @@ services:
   guacamole:
     image: guacamole/guacamole:latest
     container_name: guacamole
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1195,8 +1195,8 @@ services:
   guacd:
     image: guacamole/guacd
     container_name: guacd
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
 
@@ -1206,7 +1206,7 @@ services:
     image: jlesage/firefox:latest
     container_name: firefox
     security_opt:
-      - no-new-privileges:true
+      # - no-new-privileges:true
       - seccomp:unconfined # October 15, 2020 https://github.com/jlesage/docker-firefox/blob/master/README.md#allowing-the-membarrier-system-call
     restart: unless-stopped
     profiles: ["apps", "all"]
@@ -1243,8 +1243,8 @@ services:
   qdirstat:
     image: jlesage/qdirstat:latest
     container_name: qdirstat
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1279,8 +1279,8 @@ services:
   vscode:
     image: lscr.io/linuxserver/code-server:latest
     container_name: vscode
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -1318,8 +1318,8 @@ services:
   wg-easy:
     image: weejewel/wg-easy
     container_name: wg-easy
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -1356,8 +1356,8 @@ services:
   it-tools:
     image: corentinth/it-tools
     container_name: it-tools
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1377,8 +1377,8 @@ services:
   uptime-kuma:
     image: louislam/uptime-kuma
     container_name: uptime-kuma
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -1401,8 +1401,8 @@ services:
   filebrowser:
     image: filebrowser/filebrowser:s6
     container_name: filebrowser
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1432,8 +1432,8 @@ services:
   dozzle:
     image: amir20/dozzle:latest
     container_name: dozzle
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1511,8 +1511,8 @@ services:
   sitespeed:
     container_name: sitespeed
     image: dceoy/nginx-autoindex:latest
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1536,8 +1536,8 @@ services:
   radarr-exporter:
     image: ghcr.io/onedr0p/exportarr:latest
     container_name: radarr-exporter
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["all", "media", "arrs"]
     networks:
@@ -1555,8 +1555,8 @@ services:
   sonarr-exporter:
     image: ghcr.io/onedr0p/exportarr:latest
     container_name: sonarr-exporter
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["all", "media", "arrs"]
     networks:
@@ -1574,8 +1574,8 @@ services:
   lidarr-exporter:
     image: ghcr.io/onedr0p/exportarr:latest
     container_name: lidarr-exporter
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "no"
     profiles: ["all", "media", "arrs"]
     networks:
@@ -1593,8 +1593,8 @@ services:
   prowlarr-exporter:
     image: ghcr.io/onedr0p/exportarr:latest
     container_name: prowlarr-exporter
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["all", "apps"]
     networks:
@@ -1612,8 +1612,8 @@ services:
   sabnzbd-exporter:
     image: ghcr.io/onedr0p/exportarr:latest
     container_name: sabnzbd-exporter
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: "unless-stopped"
     profiles: ["all", "downloads"]
     networks:
@@ -1631,8 +1631,8 @@ services:
   node-exporter:
     container_name: node-exporter
     image: prom/node-exporter:latest
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["monitoring", "all"]
     networks:
@@ -1653,8 +1653,8 @@ services:
   glances:
     image: nicolargo/glances:latest-full
     container_name: glances
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["monitoring", "all"]
     # privileged: true # Only for VM
@@ -1693,8 +1693,8 @@ services:
   nginx:
     container_name: nginx
     image: nginx:1.20 # 1.18 # Updated 8/9/2021
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["core", "all"]
     networks:
@@ -1807,8 +1807,8 @@ services:
   whoami:
     image: traefik/whoami
     container_name: whoami
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     networks:
@@ -1828,8 +1828,8 @@ services:
   certdumper:
     container_name: traefik_certdumper
     image: humenius/traefik-certs-dumper:latest
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "all"]
     network_mode: none
@@ -1872,10 +1872,10 @@ services:
   deunhealth:
     image: qmcgaw/deunhealth
     container_name: deunhealth
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     restart: unless-stopped
-    profiles: ["apps", "all"]    
+    profiles: ["apps", "all"]
     networks:
       - socket_proxy
     environment:
