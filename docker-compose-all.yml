@@ -196,6 +196,13 @@ services:
       #- "traefik.http.routers.traefik-rtr.middlewares=chain-basic-auth@file" # For Basic HTTP Authentication
       - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file" # For Google OAuth
       #- "traefik.http.routers.traefik-rtr.middlewares=chain-authelia@file" # For Authelia Authentication
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Traefik
+      - homepage.icon=traefik.png
+      - homepage.href=https://traefik.mirwin.net
+      - homepage.description=Load Balancer stats
+      - homepage.weight=4
 
   # Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
   socket-proxy:
@@ -271,7 +278,7 @@ services:
       - INSECURE_COOKIE=false
       - AUTH_HOST=oauth.$DOMAINNAME_CLOUD_SERVER
       - URL_PATH=/_oauth
-      - LOG_LEVEL=trace # warn # set to trace while testing bypass rules
+      - LOG_LEVEL=warn # set to trace while testing bypass rules
       - LOG_FORMAT=text
       - LIFETIME=86400 # 1 day
       - DEFAULT_ACTION=auth
@@ -352,8 +359,8 @@ services:
     # ports:
     #   - "$AUTOINDEX_PORT:80"
     volumes:
-      #- $USERDIR:/var/lib/nginx/html:ro # Location you want to index
-      - $EXTDRIVE:/var/lib/nginx/html:ro # Location you want to index
+      - $DOWNLOADSDIR:/var/lib/nginx/html:ro # Location you want to index
+
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
@@ -364,6 +371,13 @@ services:
       ## HTTP Services
       - "traefik.http.routers.autoindex-rtr.service=autoindex-svc"
       - "traefik.http.services.autoindex-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Index
+      - homepage.icon=index.png
+      - homepage.href=https://index.mirwin.net
+      - homepage.description=Meda directory (read-only)
+      - homepage.weight=5
 
   # Homepage - Application Dashboard
   homepage:
@@ -401,13 +415,13 @@ services:
   # crowdsec:
   #   image: crowdsecurity/crowdsec
   #   container_name: crowdsec
-  #   security_opt:
-  #     - no-new-privileges:true
+  #   # security_opt:
+  #   #   - no-new-privileges:true
   #   restart: unless-stopped
   #   profiles: ["core", "all"]
   #   ports:
-  #     - "8080:8080"
-  #     - "$ZEROTIER_IP_CLOUDSERVER:6060:6060" # Exposing metrics via Zerotier IP
+  #     - "8008:8080"
+  #     # - "$ZEROTIER_IP_CLOUDSERVER:6060:6060" # Exposing metrics via Zerotier IP
   #   environment:
   #     COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux fulljackz/proxmox"
   #     GID: "${GID-1000}"
@@ -436,8 +450,8 @@ services:
   #     - t2_proxy
   #   environment:
   #     GIN_MODE: release # default is debug (more logs)
-  #     # CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
-  #     # CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT # CrowdSec host and port
+  #     CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
+  #     CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT # CrowdSec host and port
 
   # CrowdSec Bouncer - Cloudflare
   # sudo docker exec crowdsec cscli bouncer add cloudflare-bouncer
@@ -445,8 +459,8 @@ services:
   # cloudflare-bouncer:
   #   image: crowdsecurity/cloudflare-bouncer
   #   container_name: cloudflare-bouncer
-  #   security_opt:
-  #     - no-new-privileges:true
+  #   # security_opt:
+  #   #   - no-new-privileges:true
   #   restart: unless-stopped
   #   profiles: ["core", "all"]
   #   networks:
@@ -489,7 +503,7 @@ services:
     profiles: ["core", "all"]
     networks:
       - t2_proxy
-    entrypoint: redis-server --appendonly yes --requirepass $REDIS_PASSWORD --maxmemory 1073741824 --maxmemory-policy allkeys-lru
+    entrypoint: redis-server --appendonly yes --maxmemory 1073741824 --maxmemory-policy allkeys-lru # --requirepass $REDIS_PASSWORD 
     ports:
       - "6379:6379"
     volumes:
@@ -583,40 +597,40 @@ services:
   ############################# DOWNLOADERS
 
   # jDownloader - Download management
-  # jdownloader:
-  #   image: jlesage/jdownloader-2:latest
-  #   container_name: jdownloader
-  #   # security_opt:
-  #   #   - no-new-privileges:true
-  #   restart: unless-stopped
-  #   profiles: ["apps", "all"]
-  #   networks:
-  #     - t2_proxy
-  #   # ports:
-  #   #   - "$JDOWNLOADER_PORT:5800"
-  #   volumes:
-  #     - $DOWNLOADSDIR:/data/downloads
-  #     - $DOCKERDIR/appdata/jdownloader:/config
-  #   environment:
-  #     USER_ID: $PUID
-  #     GROUP_ID: $PGID
-  #     TZ: $TZ
-  #     UMASK: 002
-  #     KEEP_APP_RUNNING: 1
-  #     CLEAN_TMP_DIR: 1
-  #     DISPLAY_WIDTH: 1600
-  #     DISPLAY_HEIGHT: 960
-  #     VNC_PASSWORD: $JDOWN_VNC_PASSWD
-  #   labels:
-  #     - "traefik.enable=true"
-  #     ## HTTP Routers
-  #     - "traefik.http.routers.jdownloader-rtr.entrypoints=https"
-  #     - "traefik.http.routers.jdownloader-rtr.rule=Host(`jdown.$DOMAINNAME_CLOUD_SERVER`)"
-  #     ## Middlewares
-  #     - "traefik.http.routers.jdownloader-rtr.middlewares=chain-oauth@file"
-  #     ## HTTP Services
-  #     - "traefik.http.routers.jdownloader-rtr.service=jdownloader-svc"
-  #     - "traefik.http.services.jdownloader-svc.loadbalancer.server.port=5800"
+  jdownloader:
+    image: jlesage/jdownloader-2:latest
+    container_name: jdownloader
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "all"]
+    networks:
+      - t2_proxy
+    # ports:
+    #   - "$JDOWNLOADER_PORT:5800"
+    volumes:
+      - $DOWNLOADSDIR:/data/downloads
+      - $DOCKERDIR/appdata/jdownloader:/config
+    environment:
+      USER_ID: $PUID
+      GROUP_ID: $PGID
+      TZ: $TZ
+      UMASK: 002
+      KEEP_APP_RUNNING: 1
+      CLEAN_TMP_DIR: 1
+      DISPLAY_WIDTH: 1600
+      DISPLAY_HEIGHT: 960
+      VNC_PASSWORD: $JDOWN_VNC_PASSWD
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.jdownloader-rtr.entrypoints=https"
+      - "traefik.http.routers.jdownloader-rtr.rule=Host(`jdown.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.jdownloader-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.jdownloader-rtr.service=jdownloader-svc"
+      - "traefik.http.services.jdownloader-svc.loadbalancer.server.port=5800"
       # ## Homepage
       # - homepage.group=Admin
       # - homepage.name=JDownloader
@@ -627,31 +641,31 @@ services:
 
   # qBittorrent - Torrent downloader
   # Needs trailing / if using PathPrefixStrip
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrent
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "downloads", "all"]
-    network_mode: "service:gluetun"
-    # ports:
-    #   - "8081:8080" # Explosed via gluetun. 8081 because crowdsec is using port 8080
-    volumes:
-      - $DOCKERDIR/appdata/qbittorrent:/config
-      - $DOWNLOADSDIR:/data/downloads # Ensure that downloads folder is set to /data/downloads in qBittorrent
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-      UMASK_SET: 002
-    healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
-      test: "curl -sf https://example.com  || exit 1"
-      interval: 1m
-      timeout: 10s
-      retries: 1
-    labels: # Traefik labels added via glueten
-      - "deunhealth.restart.on.unhealthy=true"
+  # qbittorrent:
+  #   image: lscr.io/linuxserver/qbittorrent:latest
+  #   container_name: qbittorrent
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["apps", "downloads", "all"]
+  #   network_mode: "service:gluetun"
+  #   # ports:
+  #   #   - "8081:8080" # Explosed via gluetun. 8081 because crowdsec is using port 8080
+  #   volumes:
+  #     - $DOCKERDIR/appdata/qbittorrent:/config
+  #     - $DOWNLOADSDIR:/data/downloads # Ensure that downloads folder is set to /data/downloads in qBittorrent
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #     UMASK_SET: 002
+  #   healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
+  #     test: "curl -sf https://example.com  || exit 1"
+  #     interval: 1m
+  #     timeout: 10s
+  #     retries: 1
+  #   labels: # Traefik labels added via glueten
+  #     - "deunhealth.restart.on.unhealthy=true"
 
   # SABnzbd - Binary newsgrabber (NZB downloader)
   # Disable SABNnzbd's built-in HTTPS support for traefik proxy to work
@@ -691,16 +705,16 @@ services:
       - "traefik.http.routers.sabnzbd-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.sabnzbd-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
-      - "traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc"
+      - "traefik.http.routers.c-rtr.service=sabnzbd-svc"
       - "traefik.http.routers.sabnzbd-rtr-bypass.service=sabnzbd-svc"
       - "traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8080"
-      # ## Homepage
-      # - homepage.group=Admin
-      # - homepage.name=phpMyAdmin
-      # - homepage.icon=phpmyadmin.png
-      # - homepage.href=https://pma.mirwin.net
-      # - homepage.description=Database administration
-      # - homepage.weight=3
+      ## Homepage
+      - homepage.group=Manage
+      - homepage.name=Sabnzbd
+      - homepage.icon=sabnzbd.png
+      - homepage.href=https://sabnzbd.mirwin.net
+      - homepage.description=Usenet downloader
+      - homepage.weight=4
 
   ############################# INDEXERS
 
@@ -838,51 +852,51 @@ services:
       - homepage.icon=kapowarr.png
       - homepage.href=https://kapowarr.mirwin.net
       - homepage.description=Comics management
-      - homepage.weight=1
-      - homepage.widget.type=kapowarr
-      - homepage.widget.url=http://kapowarr:5656/
-      - homepage.widget.key=${KAPOWARR_API_KEY}
+      - homepage.weight=4
+      # - homepage.widget.type=kapowarr
+      # - homepage.widget.url=http://kapowarr:5656/
+      # - homepage.widget.key=${KAPOWARR_API_KEY}
 
-  kavita:
-    image: lscr.io/linuxserver/kavita:latest
-    container_name: kavita
-    volumes:
-      - $DOCKERDIR/appdata/kavita:/config
-      - $DATADIR/Manga:/data/Manga
-      - $DATADIR/Comics:/data/Comics
-      - $DATADIR/Books:/data/Books
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-    ports:
-        - "5000:5000" # Change the public port (the first 5000) if you have conflicts with other services
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers Auth Bypass
-      - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
-      - "traefik.http.routers.kavita-rtr-bypass.priority=100"
-      ## HTTP Routers Auth
-      - "traefik.http.routers.kavita-rtr.entrypoints=https"
-      - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.kavita-rtr.priority=99"
-      ## Middlewares
-      - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
-      - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.kavita-rtr.service=kavita-svc"
-      - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
-      - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
-      - homepage.group=Media
-      - homepage.name=Kavita
-      - homepage.icon=kavita.png
-      - homepage.href=http://kavita.mirwin.net/
-      - homepage.description=Book reader
-      # - homepage.weight=1
-      - homepage.widget.type=kavita
-      - homepage.widget.url=http://kavita:5000/
-      # - homepage.widget.key=${KAVITA_API_KEY}
+  # kavita:
+  #   image: lscr.io/linuxserver/kavita:latest
+  #   container_name: kavita
+  #   volumes:
+  #     - $DOCKERDIR/appdata/kavita:/config
+  #     - $DATADIR/Manga:/data/Manga
+  #     - $DATADIR/Comics:/data/Comics
+  #     - $DATADIR/Books:/data/Books
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #   ports:
+  #       - "5000:5000" # Change the public port (the first 5000) if you have conflicts with other services
+  #   restart: unless-stopped
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers Auth Bypass
+  #     - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
+  #     - "traefik.http.routers.kavita-rtr-bypass.priority=100"
+  #     ## HTTP Routers Auth
+  #     - "traefik.http.routers.kavita-rtr.entrypoints=https"
+  #     - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
+  #     - "traefik.http.routers.kavita-rtr.priority=99"
+  #     ## Middlewares
+  #     - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
+  #     - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.kavita-rtr.service=kavita-svc"
+  #     - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
+  #     - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
+  #     - homepage.group=Media
+  #     - homepage.name=Kavita
+  #     - homepage.icon=kavita.png
+  #     - homepage.href=http://kavita.mirwin.net/
+  #     - homepage.description=Book reader
+  #     # - homepage.weight=1
+  #     - homepage.widget.type=kavita
+  #     - homepage.widget.url=http://kavita:5000/
+  #     # - homepage.widget.key=${KAVITA_API_KEY}
 
   # Lidarr - Music Management
   # Set url_base in lidarr settings if using PathPrefix
@@ -929,57 +943,10 @@ services:
       - homepage.icon=lidarr.png
       - homepage.href=https://lidarr.mirwin.net
       - homepage.description=Music management
-      # - homepage.weight=1
+      - homepage.weight=3
       - homepage.widget.type=lidarr
       - homepage.widget.url=http://lidarr:8686
       - homepage.widget.key=${LIDARR_API_KEY}
-
-  # mylar3:
-  #   image: lscr.io/linuxserver/mylar3:latest
-  #   container_name: mylar3
-  #   # security_opt:
-  #   #   - no-new-privileges:true
-  #   environment:
-  #     TZ: $TZ
-  #     PUID: $PUID
-  #     PGID: $PGID
-  #   volumes:
-  #     - $DOCKERDIR/appdata/mylar3:/config
-  #     - $DATADIR:/data
-  #   profiles: ["media","arrs", "all"]
-  #   networks:
-  #     - t2_proxy
-  #   ports:
-  #     - 8090:8090
-  #   restart: unless-stopped
-  #   labels:
-  #     - "traefik.enable=true"
-  #     ## HTTP Routers Auth Bypass
-  #     - "traefik.http.routers.mylar3-rtr-bypass.entrypoints=https"
-  #     #- "traefik.http.routers.mylar3-rtr-bypass.rule=Host(`mylar3.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$MYLAR3_API_KEY`) || Query(`apikey`, `$MYLAR3_API_KEY`))"
-  #     - "traefik.http.routers.mylar3-rtr-bypass.rule=Host(`mylar3.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
-  #     - "traefik.http.routers.mylar3-rtr-bypass.priority=100"
-  #     ## HTTP Routers Auth
-  #     - "traefik.http.routers.mylar3-rtr.entrypoints=https"
-  #     - "traefik.http.routers.mylar3-rtr.rule=Host(`mylar3.$DOMAINNAME_CLOUD_SERVER`)"
-  #     - "traefik.http.routers.mylar3-rtr.priority=99"
-  #     ## Middlewares
-  #     - "traefik.http.routers.mylar3-rtr-bypass.middlewares=chain-no-auth@file"
-  #     - "traefik.http.routers.mylar3-rtr.middlewares=chain-oauth@file"
-  #     ## HTTP Services
-  #     - "traefik.http.routers.mylar3-rtr.service=mylar3-svc"
-  #     - "traefik.http.routers.mylar3-rtr-bypass.service=mylar3-svc"
-  #     - "traefik.http.services.mylar3-svc.loadbalancer.server.port=8090"
-  #     ## Homepage
-  #     - homepage.group=Manage
-  #     - homepage.name=Mylar3
-  #     - homepage.icon=mylar3.png
-  #     - homepage.href=https://mylar3.mirwin.net
-  #     - homepage.description=Music management
-  #     # - homepage.weight=1
-  #     - homepage.widget.type=mylar3
-  #     - homepage.widget.url=http://mylar3:8090
-  #     - homepage.widget.key=${MYLAR3_API_KEY}
 
   # Radarr - Movie management
   # Set url_base in radarr settings if using PathPrefix
@@ -1026,7 +993,7 @@ services:
       - homepage.icon=radarr.png
       - homepage.href=https://radarr.mirwin.net
       - homepage.description=TV management
-      # - homepage.weight=1
+      - homepage.weight=1
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
       - homepage.widget.key=${RADARR_API_KEY}
@@ -1230,6 +1197,38 @@ services:
       - "traefik.http.routers.metube-rtr.service=metube-svc"
       - "traefik.http.services.metube-svc.loadbalancer.server.port=8081"
 
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf
+    container_name: audiobookshelf
+    ports:
+      - 13378:80
+    volumes:
+      - $DOCKERDIR/appdata/audiobookshelf:/config
+      - $EXTDRIVE:/data
+    restart: unless-stopped
+    profiles: ["media","arrs", "all"]
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.audiobookshelf-rtr.entrypoints=https"
+      - "traefik.http.routers.audiobookshelf-rtr.rule=Host(`audio.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.audiobookshelf-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.audiobookshelf-rtr.service=audiobookshelf-svc"
+      - "traefik.http.services.audiobookshelf-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=AudioBookshelf
+      - homepage.icon=audiobookshelf.png
+      - homepage.href=https://audio.mirwin.net
+      - homepage.description=Read & Listen to stuff
+      - homepage.weight=2
+      # - homepage.widget.type=audiobookshelf
+      # - homepage.widget.url=http://audiobookshelf:13378
+
   # Plex Meta Manager - Automatic Metadata Manager for Plex
   plexmm:
     image: lscr.io/linuxserver/plex-meta-manager:latest
@@ -1357,24 +1356,95 @@ services:
       - homepage.widget.url=http://plex:32400
       - homepage.widget.key=${PLEX_API_KEY}
 
+  romm:
+    image: zurdi15/romm:latest
+    container_name: romm
+    networks:
+      - t2_proxy
+    restart: "unless-stopped"
+    ports:
+      - 9080:8080
+    environment:
+      # - TZ=$TZ
+      # - PUID=$PUID
+      # - PGID=$PGID
+      - ROMM_DB_DRIVER=sqlite
+      - IGDB_CLIENT_ID=$IGDB_CLIENT_ID
+      - IGDB_CLIENT_SECRET=$IGDB_CLIENT_SECRET
+      # [Optional - WIP] Use SteamGridDB as a source for covers
+      # - STEAMGRIDDB_API_KEY=$STEAMGRIDDB_API_KEY
+      # [Optional] Will enable user management and require authentication to access the interface (disabled by default)
+      # - ROMM_AUTH_ENABLED=true # default: false
+      # - ROMM_AUTH_SECRET_KEY=$ROMM_AUTH_SECRET_KEY
+      # - ROMM_AUTH_USERNAME=admin # default: admin
+      # - ROMM_AUTH_PASSWORD=$ROMM_PASSWORD
+      # [Optional] Only required if authentication is enabled
+      # - ENABLE_EXPERIMENTAL_REDIS=true # default: false
+      # - REDIS_HOST=redis # default: localhost
+      # - REDIS_PORT=6379 # default: 6379
+      # - REDIS_PASSWORD=<redis password> # [Optional] Support for secured redis
+      # [Optional] Will enable asynchronous tasks (all disabled by default)
+      # - ENABLE_RESCAN_ON_FILESYSTEM_CHANGE=true # Runs a quick scan on the library when a file is added or removed 
+      # - RESCAN_ON_FILESYSTEM_CHANGE_DELAY=5 # Delay in seconds before running the quick scan (default: 5)
+      # - ENABLE_SCHEDULED_RESCAN=true # Runs a quick scan on the library at a given time
+      # - SCHEDULED_RESCAN_CRON=0 3 * * * # Cron expression for the scheduled scan (default: 0 3 * * * - At 3:00 AM every day)
+      # - ENABLE_SCHEDULED_UPDATE_SWITCH_TITLEDB=true # Updates the Switch TitleDB database at a given time
+      # - SCHEDULED_UPDATE_SWITCH_TITLEDB_CRON=0 4 * * * # Cron expression for the scheduled update (default: 0 4 * * * - At 4:00 AM every day)
+      # - ENABLE_SCHEDULED_UPDATE_MAME_XML=true # Updates the MAME XML database at a given time
+      # - SCHEDULED_UPDATE_MAME_XML_CRON=0 5 * * * # Cron expression for the scheduled update (default: 0 5 * * * - At 5:00 AM every day)
+    volumes:
+      - $DOCKERDIR/appdata/romm:/romm
+      # - $DATADIR/roms:/romm/library
+      # - $EXTDRIVE//Dropbox/roms:/romm/Library2
+      # - "/path/to/library:/romm/library"
+      # - "/path/to/resources:/romm/resources" # [Optional] Path where roms metadata (covers) are stored
+      # - "/path/to/config.yml:/romm/config.yml" # [Optional] Path where config is stored
+      # - "/path/to/database:/romm/database" # [Optional] Only needed if ROMM_DB_DRIVER=sqlite or not set
+      # - "/path/to/logs:/romm/logs" # [Optional] Path where logs are stored
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.romm-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.romm-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.romm-rtr.entrypoints=https"
+      - "traefik.http.routers.romm-rtr.rule=Host(`romm.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.romm-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.romm-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.romm-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.romm-rtr.service=romm-svc"
+      - "traefik.http.routers.romm-rtr-bypass.service=romm-svc"
+      - "traefik.http.services.romm-svc.loadbalancer.server.port=9080"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=Romm
+      - homepage.icon=romm.png
+      - homepage.href=https://romm.mirwin.net
+      - homepage.description=Games management
+      - homepage.weight=2
+      # - homepage.widget.type=romm
+      # - homepage.widget.url=http://romm:9080
+      # - homepage.widget.key=${ROMM_API_KEY}
+
   # tubearchivist:
   #   container_name: tubearchivist
   #   restart: unless-stopped
   #   image: bbilly1/tubearchivist
   #   ports:
-  #     - 8000:8000
+  #     - 8999:8000
   #   volumes:
-  #     - media:/youtube
-  #     - cache:/cache
+  #       - $DATADIR/Youtube:/youtube
   #   environment:
-  #     - ES_URL=http://elasticsearch:9200    # needs protocol e.g. http and port
-  #     - REDIS_HOST=archivist-redis          # don't add protocol
-  #     - HOST_UID=$PUID
-  #     - HOST_GID=$PGID
-  #     - TA_HOST=tubearchivist.mirwin.net    # set your host name
-  #     - TA_USERNAME=tubearchivist           # your initial TA credentials
-  #     - TA_PASSWORD=verysecret              # your initial TA credentials
-  #     - ELASTIC_PASSWORD=verysecret         # set password for Elasticsearch
+  #     ES_URL: http://elasticsearch:9200    # needs protocol e.g. http and port
+  #     REDIS_HOST: redis                    # don't add protocol
+  #     HOST_UID: $PUID
+  #     HOST_GID: $PGID
+  #     TA_HOST: tubearchivist.mirwin.net    # set your host name
+  #     TA_USERNAME: tubearchivist           # your initial TA credentials
+  #     TA_PASSWORD: $TA_PASSWORD            # your initial TA credentials
+  #     ELASTIC_PASSWORD: $ELASTIC_PASSWORD  # set password for Elasticsearch
   #     TZ: $TZ
   #   healthcheck:
   #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -1385,25 +1455,45 @@ services:
   #   depends_on:
   #     - elasticsearch
   #     - redis
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers Auth
+  #     - "traefik.http.routers.tubearchivist-rtr.entrypoints=https"
+  #     - "traefik.http.routers.tubearchivist-rtr.rule=Host(`tube.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.tubearchivist-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.tubearchivist-rtr.service=tubearchivist-svc"
+  #     - "traefik.http.services.tubearchivist-svc.loadbalancer.server.port=5055"
+  #     ## Homepage
+  #     - homepage.group=Manage
+  #     - homepage.name=TubeArchivist
+  #     - homepage.icon=tubearchivist.png
+  #     - homepage.href=https://tubearchivist.mirwin.net
+  #     - homepage.description=Youtube stuff
+  #     # - homepage.weight=1
+  #     - homepage.widget.type=tubearchivist
+  #     - homepage.widget.url=http://tubearchivist:5055
+  #     - homepage.widget.key=${TUBEARCHIVIST_API_KEY}
 
-  # elasticsearch:
-  #   image: bbilly1/tubearchivist-es         # only for amd64, or use official es 8.9.0
-  #   container_name: elasticsearch
-  #   restart: unless-stopped
-  #   environment:
-  #     - "ELASTIC_PASSWORD=verysecret"       # matching Elasticsearch password
-  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-  #     - "xpack.security.enabled=true"
-  #     - "discovery.type=single-node"
-  #     - "path.repo=/usr/share/elasticsearch/data/snapshot"
-  #   ulimits:
-  #     memlock:
-  #       soft: -1
-  #       hard: -1
-  #   volumes:
-  #     - es:/usr/share/elasticsearch/data    # check for permission error when using bind mount, see readme
-  #   expose:
-  #     - "9200"
+  elasticsearch:
+    image: elasticsearch:8.9.0 # bbilly1/tubearchivist-es
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - "ELASTIC_PASSWORD=$ELASTIC_PASSWORD"       # matching Elasticsearch password
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "xpack.security.enabled=true"
+      - "discovery.type=single-node"
+      - "path.repo=/usr/share/elasticsearch/data/snapshot"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - $DOCKERDIR/appdata/elasticsearch:/usr/share/elasticsearch/data    # check for permission error when using bind mount, see readme
+    expose:
+      - "9200"
 
   ############################# MEDIA FILE MANAGEMENT
 
@@ -1417,7 +1507,7 @@ services:
       PUID: $PUID
       PGID: $PGID
       PORT: 5055 #optional
-      LOG_LEVEL: debug
+      # LOG_LEVEL: debug
     ports:
       - 5055:5055
     volumes:
@@ -1437,12 +1527,12 @@ services:
       - "traefik.http.routers.overseerr-rtr.service=overseerr-svc"
       - "traefik.http.services.overseerr-svc.loadbalancer.server.port=5055"
       ## Homepage
-      - homepage.group=Manage
-      - homepage.name=Overseer
+      - homepage.group=Media
+      - homepage.name=Overseerr
       - homepage.icon=overseerr.png
       - homepage.href=https://overseerr.mirwin.net
       - homepage.description=Request TV/Movies
-      - homepage.weight=1
+      - homepage.weight=2
       - homepage.widget.type=overseerr
       - homepage.widget.url=http://overseerr:5055
       - homepage.widget.key=${OVERSEERR_API_KEY}
@@ -1477,15 +1567,15 @@ services:
       - "traefik.http.routers.bazarr-rtr.service=bazarr-svc"
       - "traefik.http.services.bazarr-svc.loadbalancer.server.port=6767"
       ## Homepage
-      # - homepage.group=Manage
-      # - homepage.name=Bazarr
-      # - homepage.icon=bazarr.png
-      # - homepage.href=https://bazarr.mirwin.net
-      # - homepage.description=Subtitle management
-      # - homepage.weight=1
-      # - homepage.widget.type=bazarr
-      # - homepage.widget.url=http://bazarr:6767
-      # - homepage.widget.key=${BAZARR_API_KEY}
+      - homepage.group=Manage
+      - homepage.name=Bazarr
+      - homepage.icon=bazarr.png
+      - homepage.href=https://bazarr.mirwin.net
+      - homepage.description=Subtitle management
+      - homepage.weight=5
+      - homepage.widget.type=bazarr
+      - homepage.widget.url=http://bazarr:6767
+      - homepage.widget.key=${BAZARR_API_KEY}
 
   # Picard - Music Library Tagging and Management
   picard:
@@ -1619,6 +1709,13 @@ services:
       ## HTTP Services
       - "traefik.http.routers.grafana-rtr.service=grafana-svc"
       - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
+      ## Homepage
+      # - homepage.group=Admin
+      # - homepage.name=Grafana
+      # - homepage.icon=grafama.png
+      # - homepage.href=https://grafana.mirwin.net
+      # - homepage.description=Pretty graphs
+      # - homepage.weight=4
 
   # Guacamole - Remote desktop, SSH, on Telnet on any HTML5 Browser
   # Create all databases and tables first
@@ -1704,6 +1801,13 @@ services:
       ## HTTP Services
       - "traefik.http.routers.firefox-rtr.service=firefox-svc"
       - "traefik.http.services.firefox-svc.loadbalancer.server.port=5800"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Firefox
+      - homepage.icon=firefox.png
+      - homepage.href=https://firefox.mirwin.net
+      - homepage.description=Web Browser
+      # - homepage.weight=2
 
   # qDirStat - Directory Statistics
   qdirstat:
@@ -1779,6 +1883,14 @@ services:
       ## HTTP Services
       - "traefik.http.routers.vscode-rtr.service=vscode-svc"
       - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=VS Code
+      - homepage.icon=vscode.png
+      - homepage.href=https://code.mirwin.net
+      - homepage.description=VS Code Editor
+      # - homepage.weight=2
+
 
   # WG-EASY - WireGuard Easy
   wg-easy:
@@ -1838,6 +1950,13 @@ services:
       ## HTTP Services
       - "traefik.http.routers.it-tools-rtr.service=it-tools-svc"
       - "traefik.http.services.it-tools-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=IT Tools
+      - homepage.icon=tools.png
+      - homepage.href=https://tools.mirwin.net
+      - homepage.description=Random IT Tools
+      # - homepage.weight=2
 
   # Uptime Kuma - Status Page & Monitoring Server
   uptime-kuma:
@@ -1925,6 +2044,13 @@ services:
       ## HTTP Services
       - "traefik.http.routers.dozzle-rtr.service=dozzle-svc"
       - "traefik.http.services.dozzle-svc.loadbalancer.server.port=8080"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Dozzle
+      - homepage.icon=dozzle.png
+      - homepage.href=https://dozzle.mirwin.net
+      - homepage.description=Real-time Docker Log Viewer
+      # - homepage.weight=2
 
   # Gluetun - VPN Client for Docker Containers and More
   # Gluetun only for use by torrent clients + on demand lan devices.
@@ -2026,6 +2152,25 @@ services:
       ENABLE_ADDITIONAL_METRICS: TRUE
     command: ["radarr"]
 
+  # Readarr Exporter - Readarr metrics for Prometheus
+  readarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: readarr-exporter
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["all", "media", "arrs"]
+    networks:
+      - t2_proxy
+    ports:
+      - "9716:9716"
+    environment:
+      PORT: 9716
+      URL: "http://readarr:8787"
+      APIKEY: $READARR_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["readarr"]
+
   # Sonarr Exporter - Sonarr metrics for Prometheus
   sonarr-exporter:
     image: ghcr.io/onedr0p/exportarr:latest
@@ -2044,6 +2189,25 @@ services:
       APIKEY: $SONARR_API_KEY
       ENABLE_ADDITIONAL_METRICS: TRUE
     command: ["sonarr"]
+
+  # Kapowarr Exporter - Kapowarr metrics for Prometheus
+  # kapowarr-exporter:
+  #   image: ghcr.io/onedr0p/exportarr:latest
+  #   container_name: kapowarr-exporter
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: "unless-stopped"
+  #   profiles: ["all", "downloads"]
+  #   networks:
+  #     - t2_proxy
+  #   ports:
+  #     - "9706:9706"
+  #   environment:
+  #     PORT: 9706
+  #     URL: "http://kapowarr:5656"
+  #     APIKEY: $KAPOWARR_API_KEY
+  #     ENABLE_ADDITIONAL_METRICS: TRUE
+  #   command: ["kapowarr"]
 
   # Lidarr Exporter - Lidarr metrics for Prometheus
   lidarr-exporter:
@@ -2082,6 +2246,25 @@ services:
       APIKEY: $PROWLARR_API_KEY
       ENABLE_ADDITIONAL_METRICS: TRUE
     command: ["prowlarr"]
+
+  # Whisparr Exporter - Whisparr metrics for Prometheus
+  # whisparr-exporter:
+  #   image: ghcr.io/onedr0p/exportarr:latest
+  #   container_name: whisparr-exporter
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["all", "apps"]
+  #   networks:
+  #     - t2_proxy
+  #   ports:
+  #     - "9714:9714"
+  #   environment:
+  #     PORT: 9714
+  #     URL: "http://whisparr:6969"
+  #     APIKEY: $PROWLARR_API_KEY
+  #     ENABLE_ADDITIONAL_METRICS: TRUE
+  #   command: ["whisparr"]
 
   # SABnzbd Exporter - SABnzbd metrics for Prometheus
   sabnzbd-exporter:
@@ -2165,71 +2348,71 @@ services:
   ########################### WEB
 
   # Nginx - Web Server
-  nginx:
-    container_name: nginx
-    image: nginx:1.20 # 1.18 # Updated 8/9/2021
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    depends_on:
-      # - php7
-      - redis
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-      - $DOCKERDIR/logs/web/nginx:/var/log/nginx
-      - $DOCKERDIR/appdata/nginx:/etc/nginx
-      - $DOCKERDIR/appdata/sites/shb/html:/var/www/html/shb
-      - $DOCKERDIR/logs/web/wordpress/debug.log:/var/www/html/shb/wp-content/debug.log
-      - $DOCKERDIR/appdata/sites/shb/beta:/var/www/html/beta
-      # - $DOCKERDIR/appdata/sites/khub/html:/var/www/html/khub
-      - $DOCKERDIR/appdata/sites/dash/html:/var/www/html/dash
-    secrets:
-      - htpasswd
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers SHB (WordPress) Auth
-      - "traefik.http.routers.nginx-shb-auth-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-shb-auth-rtr.rule=Host(`www.$DOMAINNAME_CLOUD_SERVER`) && Path(`/wp-login.php`)"
-      - "traefik.http.routers.nginx-shb-auth-rtr.priority=100"
-      ## HTTP Routers SHB (WordPress) Bypass
-      - "traefik.http.routers.nginx-shb-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-shb-rtr.rule=Host(`$DOMAINNAME_CLOUD_SERVER`) || Host(`www.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.nginx-shb-rtr.priority=99"
-      ## HTTP Routers SHB Beta (WordPress)
-      - "traefik.http.routers.nginx-shb-beta-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-shb-beta-rtr.rule=Host(`beta.$DOMAINNAME_CLOUD_SERVER`)"
-      ## HTTP Routers DASH (non-WordPress)
-      - "traefik.http.routers.nginx-dash-rtr.entrypoints=https"
-      - "traefik.http.routers.nginx-dash-rtr.rule=Host(`dash.$DOMAINNAME_CLOUD_SERVER`)"
-      ## HTTP Routers KHUB (non-WordPress)
-      # - "traefik.http.routers.nginx-khub-rtr.entrypoints=https"
-      # - "traefik.http.routers.nginx-khub-rtr.rule=Host(`$DOMAINNAME_KHUB`) || Host(`www.$DOMAINNAME_KHUB`)"
-      # Redirect shb non-www to www middleware
-      - "traefik.http.middlewares.shb-redirect.redirectregex.regex=^https?://$DOMAINNAME_CLOUD_SERVER/(.*)"
-      - "traefik.http.middlewares.shb-redirect.redirectregex.replacement=https://www.$DOMAINNAME_CLOUD_SERVER/$${1}"
-      - "traefik.http.middlewares.shb-redirect.redirectregex.permanent=true"
-      # Redirect khub non-www to www middleware
-      # - "traefik.http.middlewares.khub-redirect.redirectregex.regex=^https?://$DOMAINNAME_KHUB/(.*)"
-      # - "traefik.http.middlewares.khub-redirect.redirectregex.replacement=https://www.$DOMAINNAME_KHUB/$${1}"
-      # - "traefik.http.middlewares.khub-redirect.redirectregex.permanent=true"
-      ## Middlewares
-      # - "traefik.http.routers.nginx-khub-rtr.middlewares=khub-redirect,chain-no-auth@file"
-      - "traefik.http.routers.nginx-shb-rtr.middlewares=shb-redirect,chain-no-auth-wp@file"
-      #- "traefik.http.routers.nginx-shb-auth-rtr.middlewares=shb-redirect,chain-oauth-wp@file"
-      - "traefik.http.routers.nginx-shb-auth-rtr.middlewares=shb-redirect,chain-no-auth-wp@file"
-      - "traefik.http.routers.nginx-dash-rtr.middlewares=chain-oauth@file"
-      - "traefik.http.routers.nginx-shb-beta-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.nginx-shb-rtr.service=nginx-svc"
-      - "traefik.http.routers.nginx-shb-auth-rtr.service=nginx-svc"
-      # - "traefik.http.routers.nginx-khub-rtr.service=nginx-svc"
-      - "traefik.http.routers.nginx-dash-rtr.service=nginx-svc"
-      - "traefik.http.routers.nginx-shb-beta-rtr.service=nginx-svc"
-      - "traefik.http.services.nginx-svc.loadbalancer.server.port=80"
+  # nginx:
+  #   container_name: nginx
+  #   image: nginx:1.20 # 1.18 # Updated 8/9/2021
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   depends_on:
+  #     # - php7
+  #     - redis
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
+  #     - /etc/timezone:/etc/timezone:ro
+  #     - $DOCKERDIR/logs/web/nginx:/var/log/nginx
+  #     - $DOCKERDIR/appdata/nginx:/etc/nginx
+  #     - $DOCKERDIR/appdata/sites/shb/html:/var/www/html/shb
+  #     - $DOCKERDIR/logs/web/wordpress/debug.log:/var/www/html/shb/wp-content/debug.log
+  #     - $DOCKERDIR/appdata/sites/shb/beta:/var/www/html/beta
+  #     # - $DOCKERDIR/appdata/sites/khub/html:/var/www/html/khub
+  #     - $DOCKERDIR/appdata/sites/dash/html:/var/www/html/dash
+  #   secrets:
+  #     - htpasswd
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers SHB (WordPress) Auth
+  #     - "traefik.http.routers.nginx-shb-auth-rtr.entrypoints=https"
+  #     - "traefik.http.routers.nginx-shb-auth-rtr.rule=Host(`www.$DOMAINNAME_CLOUD_SERVER`) && Path(`/wp-login.php`)"
+  #     - "traefik.http.routers.nginx-shb-auth-rtr.priority=100"
+  #     ## HTTP Routers SHB (WordPress) Bypass
+  #     - "traefik.http.routers.nginx-shb-rtr.entrypoints=https"
+  #     - "traefik.http.routers.nginx-shb-rtr.rule=Host(`$DOMAINNAME_CLOUD_SERVER`) || Host(`www.$DOMAINNAME_CLOUD_SERVER`)"
+  #     - "traefik.http.routers.nginx-shb-rtr.priority=99"
+  #     ## HTTP Routers SHB Beta (WordPress)
+  #     - "traefik.http.routers.nginx-shb-beta-rtr.entrypoints=https"
+  #     - "traefik.http.routers.nginx-shb-beta-rtr.rule=Host(`beta.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## HTTP Routers DASH (non-WordPress)
+  #     - "traefik.http.routers.nginx-dash-rtr.entrypoints=https"
+  #     - "traefik.http.routers.nginx-dash-rtr.rule=Host(`dash.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## HTTP Routers KHUB (non-WordPress)
+  #     # - "traefik.http.routers.nginx-khub-rtr.entrypoints=https"
+  #     # - "traefik.http.routers.nginx-khub-rtr.rule=Host(`$DOMAINNAME_KHUB`) || Host(`www.$DOMAINNAME_KHUB`)"
+  #     # Redirect shb non-www to www middleware
+  #     - "traefik.http.middlewares.shb-redirect.redirectregex.regex=^https?://$DOMAINNAME_CLOUD_SERVER/(.*)"
+  #     - "traefik.http.middlewares.shb-redirect.redirectregex.replacement=https://www.$DOMAINNAME_CLOUD_SERVER/$${1}"
+  #     - "traefik.http.middlewares.shb-redirect.redirectregex.permanent=true"
+  #     # Redirect khub non-www to www middleware
+  #     # - "traefik.http.middlewares.khub-redirect.redirectregex.regex=^https?://$DOMAINNAME_KHUB/(.*)"
+  #     # - "traefik.http.middlewares.khub-redirect.redirectregex.replacement=https://www.$DOMAINNAME_KHUB/$${1}"
+  #     # - "traefik.http.middlewares.khub-redirect.redirectregex.permanent=true"
+  #     ## Middlewares
+  #     # - "traefik.http.routers.nginx-khub-rtr.middlewares=khub-redirect,chain-no-auth@file"
+  #     - "traefik.http.routers.nginx-shb-rtr.middlewares=shb-redirect,chain-no-auth-wp@file"
+  #     #- "traefik.http.routers.nginx-shb-auth-rtr.middlewares=shb-redirect,chain-oauth-wp@file"
+  #     - "traefik.http.routers.nginx-shb-auth-rtr.middlewares=shb-redirect,chain-no-auth-wp@file"
+  #     - "traefik.http.routers.nginx-dash-rtr.middlewares=chain-oauth@file"
+  #     - "traefik.http.routers.nginx-shb-beta-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.nginx-shb-rtr.service=nginx-svc"
+  #     - "traefik.http.routers.nginx-shb-auth-rtr.service=nginx-svc"
+  #     # - "traefik.http.routers.nginx-khub-rtr.service=nginx-svc"
+  #     - "traefik.http.routers.nginx-dash-rtr.service=nginx-svc"
+  #     - "traefik.http.routers.nginx-shb-beta-rtr.service=nginx-svc"
+  #     - "traefik.http.services.nginx-svc.loadbalancer.server.port=80"
 
   # PHP - Hypertext Preprocessor
   # php7:
@@ -2298,6 +2481,13 @@ services:
       ## HTTP Services
       - "traefik.http.routers.whoami-rtr.service=whoami-svc"
       - "traefik.http.services.whoami-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Who Am I
+      - homepage.icon=whoami.png
+      - homepage.href=https://whoami.mirwin.net
+      - homepage.description=Whoami host information
+      - homepage.weight=4
 
   # Traefik Certs Dumper - Extract LetsEncrypt Certificates - Traefik2 Compatible
   certdumper:
@@ -2359,3 +2549,48 @@ services:
       HEALTH_SERVER_ADDRESS: 127.0.0.1:9999
       TZ: $TZ
       DOCKER_HOST: tcp://socket-proxy:2375
+
+  ladder:
+    image: ghcr.io/kubero-dev/ladder:latest
+    container_name: ladder
+    # build: .
+    restart: unless-stopped
+    profiles: ["all"]
+    networks:
+      - t2_proxy
+    #command: sh -c ./ladder
+    environment:
+      - PORT=8091
+      #- PREFORK=true
+      #- X_FORWARDED_FOR=66.249.66.1
+      #- USER_AGENT=Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+      #- USERPASS=foo:bar
+      - LOG_URLS=true
+      #- GODEBUG=netdns=go
+    ports:
+      - "8091:8091"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.ladder-rtr.entrypoints=https"
+      - "traefik.http.routers.ladder-rtr.rule=Host(`ladder.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.ladder-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.ladder-rtr.service=ladder-svc"
+      - "traefik.http.services.ladder-svc.loadbalancer.server.port=8091"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Ladder
+      - homepage.icon=ladder.png
+      - homepage.href=https://ladder.mirwin.net
+      - homepage.description=Paywall bypass
+      # - homepage.weight=2
