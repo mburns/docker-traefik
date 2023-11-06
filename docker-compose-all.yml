@@ -214,6 +214,7 @@ services:
     # I use the next line instead, as I want portainer to manage multiple docker endpoints within my home network.
       - "2375:2375" # Do not expose this to the internet with port forwarding
     volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
       - "/var/run/docker.sock:/var/run/docker.sock"
     environment:
       - LOG_LEVEL=info # debug,info,notice,warning,err,crit,alert,emerg
@@ -366,7 +367,7 @@ services:
 
   # Homepage - Application Dashboard
   homepage:
-    image: ghcr.io/benphelps/homepage:latest
+    image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
     # security_opt:
     #   - no-new-privileges:true
@@ -379,6 +380,8 @@ services:
     #  - "$HOMEPAGE_PORT:3000" 
     volumes:
       - $DOCKERDIR/appdata/homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DATADIR}:/data
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -522,6 +525,13 @@ services:
       ## HTTP Services
       - "traefik.http.routers.phpmyadmin-rtr.service=phpmyadmin-svc"
       - "traefik.http.services.phpmyadmin-svc.loadbalancer.server.port=80"
+      ## Homepage
+      # - homepage.group=Admin
+      # - homepage.name=phpMyAdmin
+      # - homepage.icon=phpmyadmin.png
+      # - homepage.href=https://pma.mirwin.net
+      # - homepage.description=Database administration
+      # - homepage.weight=3
 
   # Prometheus - Database for sensor data
   prometheus:
@@ -546,6 +556,13 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+      ## Homepage
+      # - homepage.group=Admin
+      # - homepage.name=prometheus
+      # - homepage.icon=prometheus.png
+      # - homepage.href=https://pma.mirwin.net
+      # - homepage.description=Monitoring
+      # - homepage.weight=3
 
   # InfluxDB - Database for sensor data
   influxdb:
@@ -600,6 +617,13 @@ services:
   #     ## HTTP Services
   #     - "traefik.http.routers.jdownloader-rtr.service=jdownloader-svc"
   #     - "traefik.http.services.jdownloader-svc.loadbalancer.server.port=5800"
+      # ## Homepage
+      # - homepage.group=Admin
+      # - homepage.name=JDownloader
+      # - homepage.icon=jdowloader.png
+      # - homepage.href=https://jdown.mirwin.net
+      # - homepage.description=Database administration
+      # - homepage.weight=3
 
   # qBittorrent - Torrent downloader
   # Needs trailing / if using PathPrefixStrip
@@ -645,7 +669,7 @@ services:
       - "8084:8080"
     volumes:
       - $DOCKERDIR/appdata/sabnzbd:/config
-      - $DOWNLOADSDIR:/config/Downloads/complete
+      # - $DOWNLOADSDIR:/config/Downloads/complete
       - $EXTDRIVE:/data
     environment:
       PUID: $PUID
@@ -670,6 +694,13 @@ services:
       - "traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc"
       - "traefik.http.routers.sabnzbd-rtr-bypass.service=sabnzbd-svc"
       - "traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8080"
+      # ## Homepage
+      # - homepage.group=Admin
+      # - homepage.name=phpMyAdmin
+      # - homepage.icon=phpmyadmin.png
+      # - homepage.href=https://pma.mirwin.net
+      # - homepage.description=Database administration
+      # - homepage.weight=3
 
   ############################# INDEXERS
 
@@ -702,6 +733,16 @@ services:
       ## HTTP Services
       - "traefik.http.routers.prowlarr-rtr.service=prowlarr-svc"
       - "traefik.http.services.prowlarr-svc.loadbalancer.server.port=9696"
+      ## Homepage
+      - homepage.group=Manage
+      - homepage.name=Prowlarr
+      - homepage.icon=prowlarr.png
+      - homepage.href=https://prowlarr.mirwin.net
+      - homepage.description=Indexer management
+      - homepage.weight=4
+      - homepage.widget.type=prowlarr
+      - homepage.widget.url=http://prowlarr:9696
+      - homepage.widget.key=${PROWLARR_API_KEY}
 
   ############################# PVRS
 
@@ -744,6 +785,16 @@ services:
       - "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
       - "traefik.http.routers.sonarr-rtr-bypass.service=sonarr-svc"
       - "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
+      ## Homepage
+      - homepage.group=Manage
+      - homepage.name=Sonarr
+      - homepage.icon=sonarr.png
+      - homepage.href=https://sonarr.mirwin.net
+      - homepage.description=Movies management
+      # - homepage.weight=1
+      - homepage.widget.type=sonarr
+      - homepage.widget.url=http://sonarr:8989
+      - homepage.widget.key=${SONARR_API_KEY}
 
   kapowarr:
     image: mrcas/kapowarr:latest
@@ -782,15 +833,56 @@ services:
       - "traefik.http.routers.kapowarr-rtr.service=kapowarr-svc"
       - "traefik.http.routers.kapowarr-rtr-bypass.service=kapowarr-svc"
       - "traefik.http.services.kapowarr-svc.loadbalancer.server.port=5656"
-      # - homepage.group=Manage
-      # - homepage.name=Kapowarr
-      # - homepage.icon=kapowarr.png
-      # - homepage.href=/kapowarr
-      # - homepage.description=Comics management
-      # - homepage.weight=2
-      # - homepage.widget.type=kapowarr
-      # - homepage.widget.url=http://kapowarr:5656/
-      # - homepage.widget.key=${KAPOWARR_API_KEY}
+      - homepage.group=Manage
+      - homepage.name=Kapowarr
+      - homepage.icon=kapowarr.png
+      - homepage.href=https://kapowarr.mirwin.net
+      - homepage.description=Comics management
+      - homepage.weight=1
+      - homepage.widget.type=kapowarr
+      - homepage.widget.url=http://kapowarr:5656/
+      - homepage.widget.key=${KAPOWARR_API_KEY}
+
+  kavita:
+    image: lscr.io/linuxserver/kavita:latest
+    container_name: kavita
+    volumes:
+      - $DOCKERDIR/appdata/kavita:/config
+      - $DATADIR/Manga:/data/Manga
+      - $DATADIR/Comics:/data/Comics
+      - $DATADIR/Books:/data/Books
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    ports:
+        - "5000:5000" # Change the public port (the first 5000) if you have conflicts with other services
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.kavita-rtr.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.kavita-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.kavita-rtr.service=kavita-svc"
+      - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
+      - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
+      - homepage.group=Media
+      - homepage.name=Kavita
+      - homepage.icon=kavita.png
+      - homepage.href=http://kavita.mirwin.net/
+      - homepage.description=Book reader
+      # - homepage.weight=1
+      - homepage.widget.type=kavita
+      - homepage.widget.url=http://kavita:5000/
+      # - homepage.widget.key=${KAVITA_API_KEY}
 
   # Lidarr - Music Management
   # Set url_base in lidarr settings if using PathPrefix
@@ -831,6 +923,63 @@ services:
       - "traefik.http.routers.lidarr-rtr.service=lidarr-svc"
       - "traefik.http.routers.lidarr-rtr-bypass.service=lidarr-svc"
       - "traefik.http.services.lidarr-svc.loadbalancer.server.port=8686"
+      ## Homepage
+      - homepage.group=Manage
+      - homepage.name=Lidarr
+      - homepage.icon=lidarr.png
+      - homepage.href=https://lidarr.mirwin.net
+      - homepage.description=Music management
+      # - homepage.weight=1
+      - homepage.widget.type=lidarr
+      - homepage.widget.url=http://lidarr:8686
+      - homepage.widget.key=${LIDARR_API_KEY}
+
+  # mylar3:
+  #   image: lscr.io/linuxserver/mylar3:latest
+  #   container_name: mylar3
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #   volumes:
+  #     - $DOCKERDIR/appdata/mylar3:/config
+  #     - $DATADIR:/data
+  #   profiles: ["media","arrs", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   ports:
+  #     - 8090:8090
+  #   restart: unless-stopped
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers Auth Bypass
+  #     - "traefik.http.routers.mylar3-rtr-bypass.entrypoints=https"
+  #     #- "traefik.http.routers.mylar3-rtr-bypass.rule=Host(`mylar3.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$MYLAR3_API_KEY`) || Query(`apikey`, `$MYLAR3_API_KEY`))"
+  #     - "traefik.http.routers.mylar3-rtr-bypass.rule=Host(`mylar3.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+  #     - "traefik.http.routers.mylar3-rtr-bypass.priority=100"
+  #     ## HTTP Routers Auth
+  #     - "traefik.http.routers.mylar3-rtr.entrypoints=https"
+  #     - "traefik.http.routers.mylar3-rtr.rule=Host(`mylar3.$DOMAINNAME_CLOUD_SERVER`)"
+  #     - "traefik.http.routers.mylar3-rtr.priority=99"
+  #     ## Middlewares
+  #     - "traefik.http.routers.mylar3-rtr-bypass.middlewares=chain-no-auth@file"
+  #     - "traefik.http.routers.mylar3-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.mylar3-rtr.service=mylar3-svc"
+  #     - "traefik.http.routers.mylar3-rtr-bypass.service=mylar3-svc"
+  #     - "traefik.http.services.mylar3-svc.loadbalancer.server.port=8090"
+  #     ## Homepage
+  #     - homepage.group=Manage
+  #     - homepage.name=Mylar3
+  #     - homepage.icon=mylar3.png
+  #     - homepage.href=https://mylar3.mirwin.net
+  #     - homepage.description=Music management
+  #     # - homepage.weight=1
+  #     - homepage.widget.type=mylar3
+  #     - homepage.widget.url=http://mylar3:8090
+  #     - homepage.widget.key=${MYLAR3_API_KEY}
 
   # Radarr - Movie management
   # Set url_base in radarr settings if using PathPrefix
@@ -871,6 +1020,16 @@ services:
       - "traefik.http.routers.radarr-rtr.service=radarr-svc"
       - "traefik.http.routers.radarr-rtr-bypass.service=radarr-svc"
       - "traefik.http.services.radarr-svc.loadbalancer.server.port=7878"
+      ## Homepage
+      - homepage.group=Manage
+      - homepage.name=Radarr
+      - homepage.icon=radarr.png
+      - homepage.href=https://radarr.mirwin.net
+      - homepage.description=TV management
+      # - homepage.weight=1
+      - homepage.widget.type=radarr
+      - homepage.widget.url=http://radarr:7878
+      - homepage.widget.key=${RADARR_API_KEY}
 
   # Readarr - Books management
   # Set url_base in readarr settings if using PathPrefix
@@ -905,6 +1064,65 @@ services:
       ## HTTP Services
       - "traefik.http.routers.readarr-rtr.service=readarr-svc"
       - "traefik.http.services.readarr-svc.loadbalancer.server.port=8787"
+      ## Homepage
+      # - homepage.group=Manage
+      # - homepage.name=Readarr
+      # - homepage.icon=readarr.png
+      # - homepage.href=https://readarr.mirwin.net
+      # - homepage.description=Book management
+      # - homepage.weight=1
+      # - homepage.widget.type=readarr
+      # - homepage.widget.url=http://readarr:8787
+      # - homepage.widget.key=${READARR_API_KEY}
+
+  whisparr:
+    image: ghcr.io/hotio/whisparr
+    container_name: whisparr
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "arrs", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "6969:6969"
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      UMASK: 002
+    volumes:
+      - $DOCKERDIR/appdata/whisparr:/config
+      - $DATADIR:/data
+      - "/etc/localtime:/etc/localtime:ro"
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.whisparr-rtr-bypass.entrypoints=https"
+      # - "traefik.http.routers.whisparr-rtr-bypass.rule=Host(`whisparr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$WHISPARR_API_KEY`) || Query(`apikey`, `$WHISPARR_API_KEY`))"
+      # - "traefik.http.routers.whisparr-rtr-bypass.rule=Host(`whisparr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      - "traefik.http.routers.whisparr-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.whisparr-rtr.entrypoints=https"
+      - "traefik.http.routers.whisparr-rtr.rule=Host(`whisparr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.whisparr-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.whisparr-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.whisparr-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.whisparr-rtr.service=whisparr-svc"
+      - "traefik.http.routers.whisparr-rtr-bypass.service=whisparr-svc"
+      - "traefik.http.services.whisparr-svc.loadbalancer.server.port=6969"
+      ## Homepage
+      # - homepage.group=Manage
+      # - homepage.name=Whisparr
+      # - homepage.icon=whisparr.png
+      # - homepage.href=https://whisparr.mirwin.net
+      # - homepage.description=pr0n management
+      # # - homepage.weight=1
+      # - homepage.widget.type=whisparr
+      # - homepage.widget.url=http://whisparr:6969
+      # - homepage.widget.key=${WHISPARR_API_KEY}
 
   maintainerr:
     image: jorenn92/maintainerr:latest
@@ -1070,6 +1288,16 @@ services:
       - "traefik.http.routers.tautulli-rtr.service=tautulli-svc"
       - "traefik.http.routers.tautulli-rtr-bypass.service=tautulli-svc"
       - "traefik.http.services.tautulli-svc.loadbalancer.server.port=8181"
+      ## Homepage
+      # - homepage.group=Metrics
+      # - homepage.name=Tautulli
+      # - homepage.icon=tautulli.png
+      # - homepage.href=https://tautulli.mirwin.net
+      # - homepage.description=Plex Stats
+      # - homepage.weight=3
+      # - homepage.widget.type=tautulli
+      # - homepage.widget.url=http://tautulli:6767
+      # - homepage.widget.key=${TAUTULLI_API_KEY}
 
   # Plex - Media Server
   plex:
@@ -1118,6 +1346,16 @@ services:
       ## HTTP Services
       - "traefik.http.routers.plex-rtr.service=plex-svc"
       - "traefik.http.services.plex-svc.loadbalancer.server.port=32400"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=Plex
+      - homepage.icon=plex.png
+      - homepage.href=https://splex.mirwin.net
+      - homepage.description=Plex
+      # - homepage.weight=1
+      - homepage.widget.type=plex
+      - homepage.widget.url=http://plex:32400
+      - homepage.widget.key=${PLEX_API_KEY}
 
   # tubearchivist:
   #   container_name: tubearchivist
@@ -1198,6 +1436,16 @@ services:
       ## HTTP Services
       - "traefik.http.routers.overseerr-rtr.service=overseerr-svc"
       - "traefik.http.services.overseerr-svc.loadbalancer.server.port=5055"
+      ## Homepage
+      - homepage.group=Manage
+      - homepage.name=Overseer
+      - homepage.icon=overseerr.png
+      - homepage.href=https://overseerr.mirwin.net
+      - homepage.description=Request TV/Movies
+      - homepage.weight=1
+      - homepage.widget.type=overseerr
+      - homepage.widget.url=http://overseerr:5055
+      - homepage.widget.key=${OVERSEERR_API_KEY}
 
   # Bazarr - Subtitle Management
   bazarr:
@@ -1228,6 +1476,16 @@ services:
       ## HTTP Services
       - "traefik.http.routers.bazarr-rtr.service=bazarr-svc"
       - "traefik.http.services.bazarr-svc.loadbalancer.server.port=6767"
+      ## Homepage
+      # - homepage.group=Manage
+      # - homepage.name=Bazarr
+      # - homepage.icon=bazarr.png
+      # - homepage.href=https://bazarr.mirwin.net
+      # - homepage.description=Subtitle management
+      # - homepage.weight=1
+      # - homepage.widget.type=bazarr
+      # - homepage.widget.url=http://bazarr:6767
+      # - homepage.widget.key=${BAZARR_API_KEY}
 
   # Picard - Music Library Tagging and Management
   picard:
@@ -1714,6 +1972,15 @@ services:
       ## HTTP Services
       - "traefik.http.routers.gluetun-qbittorrent-rtr.service=gluetun-svc" # qBittorrent
       - "traefik.http.services.gluetun-svc.loadbalancer.server.port=8080" # qBittorrent
+      ## Homepage
+      # - homepage.group=Admin
+      # - homepage.name=Gluetun
+      # - homepage.icon=gluetun.png
+      # - homepage.href=https://gluetun.mirwin.net
+      # - homepage.description=VPN Client
+      # - homepage.weight=3
+      # - homepage.widget.type=gluetun
+      # - homepage.widget.url=http://gluetun:8080
 
   # Autoindex - Simple Directory Index (for Sitespeed.io Results)
   sitespeed:
