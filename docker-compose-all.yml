@@ -4,26 +4,37 @@ version: "3.9"
 # This is my main docker-compose file with most of the apps. I run docker on other systems with smaller stacks (web and synology).
 # You can copy-paste services from one docker-compose file in this repo to another to add other apps.
 
+# include:
+#   - docker-compose-media.yml
+
 ########################### NETWORKS
 # There is no need to create any networks outside this docker-compose file.
 # You may customize the network subnets (192.168.90.0/24 and 91.0/24) below as you please.
 # Docker Compose version 3.5 or higher required to define networks this way.
 
 networks:
+  default:
+    driver: bridge
+  obfs4_bridge_external_network:
   t2_proxy:
     name: t2_proxy
     driver: bridge
     ipam:
       config:
         - subnet: 192.168.90.0/24
-  default:
-    driver: bridge
   socket_proxy:
     name: socket_proxy
     driver: bridge
     ipam:
       config:
         - subnet: 192.168.91.0/24
+
+# volumes:
+#   ipfs_path:
+#   ipfs_fuse:
+#   ipns_fuse:
+#   data:
+#     name: tor-datadir-${TOR_OR_PORT}-${TOR_PT_PORT} # appdir/tor
 
 ########################### SECRETS
 secrets:
@@ -197,7 +208,7 @@ services:
       - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file" # For Google OAuth
       #- "traefik.http.routers.traefik-rtr.middlewares=chain-authelia@file" # For Authelia Authentication
       ## Homepage
-      - homepage.group=Tools
+      - homepage.group=Admin
       - homepage.name=Traefik
       - homepage.icon=traefik.png
       - homepage.href=https://traefik.mirwin.net
@@ -298,37 +309,6 @@ services:
       - "traefik.http.routers.oauth-rtr.service=oauth-svc"
       - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
 
-  # Portainer - WebUI for Containers
-  # portainer:
-  #   container_name: portainer
-  #   image: portainer/portainer-ee:latest # Use portainer-ce if you do no have a Business Edition license key
-  #   # security_opt:
-  #   #   - no-new-privileges:true
-  #   restart: unless-stopped
-  #   profiles: ["core", "all"]
-  #   networks:
-  #     - t2_proxy
-  #     - socket_proxy
-  #   # command: -H unix:///var/run/docker.sock # # Use Docker Socket Proxy instead for improved security
-  #   command: -H tcp://socket-proxy:2375
-  #   ports:
-  #     - "9000:9000"
-  #   volumes:
-  #     # - /var/run/docker.sock:/var/run/docker.sock:ro # # Use Docker Socket Proxy instead for improved security
-  #     - $DOCKERDIR/appdata/portainer/data:/data # Change to local directory if you want to save/transfer config locally
-  #   environment:
-  #     - TZ=$TZ
-  #   labels:
-  #     - "traefik.enable=true"
-  #     ## HTTP Routers
-  #     - "traefik.http.routers.portainer-rtr.entrypoints=https"
-  #     - "traefik.http.routers.portainer-rtr.rule=Host(`portainer.$DOMAINNAME_CLOUD_SERVER`)"
-  #     ## Middlewares
-  #     - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth@file"
-  #     ## HTTP Services
-  #     - "traefik.http.routers.portainer-rtr.service=portainer-svc"
-  #     - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"
-
   # ZeroTier-One - Private Network over Internet
   zerotier:
     image: zerotier/zerotier-synology:latest
@@ -345,6 +325,21 @@ services:
       - /dev/net/tun
     volumes:
       - $DOCKERDIR/appdata/zerotier:/var/lib/zerotier-one
+
+  # tailscale: 
+  #   container_name: tailscale 
+  #   hostname: tailscale-nas 
+  #   image: tailscale/tailscale:stable 
+  #   volumes: 
+  #     - $DOCKERDIR/appdata/tailscale:/var/lib # State data will be stored in this directory 
+  #     - /dev/net/tun:/dev/net/tun # Required for tailscale to work 
+  #   cap_add: # Required for tailscale to work 
+  #     - net_admin 
+  #     - sys_module 
+  #   command: tailscaled 
+  #   privileged: true 
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
 
   # Autoindex - Simple Directory Index
   autoindex:
@@ -372,7 +367,7 @@ services:
       - "traefik.http.routers.autoindex-rtr.service=autoindex-svc"
       - "traefik.http.services.autoindex-svc.loadbalancer.server.port=80"
       ## Homepage
-      - homepage.group=Tools
+      - homepage.group=Admin
       - homepage.name=Index
       - homepage.icon=index.png
       - homepage.href=https://index.mirwin.net
@@ -632,12 +627,12 @@ services:
       - "traefik.http.routers.jdownloader-rtr.service=jdownloader-svc"
       - "traefik.http.services.jdownloader-svc.loadbalancer.server.port=5800"
       # ## Homepage
-      # - homepage.group=Admin
-      # - homepage.name=JDownloader
-      # - homepage.icon=jdowloader.png
-      # - homepage.href=https://jdown.mirwin.net
-      # - homepage.description=Database administration
-      # - homepage.weight=3
+      - homepage.group=Downloaders
+      - homepage.name=JDownloader
+      - homepage.icon=jdowloader.png
+      - homepage.href=https://jdown.mirwin.net
+      - homepage.description=Download files
+      - homepage.weight=5
 
   # qBittorrent - Torrent downloader
   # Needs trailing / if using PathPrefixStrip
@@ -650,7 +645,7 @@ services:
   #   profiles: ["apps", "downloads", "all"]
   #   network_mode: "service:gluetun"
   #   # ports:
-  #   #   - "8081:8080" # Explosed via gluetun. 8081 because crowdsec is using port 8080
+  #     # - "1308:8080" # Explosed via gluetun.
   #   volumes:
   #     - $DOCKERDIR/appdata/qbittorrent:/config
   #     - $DOWNLOADSDIR:/data/downloads # Ensure that downloads folder is set to /data/downloads in qBittorrent
@@ -659,11 +654,11 @@ services:
   #     PUID: $PUID
   #     PGID: $PGID
   #     UMASK_SET: 002
-  #   healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
-  #     test: "curl -sf https://example.com  || exit 1"
-  #     interval: 1m
-  #     timeout: 10s
-  #     retries: 1
+  #   # healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
+  #   #   test: "curl -sf https://example.com  || exit 1"
+  #   #   interval: 1m
+  #   #   timeout: 10s
+  #   #   retries: 1
   #   labels: # Traefik labels added via glueten
   #     - "deunhealth.restart.on.unhealthy=true"
 
@@ -705,16 +700,114 @@ services:
       - "traefik.http.routers.sabnzbd-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.sabnzbd-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
-      - "traefik.http.routers.c-rtr.service=sabnzbd-svc"
+      - "traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc"
       - "traefik.http.routers.sabnzbd-rtr-bypass.service=sabnzbd-svc"
       - "traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8080"
       ## Homepage
-      - homepage.group=Manage
+      - homepage.group=Downloaders
       - homepage.name=Sabnzbd
       - homepage.icon=sabnzbd.png
       - homepage.href=https://sabnzbd.mirwin.net
       - homepage.description=Usenet downloader
       - homepage.weight=4
+
+  flood:
+    image: jesec/flood
+    container_name: flood
+    user: $PUID:$PGID
+    restart: unless-stopped
+    profiles: ["apps", "downloads", "all"]
+    command: --port $FLOOD_PORT --allowedpath /data
+    networks:
+      - t2_proxy
+    environment:
+      HOME: /config
+    volumes:
+      - $DOCKERDIR/appdata/flood:/config
+      - $DOWNLOADSDIR:/data
+    ports:
+      - $FLOOD_PORT:$FLOOD_PORT
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.flood-rtr.entrypoints=https"
+      - "traefik.http.routers.flood-rtr.rule=Host(`flood.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.flood-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.flood-rtr.service=flood-svc"
+      - "traefik.http.services.flood-svc.loadbalancer.server.port=$FLOOD_PORT"
+      ## Homepage
+      - homepage.group=Downloaders
+      - homepage.name=Flood
+      - homepage.icon=flood.png
+      - homepage.href=https://flood.mirwin.net
+      - homepage.description=BitTorrent client
+      - homepage.weight=4
+
+  geoip-updater:
+    image: crazymax/geoip-updater:latest
+    container_name: geoip-updater
+    restart: always
+    profiles: ["apps", "downloads", "all"]
+    networks:
+      - t2_proxy
+    volumes:
+      - "$DOCKERDIR/appdata/geoip:/data"
+    env_file:
+      - "./geoip-updater.env"
+
+  rtorrent:
+    image: crazymax/rtorrent-rutorrent:latest
+    container_name: rtorrent
+    restart: always
+    profiles: ["apps", "downloads", "all"]
+    networks:
+      - t2_proxy
+    expose:
+      - "${RT_DHT_PORT}/udp"
+      - "${XMLRPC_PORT}"
+      - "${RUTORRENT_PORT}"
+      - "${WEBDAV_PORT}"
+      - "${RT_INC_PORT}"
+    ports:
+      # - 51413:51413
+      # - 6881:6881/udp
+      - target: ${RT_DHT_PORT}
+        published: ${RT_DHT_PORT}
+        protocol: udp
+      - target: ${RUTORRENT_PORT}
+        published: ${RUTORRENT_PORT}
+        protocol: tcp
+      - target: ${WEBDAV_PORT}
+        published: ${WEBDAV_PORT}
+        protocol: tcp
+      - target: ${RT_INC_PORT}
+        published: ${RT_INC_PORT}
+        protocol: tcp
+    env_file:
+      - "rtorrent-rutorrent.env"
+      - ".env"
+    volumes:
+      - $DOCKERDIR/appdata/flood:/config
+      - $DOWNLOADSDIR:/downloads
+      - $DATADIR:/data
+      # - "./passwd:/passwd"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.rtorrent-rtr.entrypoints=https"
+      - "traefik.http.routers.rtorrent-rtr.rule=Host(`rtorrent.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.rtorrent-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.rtorrent-rtr.service=rtorrent-svc"
+      - "traefik.http.services.rtorrent-svc.loadbalancer.server.port=${RUTORRENT_PORT}"
 
   ############################# INDEXERS
 
@@ -784,27 +877,27 @@ services:
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
-      - "traefik.http.routers.sonarr-rtr-bypass.entrypoints=https"
+      # - "traefik.http.routers.sonarr-rtr-bypass.entrypoints=https"
       #- "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
-      - "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
-      - "traefik.http.routers.sonarr-rtr-bypass.priority=100"
+      # - "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      # - "traefik.http.routers.sonarr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.sonarr-rtr.entrypoints=https"
       - "traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`)"
       - "traefik.http.routers.sonarr-rtr.priority=99"
       ## Middlewares
-      - "traefik.http.routers.sonarr-rtr-bypass.middlewares=chain-no-auth@file"
+      # - "traefik.http.routers.sonarr-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.sonarr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
       - "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
-      - "traefik.http.routers.sonarr-rtr-bypass.service=sonarr-svc"
+      # - "traefik.http.routers.sonarr-rtr-bypass.service=sonarr-svc"
       - "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
       ## Homepage
       - homepage.group=Manage
       - homepage.name=Sonarr
       - homepage.icon=sonarr.png
       - homepage.href=https://sonarr.mirwin.net
-      - homepage.description=Movies management
+      - homepage.description=TV management
       # - homepage.weight=1
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
@@ -822,7 +915,8 @@ services:
     ports:
       - '5656:5656'
     volumes:
-      - $DOCKERDIR/appdata/kapowarr:/config
+      - $DOCKERDIR/appdata/kapowarr:/app/db
+      # - $DOCKERDIR/appdata/kapowarr:/config
       - $DATADIR:/data
       - "/etc/localtime:/etc/localtime:ro"
     environment:
@@ -857,46 +951,52 @@ services:
       # - homepage.widget.url=http://kapowarr:5656/
       # - homepage.widget.key=${KAPOWARR_API_KEY}
 
-  # kavita:
-  #   image: lscr.io/linuxserver/kavita:latest
-  #   container_name: kavita
-  #   volumes:
-  #     - $DOCKERDIR/appdata/kavita:/config
-  #     - $DATADIR/Manga:/data/Manga
-  #     - $DATADIR/Comics:/data/Comics
-  #     - $DATADIR/Books:/data/Books
-  #   environment:
-  #     TZ: $TZ
-  #     PUID: $PUID
-  #     PGID: $PGID
-  #   ports:
-  #       - "5000:5000" # Change the public port (the first 5000) if you have conflicts with other services
-  #   restart: unless-stopped
-  #   labels:
-  #     - "traefik.enable=true"
-  #     ## HTTP Routers Auth Bypass
-  #     - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
-  #     - "traefik.http.routers.kavita-rtr-bypass.priority=100"
-  #     ## HTTP Routers Auth
-  #     - "traefik.http.routers.kavita-rtr.entrypoints=https"
-  #     - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
-  #     - "traefik.http.routers.kavita-rtr.priority=99"
-  #     ## Middlewares
-  #     - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
-  #     - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
-  #     ## HTTP Services
-  #     - "traefik.http.routers.kavita-rtr.service=kavita-svc"
-  #     - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
-  #     - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
-  #     - homepage.group=Media
-  #     - homepage.name=Kavita
-  #     - homepage.icon=kavita.png
-  #     - homepage.href=http://kavita.mirwin.net/
-  #     - homepage.description=Book reader
-  #     # - homepage.weight=1
-  #     - homepage.widget.type=kavita
-  #     - homepage.widget.url=http://kavita:5000/
-  #     # - homepage.widget.key=${KAVITA_API_KEY}
+  kavita:
+    image: lscr.io/linuxserver/kavita:latest
+    container_name: kavita
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    volumes:
+      - $DOCKERDIR/appdata/kavita:/config
+      - $DATADIR/Manga:/data/Manga
+      - $DATADIR/Comics:/data/Comics
+      - $DATADIR/Books:/data/Books
+      - $EXTDRIVE/Dropbox/Calibre:/data/Library
+      - $EXTDRIVE/Dropbox/Text:/data/Text
+
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.kavita-rtr.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.kavita-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.kavita-rtr.service=kavita-svc"
+      - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
+      - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
+      - homepage.group=Media
+      - homepage.name=Kavita
+      - homepage.icon=kavita.png
+      - homepage.href=http://kavita.mirwin.net/
+      - homepage.description=Book reader
+      - homepage.weight=2
+      # - homepage.widget.type=kavita
+      # - homepage.widget.url=http://kavita:5000/
+      # - homepage.widget.key=${KAVITA_API_KEY}
 
   # Lidarr - Music Management
   # Set url_base in lidarr settings if using PathPrefix
@@ -992,7 +1092,7 @@ services:
       - homepage.name=Radarr
       - homepage.icon=radarr.png
       - homepage.href=https://radarr.mirwin.net
-      - homepage.description=TV management
+      - homepage.description=Movie management
       - homepage.weight=1
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
@@ -1229,6 +1329,35 @@ services:
       # - homepage.widget.type=audiobookshelf
       # - homepage.widget.url=http://audiobookshelf:13378
 
+  lazylibrarian:
+    image: lscr.io/linuxserver/lazylibrarian:latest
+    container_name: lazylibrarian
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+      - DOCKER_MODS=linuxserver/mods:universal-calibre|linuxserver/mods:lazylibrarian-ffmpeg #optional
+    volumes:
+      - $DOCKERDIR/appdata/lazylibrarian:/config
+      - $DOWNLOADSDIR:/downloads
+      - $DATADIR:/data
+    ports:
+      - 5299:5299
+    profiles: ["media","arrs", "all"]
+    networks:
+      - t2_proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.rtorrent-rtr.entrypoints=https"
+      - "traefik.http.routers.rtorrent-rtr.rule=Host(`lazylibrarian.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.rtorrent-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.rtorrent-rtr.service=rtorrent-svc"
+      - "traefik.http.services.rtorrent-svc.loadbalancer.server.port=5299"
+
   # Plex Meta Manager - Automatic Metadata Manager for Plex
   plexmm:
     image: lscr.io/linuxserver/plex-meta-manager:latest
@@ -1288,15 +1417,15 @@ services:
       - "traefik.http.routers.tautulli-rtr-bypass.service=tautulli-svc"
       - "traefik.http.services.tautulli-svc.loadbalancer.server.port=8181"
       ## Homepage
-      # - homepage.group=Metrics
-      # - homepage.name=Tautulli
-      # - homepage.icon=tautulli.png
-      # - homepage.href=https://tautulli.mirwin.net
-      # - homepage.description=Plex Stats
-      # - homepage.weight=3
-      # - homepage.widget.type=tautulli
-      # - homepage.widget.url=http://tautulli:6767
-      # - homepage.widget.key=${TAUTULLI_API_KEY}
+      - homepage.group=Media
+      - homepage.name=Tautulli
+      - homepage.icon=tautulli.png
+      - homepage.href=https://tautulli.mirwin.net
+      - homepage.description=Plex Stats
+      - homepage.weight=5
+      - homepage.widget.type=tautulli
+      - homepage.widget.url=http://tautulli:6767
+      - homepage.widget.key=${TAUTULLI_API_KEY}
 
   # Plex - Media Server
   plex:
@@ -1374,28 +1503,28 @@ services:
       # [Optional - WIP] Use SteamGridDB as a source for covers
       # - STEAMGRIDDB_API_KEY=$STEAMGRIDDB_API_KEY
       # [Optional] Will enable user management and require authentication to access the interface (disabled by default)
-      # - ROMM_AUTH_ENABLED=true # default: false
-      # - ROMM_AUTH_SECRET_KEY=$ROMM_AUTH_SECRET_KEY
+      - ROMM_AUTH_ENABLED=false
+      - ROMM_AUTH_SECRET_KEY=$ROMM_AUTH_SECRET_KEY
       # - ROMM_AUTH_USERNAME=admin # default: admin
       # - ROMM_AUTH_PASSWORD=$ROMM_PASSWORD
       # [Optional] Only required if authentication is enabled
-      # - ENABLE_EXPERIMENTAL_REDIS=true # default: false
-      # - REDIS_HOST=redis # default: localhost
-      # - REDIS_PORT=6379 # default: 6379
+      - ENABLE_EXPERIMENTAL_REDIS=true # default: false
+      - REDIS_HOST=redis # default: localhost
+      - REDIS_PORT=6379 # default: 6379
       # - REDIS_PASSWORD=<redis password> # [Optional] Support for secured redis
       # [Optional] Will enable asynchronous tasks (all disabled by default)
-      # - ENABLE_RESCAN_ON_FILESYSTEM_CHANGE=true # Runs a quick scan on the library when a file is added or removed 
-      # - RESCAN_ON_FILESYSTEM_CHANGE_DELAY=5 # Delay in seconds before running the quick scan (default: 5)
-      # - ENABLE_SCHEDULED_RESCAN=true # Runs a quick scan on the library at a given time
-      # - SCHEDULED_RESCAN_CRON=0 3 * * * # Cron expression for the scheduled scan (default: 0 3 * * * - At 3:00 AM every day)
-      # - ENABLE_SCHEDULED_UPDATE_SWITCH_TITLEDB=true # Updates the Switch TitleDB database at a given time
-      # - SCHEDULED_UPDATE_SWITCH_TITLEDB_CRON=0 4 * * * # Cron expression for the scheduled update (default: 0 4 * * * - At 4:00 AM every day)
-      # - ENABLE_SCHEDULED_UPDATE_MAME_XML=true # Updates the MAME XML database at a given time
-      # - SCHEDULED_UPDATE_MAME_XML_CRON=0 5 * * * # Cron expression for the scheduled update (default: 0 5 * * * - At 5:00 AM every day)
+      - ENABLE_RESCAN_ON_FILESYSTEM_CHANGE=true # Runs a quick scan on the library when a file is added or removed 
+      - RESCAN_ON_FILESYSTEM_CHANGE_DELAY=30 # Delay in seconds before running the quick scan (default: 5)
+      - ENABLE_SCHEDULED_RESCAN=true # Runs a quick scan on the library at a given time
+      - SCHEDULED_RESCAN_CRON=0 3 * * * # Cron expression for the scheduled scan (default: 0 3 * * * - At 3:00 AM every day)
+      - ENABLE_SCHEDULED_UPDATE_SWITCH_TITLEDB=true # Updates the Switch TitleDB database at a given time
+      - SCHEDULED_UPDATE_SWITCH_TITLEDB_CRON=0 4 * * * # Cron expression for the scheduled update (default: 0 4 * * * - At 4:00 AM every day)
+      - ENABLE_SCHEDULED_UPDATE_MAME_XML=true # Updates the MAME XML database at a given time
+      - SCHEDULED_UPDATE_MAME_XML_CRON=0 5 * * * # Cron expression for the scheduled update (default: 0 5 * * * - At 5:00 AM every day)
     volumes:
       - $DOCKERDIR/appdata/romm:/romm
       # - $DATADIR/roms:/romm/library
-      # - $EXTDRIVE//Dropbox/roms:/romm/Library2
+      - $EXTDRIVE/Dropbox/roms:/romm/library/roms
       # - "/path/to/library:/romm/library"
       # - "/path/to/resources:/romm/resources" # [Optional] Path where roms metadata (covers) are stored
       # - "/path/to/config.yml:/romm/config.yml" # [Optional] Path where config is stored
@@ -1416,14 +1545,14 @@ services:
       ## HTTP Services
       - "traefik.http.routers.romm-rtr.service=romm-svc"
       - "traefik.http.routers.romm-rtr-bypass.service=romm-svc"
-      - "traefik.http.services.romm-svc.loadbalancer.server.port=9080"
+      - "traefik.http.services.romm-svc.loadbalancer.server.port=8080"
       ## Homepage
       - homepage.group=Media
       - homepage.name=Romm
       - homepage.icon=romm.png
       - homepage.href=https://romm.mirwin.net
-      - homepage.description=Games management
-      - homepage.weight=2
+      - homepage.description=Game roms
+      # - homepage.weight=2
       # - homepage.widget.type=romm
       # - homepage.widget.url=http://romm:9080
       # - homepage.widget.key=${ROMM_API_KEY}
@@ -1497,6 +1626,7 @@ services:
 
   ############################# MEDIA FILE MANAGEMENT
 
+  # Overseerr - Get recommendations and request media downloads
   overseerr:
     image: sctx/overseerr:latest
     container_name: overseerr
@@ -1532,7 +1662,7 @@ services:
       - homepage.icon=overseerr.png
       - homepage.href=https://overseerr.mirwin.net
       - homepage.description=Request TV/Movies
-      - homepage.weight=2
+      - homepage.weight=4
       - homepage.widget.type=overseerr
       - homepage.widget.url=http://overseerr:5055
       - homepage.widget.key=${OVERSEERR_API_KEY}
@@ -1588,7 +1718,7 @@ services:
     networks:
       - t2_proxy
     # ports:
-    #   - "$PICARD_PORT:5800"
+    #   - "$PICARD_PORT:5801"
     volumes:
       - $DATADIR:/data:rw
       - $DOCKERDIR/appdata/picard:/config:rw
@@ -1609,7 +1739,7 @@ services:
       - "traefik.http.routers.picard-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
       - "traefik.http.routers.picard-rtr.service=picard-svc"
-      - "traefik.http.services.picard-svc.loadbalancer.server.port=5800"
+      - "traefik.http.services.picard-svc.loadbalancer.server.port=5801"
 
   # Tdarr Server - Library Optimizer
   tdarr:
@@ -1710,12 +1840,28 @@ services:
       - "traefik.http.routers.grafana-rtr.service=grafana-svc"
       - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
       ## Homepage
-      # - homepage.group=Admin
-      # - homepage.name=Grafana
-      # - homepage.icon=grafama.png
-      # - homepage.href=https://grafana.mirwin.net
-      # - homepage.description=Pretty graphs
-      # - homepage.weight=4
+      - homepage.group=Admin
+      - homepage.name=Grafana
+      - homepage.icon=grafama.png
+      - homepage.href=https://grafana.mirwin.net
+      - homepage.description=Pretty graphs
+      - homepage.weight=4
+
+  # loki:
+  #   image: grafana/loki:2.9.0
+  #   ports:
+  #     - "3100:3100"
+  #   command: -config.file=/etc/loki/local-config.yaml
+  #   networks:
+  #     - loki
+
+  # promtail:
+  #   image: grafana/promtail:2.9.0
+  #   volumes:
+  #     - /var/log:/var/log
+  #   command: -config.file=/etc/promtail/config.yml
+  #   networks:
+  #     - loki
 
   # Guacamole - Remote desktop, SSH, on Telnet on any HTML5 Browser
   # Create all databases and tables first
@@ -1956,7 +2102,7 @@ services:
       - homepage.icon=tools.png
       - homepage.href=https://tools.mirwin.net
       - homepage.description=Random IT Tools
-      # - homepage.weight=2
+      - homepage.weight=3
 
   # Uptime Kuma - Status Page & Monitoring Server
   uptime-kuma:
@@ -2045,7 +2191,7 @@ services:
       - "traefik.http.routers.dozzle-rtr.service=dozzle-svc"
       - "traefik.http.services.dozzle-svc.loadbalancer.server.port=8080"
       ## Homepage
-      - homepage.group=Tools
+      - homepage.group=Admin
       - homepage.name=Dozzle
       - homepage.icon=dozzle.png
       - homepage.href=https://dozzle.mirwin.net
@@ -2055,58 +2201,60 @@ services:
   # Gluetun - VPN Client for Docker Containers and More
   # Gluetun only for use by torrent clients + on demand lan devices.
   # Arr apps do not need VPN (not recommended), unless you have ISP/country restrictions.
-  gluetun:
-    image: qmcgaw/gluetun
-    container_name: gluetun
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-    ports:
-      - "8087:8080" # Exposing qBittorrent through Docker Host LAN IP
-    #   - 8888:8888/tcp # HTTP proxy
-    #   - 8388:8388/tcp # Shadowsocks
-    #   - 8388:8388/udp # Shadowsocks
-    volumes:
-      - $DOCKERDIR/appdata/gluetun:/gluetun
-    environment:
-      TZ: $TZ
-      # Wireguard
-      VPN_SERVICE_PROVIDER: surfshark
-      VPN_TYPE: wireguard
-      WIREGUARD_PRIVATE_KEY: $SURFSHARK_WG_PRIVATE_KEY
-      WIREGUARD_ADDRESSES: 10.14.0.2/16
-      SERVER_COUNTRIES: Netherlands
-      # # OpenVPN
-      # VPN_SERVICE_PROVIDER: nordvpn
-      # VPN_TYPE: openvpn
-      # OPENVPN_USER: $NORDVPN_USERNAME
-      # OPENVPN_PASSWORD: $NORDVPN_PASSWORD 
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.entrypoints=https"
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.rule=Host(`qbit.$DOMAINNAME_CLOUD_SERVER`)" # qBittorrent
-      ## Middlewares
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.middlewares=chain-oauth@file" # qBittorrent
-      ## HTTP Services
-      - "traefik.http.routers.gluetun-qbittorrent-rtr.service=gluetun-svc" # qBittorrent
-      - "traefik.http.services.gluetun-svc.loadbalancer.server.port=8080" # qBittorrent
-      ## Homepage
-      # - homepage.group=Admin
-      # - homepage.name=Gluetun
-      # - homepage.icon=gluetun.png
-      # - homepage.href=https://gluetun.mirwin.net
-      # - homepage.description=VPN Client
-      # - homepage.weight=3
-      # - homepage.widget.type=gluetun
-      # - homepage.widget.url=http://gluetun:8080
+  # gluetun:
+  #   image: qmcgaw/gluetun
+  #   container_name: gluetun
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun
+  #   ports:
+  #     - "13087:8080" # Exposing qBittorrent through Docker Host LAN IP
+  #   #   - 8888:8888/tcp # HTTP proxy
+  #   #   - 8388:8388/tcp # Shadowsocks
+  #   #   - 8388:8388/udp # Shadowsocks
+  #   volumes:
+  #     - $DOCKERDIR/appdata/gluetun:/gluetun
+  #   environment:
+  #     TZ: $TZ
+
+  #     # Wireguard
+  #     VPN_SERVICE_PROVIDER: surfshark
+  #     VPN_TYPE: wireguard
+  #     WIREGUARD_PRIVATE_KEY: $SURFSHARK_WG_PRIVATE_KEY
+  #     WIREGUARD_ADDRESSES: 10.14.0.2/16
+  #     SERVER_COUNTRIES: Netherlands
+
+  #     # # OpenVPN
+  #     # VPN_SERVICE_PROVIDER: nordvpn
+  #     # VPN_TYPE: openvpn
+  #     # OPENVPN_USER: $NORDVPN_USERNAME
+  #     # OPENVPN_PASSWORD: $NORDVPN_PASSWORD 
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.entrypoints=https"
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.rule=Host(`qbit.$DOMAINNAME_CLOUD_SERVER`)" # qBittorrent
+  #     ## Middlewares
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.middlewares=chain-oauth@file" # qBittorrent
+  #     ## HTTP Services
+  #     - "traefik.http.routers.gluetun-qbittorrent-rtr.service=gluetun-svc" # qBittorrent
+  #     - "traefik.http.services.gluetun-svc.loadbalancer.server.port=8080" # qBittorrent
+  #     ## Homepage
+  #     - homepage.group=Tools
+  #     - homepage.name=Gluetun
+  #     - homepage.icon=gluetun.png
+  #     - homepage.href=https://qbit.mirwin.net
+  #     - homepage.description=VPN Client
+  #     - homepage.weight=3
+  #     - homepage.widget.type=gluetun
+  #     - homepage.widget.url=http://gluetun:8080
 
   # Autoindex - Simple Directory Index (for Sitespeed.io Results)
   sitespeed:
@@ -2119,7 +2267,7 @@ services:
     networks:
       - t2_proxy
     volumes:
-      - $EXTDRIVE/ssd/sitespeed:/var/lib/nginx/html:ro # Location you want to index
+      - $DOCKERDIR/appdata/sitespeed:/var/lib/nginx/html:ro # Location you want to index
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
@@ -2307,43 +2455,45 @@ services:
       - --collector.filesystem.ignored-mount-points
       - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
 
+  # TODO tor-exporter
+
   # Glances - System Information
-  # glances:
-  #   image: nicolargo/glances:latest-full
-  #   container_name: glances
-  #   # security_opt:
-  #   #   - no-new-privileges:true
-  #   restart: unless-stopped
-  #   profiles: ["monitoring", "all"]
-  #   # privileged: true # Only for VM
-  #   # network_mode: host
-  #   networks:
-  #     - t2_proxy
-  #     - socket_proxy
-  #     - default
-  #   ports:
-  #     - "61208:61208"
-  #   pid: host
-  #   volumes:
-  #     - $DOCKERDIR/appdata/glances/glances.conf:/glances/conf/glances.conf # Use this if you want to add a glances.conf file
-  #     - $DATADIR:/data/data:ro
-  #     - $DOCKERDIR:/data/docker:ro
-  #     # - /var/run/docker.sock:/var/run/docker.sock:ro # Use Docker Socket Proxy instead for improved security
-  #   environment:
-  #     # GLANCES_OPT: "-C /glances/conf/glances.conf --quiet --export influxdb"
-  #     # GLANCES_OPT: "--export influxdb"
-  #     GLANCES_OPT: "-w"
-  #     DOCKER_HOST: tcp://socket-proxy:2375
-  #   labels:
-  #     - "traefik.enable=true"
-  #     ## HTTP Routers
-  #     - "traefik.http.routers.glances-rtr.entrypoints=https"
-  #     - "traefik.http.routers.glances-rtr.rule=Host(`glances.$DOMAINNAME_CLOUD_SERVER`)"
-  #     ## Middlewares
-  #     - "traefik.http.routers.glances-rtr.middlewares=chain-oauth@file"
-  #     ## HTTP Services
-  #     - "traefik.http.routers.glances-rtr.service=glances-svc"
-  #     - "traefik.http.services.glances-svc.loadbalancer.server.port=61208"
+  glances:
+    image: nicolargo/glances:latest-full
+    container_name: glances
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["monitoring", "all"]
+    # privileged: true # Only for VM
+    # network_mode: host
+    networks:
+      - t2_proxy
+      - socket_proxy
+      - default
+    ports:
+      - "61208:61208"
+    pid: host
+    volumes:
+      - $DOCKERDIR/appdata/glances/glances.conf:/glances/conf/glances.conf # Use this if you want to add a glances.conf file
+      - $DATADIR:/data/data:ro
+      - $DOCKERDIR:/data/docker:ro
+      # - /var/run/docker.sock:/var/run/docker.sock:ro # Use Docker Socket Proxy instead for improved security
+    environment:
+      # GLANCES_OPT: "-C /glances/conf/glances.conf --quiet --export influxdb"
+      # GLANCES_OPT: "--export influxdb"
+      GLANCES_OPT: "-w"
+      DOCKER_HOST: tcp://socket-proxy:2375
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.glances-rtr.entrypoints=https"
+      - "traefik.http.routers.glances-rtr.rule=Host(`glances.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.glances-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.glances-rtr.service=glances-svc"
+      - "traefik.http.services.glances-svc.loadbalancer.server.port=61208"
 
   ########################### WEB
 
@@ -2534,6 +2684,7 @@ services:
       LOG_LEVEL: info
       # SHOUTRRR_ADDRESSES: $DISCORD_SHOUTRRR_ADDRESS
 
+  # TODO logs: "INFO Monitoring 0 containers to restart when becoming unhealthy"
   # DeUnhealth - Restart your unhealthy containers safely (e.g. containers depending on VPN and VPN reconnects)
   deunhealth:
     image: qmcgaw/deunhealth
@@ -2550,6 +2701,7 @@ services:
       TZ: $TZ
       DOCKER_HOST: tcp://socket-proxy:2375
 
+  # Ladder - 12ft.io cline, website to circumvent paywalls
   ladder:
     image: ghcr.io/kubero-dev/ladder:latest
     container_name: ladder
@@ -2594,3 +2746,337 @@ services:
       - homepage.href=https://ladder.mirwin.net
       - homepage.description=Paywall bypass
       # - homepage.weight=2
+
+  freshrss:
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    hostname: freshrss
+    restart: unless-stopped
+    profiles: ["all"]
+    # Optional build section if you want to build the image locally:
+    # build:
+    #   # Pick #latest (stable release) or #edge (rolling release) or a specific release like #1.21.0
+    #   context: https://github.com/FreshRSS/FreshRSS.git#latest
+    #   dockerfile: Docker/Dockerfile-Alpine
+    logging:
+      options:
+        max-size: 10m
+    volumes:
+      - $DOCKERDIR/appdata/freshrss:/var/www/FreshRSS/data
+      # - $DATADIR/media:/var/www/FreshRSS/data
+      # - $DOCKERDIR/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      CRON_MIN: '3,33'
+      TRUSTED_PROXY: 172.16.0.1/12 192.168.0.1/16 10.0.0.0/8
+    networks:
+      - t2_proxy
+    ports:
+      - "8765:80"
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.freshrss-rtr.entrypoints=https"
+      - "traefik.http.routers.freshrss-rtr.rule=Host(`freshrss.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
+      - "traefik.http.services.freshrss-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=FreshRSS
+      - homepage.icon=freshrss.png
+      - homepage.href=https://freshrss.mirwin.net
+      - homepage.description=Blog feeds
+      - homepage.weight=3
+      # - homepage.widget.type=freshrss
+      # - homepage.widget.url=http://freshrss:8765
+      # - homepage.widget.key=${FRESHRSS_API_KEY}
+
+  # via https://github.com/printfuck/xExtension-Readable
+  readability:
+    image: phpdockerio/readability-js-server
+    container_name: readability
+    restart: unless-stopped
+    profiles: ["all"]
+    ports:
+      - 127.0.0.1:3000:3000
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.readability-rtr.entrypoints=https"
+      - "traefik.http.routers.readability-rtr.rule=Host(`readability.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.readability-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.readability-rtr.service=readability-svc"
+      - "traefik.http.services.readability-svc.loadbalancer.server.port=3000"
+
+  # via https://github.com/printfuck/xExtension-Readable
+  mercury:
+    image: wangqiru/mercury-parser-api
+    container_name: mercury
+    restart: unless-stopped
+    profiles: ["all"]
+    ports:
+      - 127.0.0.1:3001:3000
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.mercury-rtr.entrypoints=https"
+      - "traefik.http.routers.mercury-rtr.rule=Host(`mercury.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.mercury-rtr.service=mercury-svc"
+      - "traefik.http.services.readability-svc.loadbalancer.server.port=3001"
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: ipfs
+    restart: unless-stopped
+    profiles: ["all"]
+    volumes:
+      - $DOCKERDIR/appdata/ipfs:/data/ipfs
+      - $EXTDRIVE/ipfs:/ipfs
+      - $EXTDRIVE/ipns:/ipns
+    networks:
+      - t2_proxy
+    environment:
+      - IPFS_PATH=/data/ipfs
+    ports:
+      # Swarm listens on all interfaces, so is remotely reachable.
+      - 4001:4001/tcp
+      - 4001:4001/udp
+      
+      # The following ports only listen on the loopback interface, so are not remotely reachable by default.
+      # If you want to override these or add more ports, see https://docs.docker.com/compose/extends/ .
+      
+      # API port, which includes admin operations, so you probably don't want this remotely accessible.
+      - 5001:5001
+      
+      # HTTP Gateway
+      # - 127.0.0.1:8080:8080
+      - 7070:8080
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.ipfs-rtr.entrypoints=https"
+      - "traefik.http.routers.ipfs-rtr.rule=Host(`ipfs.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.ipfs-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.ipfs-rtr.service=ipfs-svc"
+      - "traefik.http.services.ipfs-svc.loadbalancer.server.port=5001"
+
+  # https://gitlab.torproject.org/tpo/anti-censorship/docker-obfs4-bridge/-/raw/main/docker-compose.yml
+  obfs4-bridge:
+    image: thetorproject/obfs4-bridge:latest
+    container_name: tor-bridge
+    profiles: ["all"]
+    networks:
+      # - obfs4_bridge_external_network
+      - t2_proxy
+    environment:
+      # Exit with an error message if TOR_OR_PORT is unset or empty.
+      - OR_PORT=${TOR_OR_PORT:?Env var TOR_OR_PORT is not set.}
+      # Exit with an error message if TOR_PT_PORT is unset or empty.
+      - PT_PORT=${TOR_PT_PORT:?Env var TOR_PT_PORT is not set.}
+      # Exit with an error message if EMAIL is unset or empty.
+      - EMAIL=${TOR_EMAIL:?Env var EMAIL is not set.}
+      # Nickname with default value: "DockerObfs4Bridge"
+      - NICKNAME=${NICKNAME:-DockerObfs4Bridge}
+    # volumes:
+      # - $DOCKERDIR/appdata/tor:/var/lib/tor
+    ports:
+      - ${TOR_OR_PORT}:${TOR_OR_PORT}
+      - ${TOR_PT_PORT}:${TOR_PT_PORT}
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.freshrss-rtr.entrypoints=https"
+      - "traefik.http.routers.freshrss-rtr.rule=Host(`bridge.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
+      - "traefik.http.services.freshrss-svc.loadbalancer.server.port=80"
+
+  # https://hub.docker.com/r/peterdavehello/tor-socks-proxy/
+  tor:
+    image: peterdavehello/tor-socks-proxy:latest
+    container_name: tor
+    restart: unless-stopped
+    profiles: ["all"]
+    # volumes:
+      # - $DOCKERDIR/appdata/tor:/var/lib/tor
+    networks:
+      - t2_proxy
+    ports:
+      - 9150:9150
+      # - 53:8853:udp
+
+  # tiddlywiki:
+  #   container_name: tiddlywiki
+  #   image: nicolaw/tiddlywiki
+  #   user: root:root
+  #   environment:
+  #     TW_WIKINAME: mywiki
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./tiddlywiki:/var/lib/tiddlywiki/
+  #   build:
+  #     context: https://gitlab.com/nicolaw/tiddlywiki.git
+  #     #args:
+  #     #  TW_VERSION: 5.2.2
+  #     #  USER: 1000
+  #     #  BASE_IMAGE: 17.9-alpine3.15
+
+  # https://github.com/linuxserver/docker-calibre-web
+  calibre:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    volumes:
+      - $DOCKERDIR/appdata/calibre:/config
+      - $EXTDRIVE/Dropbox/Calibre:/data/Library
+      - $DATADIR/Books:/data/Books
+      - $DATADIR/Comics:/data/Comics
+      - $DATADIR/Manga:/data/Manga
+    ports:
+      - 3083:8083
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.calibre-rtr.entrypoints=https"
+      - "traefik.http.routers.calibre-rtr.rule=Host(`calibre.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.calibre-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.calibre-rtr.service=calibre-svc"
+      - "traefik.http.services.calibre-svc.loadbalancer.server.port=8083"
+      ## Homepage
+      # - homepage.group=Media
+      # - homepage.name=Calibre
+      # - homepage.icon=calibre.png
+      # - homepage.href=https://calibre.mirwin.net
+      # - homepage.description=Read stuff
+      # - homepage.weight=3
+
+  serge:
+    image: ghcr.io/serge-chat/serge:latest
+    container_name: serge
+    restart: unless-stopped
+    ports:
+      - 8009:8008
+    profiles: ["apps", "all"]
+    networks:
+      - t2_proxy
+    volumes:
+      - $DOCKERDIR/appdata/serge:/serge/db
+      - $EXTDRIVE/weights:/usr/src/app/weights
+    # environment:
+      # TZ: $TZ
+      # PUID: $PUID
+      # PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.serge-rtr.entrypoints=https"
+      - "traefik.http.routers.serge-rtr.rule=Host(`serge.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.serge-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.serge-rtr.service=serge-svc"
+      - "traefik.http.services.serge-svc.loadbalancer.server.port=8008"
+
+  lounge:
+    image: ghcr.io/thelounge/thelounge:latest
+    container_name: lounge
+    ports:
+      - "9003:9000"
+    restart: always
+    volumes:
+      - $DOCKERDIR/appdata/lounge:/var/opt/thelounge
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.lounge-rtr.entrypoints=https"
+      - "traefik.http.routers.lounge-rtr.rule=Host(`lounge.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.lounge-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.lounge-rtr.service=lounge-svc"
+      - "traefik.http.services.lounge-svc.loadbalancer.server.port=9000"
+
+  # Scrutiny - Hard Drive S.M.A.R.T Monitoring
+  # scrutiny:
+  #   container_name: scrutiny
+  #   image: ghcr.io/analogj/scrutiny:master-omnibus
+  #   cap_add:
+  #     - SYS_RAWIO
+  #   ports:
+  #     - "9004:8080" # webapp
+  #     # - "8086:8086" # influxDB admin
+  #   volumes:
+  #     - /run/udev:/run/udev:ro
+  #     - $DOCKERDIR/appdata/scrutiny:/opt/scrutiny/config
+  #     - $DOCKERDIR/appdata/influxdb:/opt/scrutiny/influxdb
+  #   devices:
+  #     - "/dev/sda"
+  #     - "/dev/nvme0"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.scrutiny-rtr.entrypoints=https"
+  #     - "traefik.http.routers.scrutiny-rtr.rule=Host(`scrutiny.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.scrutiny-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.scrutiny-rtr.service=scrutiny-svc"
+  #     - "traefik.http.services.scrutiny-svc.loadbalancer.server.port=8080"
+
+  emulatorjs:
+    image: lscr.io/linuxserver/emulatorjs:latest
+    container_name: emulatorjs
+    profiles: ["apps", "all"]
+    networks:
+      - t2_proxy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      # - SUBFOLDER=/ #optional
+    volumes:
+      - $DOCKERDIR/appdata/emulatorjs:/config
+      - $EXTDRIVE/Dropbox/roms:/data
+    ports:
+      - 3006:3000
+      - 8087:80
+      - 4002:4001 #optional
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.emulatorjs-rtr.entrypoints=https"
+      - "traefik.http.routers.emulatorjs-rtr.rule=Host(`emulatorjs.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.emulatorjs-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.emulatorjs-rtr.service=emulatorjs-svc"
+      - "traefik.http.services.emulatorjs-svc.loadbalancer.server.port=80"
