@@ -98,7 +98,7 @@ services:
       - --providers.docker.endpoint=tcp://socket-proxy:2375
       # Automatically set Host rule for services
       # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME_CLOUD_SERVER`)
-      - --providers.docker.exposedByDefault=false
+      - --providers.docker.exposedByDefault=false # Do not expose containers unless explicitly told so
       # - --entrypoints.https.http.middlewares=chain-oauth@file
       - --entrypoints.https.http.tls.options=tls-opts@file
       # Add dns-cloudflare as default certresolver for all services. Also enables TLS and no need to specify on individual services
@@ -133,6 +133,11 @@ services:
       - --metrics.influxdb2.addServicesLabels=true
       - --metrics.influxdb2.pushInterval=30s
       - --metrics.influxdb2.additionallabels.host=$DOMAINNAME_CLOUD_SERVER
+      - --experimental.plugins.sablier.modulename=github.com/acouvreur/sablier
+      - --experimental.plugins.sablier.version=v1.4.1-beta.5
+      - --experimental.plugins.fail2ban.modulename=github.com/tomMoulard/fail2ban
+      - --experimental.plugins.fail2ban.version=v0.6.6
+      - --providers.file.directory=/dyn
     #healthcheck:
     #  test: ["CMD", "traefik", "healthcheck", "--ping"]
     #  interval: 5s

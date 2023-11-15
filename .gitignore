@@ -8,13 +8,7 @@
 !.bash_aliases.example
 !.env.example
 
-!docker-compose-t2.yml
-!docker-compose-t2-obsolete.yml
-!docker-compose-t2-synology.yml
-!docker-compose-t2-web.yml
-!docker-compose-npm.yml
-!docker-compose-media-db.yml
-!docker-compose-all.yml
+# !docker-compose-all.yml
 
 !.github
 .github/*

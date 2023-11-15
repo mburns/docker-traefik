@@ -46,7 +46,8 @@ services:
     volumes:
       - "$DOCKERDIR/appdata/geoip:/data"
     env_file:
-      - "./geoip-updater.env"
+      - "env/geoip-updater.env"
+      - ".env"
 
   # https://github.com/crazy-max/docker-rtorrent-rutorrent/blob/master/examples/compose/compose.yml
   rtorrent:
@@ -78,7 +79,7 @@ services:
         published: ${RT_INC_PORT}
         protocol: tcp
     env_file:
-      - "rtorrent-rutorrent.env"
+      - "env/rtorrent-rutorrent.env"
       - ".env"
     volumes:
       - $DOCKERDIR/appdata/flood:/config
