@@ -1,0 +1,304 @@
+version: "3.9"
+
+services:
+
+  freshrss:
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    hostname: freshrss
+    restart: unless-stopped
+    profiles: ["all"]
+    # Optional build section if you want to build the image locally:
+    # build:
+    #   # Pick #latest (stable release) or #edge (rolling release) or a specific release like #1.21.0
+    #   context: https://github.com/FreshRSS/FreshRSS.git#latest
+    #   dockerfile: Docker/Dockerfile-Alpine
+    logging:
+      options:
+        max-size: 10m
+    volumes:
+      - $DOCKERDIR/appdata/freshrss:/var/www/FreshRSS/data
+      # - $DATADIR/media:/var/www/FreshRSS/data
+      # - $DOCKERDIR/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      CRON_MIN: '3,33'
+      TRUSTED_PROXY: 172.16.0.1/12 192.168.0.1/16 10.0.0.0/8
+    networks:
+      - t2_proxy
+    ports:
+      - "8765:80"
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.freshrss-rtr.entrypoints=https"
+      - "traefik.http.routers.freshrss-rtr.rule=Host(`freshrss.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
+      - "traefik.http.services.freshrss-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=FreshRSS
+      - homepage.icon=freshrss.png
+      - homepage.href=https://freshrss.mirwin.net
+      - homepage.description=Blog feeds
+      - homepage.weight=3
+      # - homepage.widget.type=freshrss
+      # - homepage.widget.url=http://freshrss:8765
+      # - homepage.widget.key=${FRESHRSS_API_KEY}
+
+  # Ladder - 12ft.io cline, website to circumvent paywalls
+  ladder:
+    image: ghcr.io/kubero-dev/ladder:latest
+    container_name: ladder
+    # build: .
+    restart: unless-stopped
+    profiles: ["all"]
+    networks:
+      - t2_proxy
+    #command: sh -c ./ladder
+    environment:
+      - PORT=8091
+      #- PREFORK=true
+      #- X_FORWARDED_FOR=66.249.66.1
+      #- USER_AGENT=Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+      #- USERPASS=foo:bar
+      - LOG_URLS=true
+      #- GODEBUG=netdns=go
+    ports:
+      - "8091:8091"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.ladder-rtr.entrypoints=https"
+      - "traefik.http.routers.ladder-rtr.rule=Host(`ladder.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.ladder-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.ladder-rtr.service=ladder-svc"
+      - "traefik.http.services.ladder-svc.loadbalancer.server.port=8091"
+      ## Homepage
+      - homepage.group=Tools
+      - homepage.name=Ladder
+      - homepage.icon=ladder.png
+      - homepage.href=https://ladder.mirwin.net
+      - homepage.description=Paywall bypass
+      # - homepage.weight=2
+  # via https://github.com/printfuck/xExtension-Readable
+  readability:
+    image: phpdockerio/readability-js-server
+    container_name: readability
+    restart: unless-stopped
+    profiles: ["all"]
+    ports:
+      - 127.0.0.1:3000:3000
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.readability-rtr.entrypoints=https"
+      - "traefik.http.routers.readability-rtr.rule=Host(`readability.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.readability-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.readability-rtr.service=readability-svc"
+      - "traefik.http.services.readability-svc.loadbalancer.server.port=3000"
+
+  # via https://github.com/printfuck/xExtension-Readable
+  mercury:
+    image: wangqiru/mercury-parser-api
+    container_name: mercury
+    restart: unless-stopped
+    profiles: ["all"]
+    ports:
+      - 127.0.0.1:3001:3000
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.mercury-rtr.entrypoints=https"
+      - "traefik.http.routers.mercury-rtr.rule=Host(`mercury.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.mercury-rtr.service=mercury-svc"
+      - "traefik.http.services.readability-svc.loadbalancer.server.port=3001"
+
+  # lounge - irc client
+  lounge:
+    image: ghcr.io/thelounge/thelounge:latest
+    container_name: lounge
+    networks:
+      - t2_proxy
+    ports:
+      - "9003:9000"
+    restart: always
+    volumes:
+      - $DOCKERDIR/appdata/lounge:/var/opt/thelounge
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.lounge-rtr.entrypoints=https"
+      - "traefik.http.routers.lounge-rtr.rule=Host(`lounge.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.lounge-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.lounge-rtr.service=lounge-svc"
+      - "traefik.http.services.lounge-svc.loadbalancer.server.port=9000"
+
+  # password manager
+  # https://www.techaddressed.com/tutorials/vaultwarden-docker-compose/#smtp-email-account
+  vaultwarden:
+    container_name: vaultwarden
+    image: vaultwarden/server:latest
+    networks:
+      - t2_proxy
+    restart: unless-stopped
+    volumes:
+      - $DOCKERDIR/appdata/vaultwarden:/data
+    ports:
+      - 9991:80
+    environment:
+      - DOMAIN=https://vaultwarden.$DOMAINNAME_CLOUD_SERVER
+      - LOGIN_RATELIMIT_MAX_BURST=10
+      - LOGIN_RATELIMIT_SECONDS=60
+      - ADMIN_RATELIMIT_MAX_BURST=10
+      - ADMIN_RATELIMIT_SECONDS=60
+      - ADMIN_TOKEN=$VAULTWARDEN_TOKEN
+      - SENDS_ALLOWED=true
+      - EMERGENCY_ACCESS_ALLOWED=true
+      - WEB_VAULT_ENABLED=true
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.vaultwarden-rtr.entrypoints=https"
+      - "traefik.http.routers.vaultwarden-rtr.rule=Host(`vaultwarden.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.vaultwarden-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.vaultwarden-rtr.service=vaultwarden-svc"
+      - "traefik.http.services.vaultwarden-svc.loadbalancer.server.port=80"
+
+  # https://github.com/wallabag/docker
+  # wallabag:
+  #   image: wallabag/wallabag
+  #   container_name: wallabag
+  #   networks:
+  #     - t2_proxy
+  #   restart: unless-stopped
+  #   environment:
+  #     # - SYMFONY__ENV__MAILER_DSN=smtp://127.0.0.1
+  #     # - SYMFONY__ENV__FROM_EMAIL=wallabag@example.com
+  #     - SYMFONY__ENV__DOMAIN_NAME=https://wallabag.$DOMAINNAME_CLOUD_SERVER
+  #     # - SYMFONY__ENV__SERVER_NAME="Barcelona instance"
+  #   ports:
+  #     - "3124:80"
+  #   volumes:
+  #     - $DOCKERDIR/appdata/wallabag:/config
+  #   #   - /opt/wallabag/images:/var/www/wallabag/web/assets/images
+  #   # healthcheck:
+  #   #   test: ["CMD", "wget" ,"--no-verbose", "--tries=1", "--spider", "http://localhost"]
+  #   #   interval: 1m
+  #   #   timeout: 3s
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.wallabag-rtr.entrypoints=https"
+  #     - "traefik.http.routers.wallabag-rtr.rule=Host(`wallabag.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.wallabag-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.wallabag-rtr.service=wallabag-svc"
+  #     - "traefik.http.services.wallabag-svc.loadbalancer.server.port=80"
+
+  # https://github.com/matrix-org/synapse/blob/develop/contrib/docker/docker-compose.yml
+  # synapse:
+  #   image: docker.io/matrixdotorg/synapse:latest
+  #   restart: unless-stopped
+  #   # See the readme for a full documentation of the environment settings
+  #   # NOTE: You must edit homeserver.yaml to use postgres, it defaults to sqlite
+  #   environment:
+  #     - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+  #   volumes:
+  #     - $DOCKERDIR/appdata/synapse:/data
+  #     - $DATADIR/:/data/media
+  #   ports:
+  #     - 8448:8448/tcp
+  #   # ... or use a reverse proxy, here is an example for traefik:
+  #   labels:
+  #     # Alternatively, for Traefik version 2.0:
+  #     - traefik.enable=true
+  #     - traefik.http.routers.http-synapse.entryPoints=http
+  #     - traefik.http.routers.http-synapse.rule=Host(`my.matrix.host`)
+  #     - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
+  #     - traefik.http.middlewares.https_redirect.redirectscheme.permanent=true
+  #     - traefik.http.routers.http-synapse.middlewares=https_redirect
+  #     - traefik.http.routers.https-synapse.entryPoints=https
+  #     - traefik.http.routers.https-synapse.rule=Host(`my.matrix.host`)
+  #     - traefik.http.routers.https-synapse.service=synapse
+  #     - traefik.http.routers.https-synapse.tls=true
+  #     - traefik.http.services.synapse.loadbalancer.server.port=8008
+  #     - traefik.http.routers.https-synapse.tls.certResolver=le-ssl
+
+  # https://github.com/benbusby/whoogle-search/blob/main/docker-compose-traefik.yaml
+  # whoogle-search:
+  #   image: ${WHOOGLE_IMAGE:-benbusby/whoogle-search}
+  #   container_name: whoogle-search
+  #   restart: unless-stopped
+  #   pids_limit: 50
+  #   mem_limit: 256mb
+  #   memswap_limit: 256mb
+      # user debian-tor from tor package
+  #   user: whoogle
+  #   security_opt:
+  #     - no-new-privileges
+  #   cap_drop:
+  #     - ALL
+  #   tmpfs:
+  #     - /config/:size=10M,uid=927,gid=927,mode=1700
+  #     - /var/lib/tor/:size=15M,uid=927,gid=927,mode=1700
+  #     - /run/tor/:size=1M,uid=927,gid=927,mode=1700
+  #   environment: # Uncomment to configure environment variables
+      # Site alternative configurations, uncomment to enable
+      # Note: If not set, the feature will still be available
+      # with default values.
+      #- WHOOGLE_ALT_TW=farside.link/nitter
+      #- WHOOGLE_ALT_YT=farside.link/invidious
+      #- WHOOGLE_ALT_IG=farside.link/bibliogram/u
+      #- WHOOGLE_ALT_RD=farside.link/libreddit
+      #- WHOOGLE_ALT_MD=farside.link/scribe
+      #- WHOOGLE_ALT_TL=farside.link/lingva
+      #- WHOOGLE_ALT_IMG=farside.link/rimgo
+      #- WHOOGLE_ALT_WIKI=farside.link/wikiless
+      #- WHOOGLE_ALT_IMDB=farside.link/libremdb
+      #- WHOOGLE_ALT_QUORA=farside.link/quetre
+      # - WHOOGLE_CONFIG_DISABLE=1
+      # - WHOOGLE_CONFIG_SEARCH_LANGUAGE=lang_en
+      # - WHOOGLE_CONFIG_GET_ONLY=1
+      # - WHOOGLE_CONFIG_COUNTRY=FR
+      # - WHOOGLE_CONFIG_PREFERENCES_ENCRYPTED=1
+      # - WHOOGLE_CONFIG_PREFERENCES_KEY="NEEDS_TO_BE_MODIFIED"
+    #env_file: # Alternatively, load variables from whoogle.env
+      #- whoogle.env
+  #   ports:
+  #     - 8000:5000
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.whoami.rule=Host(`change.host.name`)"
+  #     - "traefik.http.routers.whoami.entrypoints=websecure"
+  #     - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+  #     - "traefik.http.services.whoogle-search.loadbalancer.server.port=5000"

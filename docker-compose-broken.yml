@@ -1,0 +1,94 @@
+# version: "3.9"
+
+# services:
+
+  # tailscale: 
+  #   container_name: tailscale 
+  #   hostname: tailscale-nas 
+  #   image: tailscale/tailscale:stable 
+  #   volumes: 
+  #     - $DOCKERDIR/appdata/tailscale:/var/lib # State data will be stored in this directory 
+  #     - /dev/net/tun:/dev/net/tun # Required for tailscale to work 
+  #   cap_add: # Required for tailscale to work 
+  #     - net_admin 
+  #     - sys_module 
+  #   command: tailscaled 
+  #   privileged: true 
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+
+#   tubearchivist:
+#     container_name: tubearchivist
+#     restart: unless-stopped
+#     image: bbilly1/tubearchivist
+#     ports:
+#       - 8999:8000
+#     volumes:
+#         - $DATADIR/Youtube:/youtube
+#     environment:
+#       ES_URL: http://elasticsearch:9200    # needs protocol e.g. http and port
+#       REDIS_HOST: redis                    # don't add protocol
+#       HOST_UID: $PUID
+#       HOST_GID: $PGID
+#       TA_HOST: tubearchivist.mirwin.net    # set your host name
+#       TA_USERNAME: tubearchivist           # your initial TA credentials
+#       TA_PASSWORD: $TA_PASSWORD            # your initial TA credentials
+#       ELASTIC_PASSWORD: $ELASTIC_PASSWORD  # set password for Elasticsearch
+#       TZ: $TZ
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+#       interval: 2m
+#       timeout: 10s
+#       retries: 3
+#       start_period: 30s
+#     depends_on:
+#       - elasticsearch
+#       - redis
+#     labels:
+#       - "traefik.enable=true"
+#       ## HTTP Routers Auth
+#       - "traefik.http.routers.tubearchivist-rtr.entrypoints=https"
+#       - "traefik.http.routers.tubearchivist-rtr.rule=Host(`tube.$DOMAINNAME_CLOUD_SERVER`)"
+#       ## Middlewares
+#       - "traefik.http.routers.tubearchivist-rtr.middlewares=chain-oauth@file"
+#       ## HTTP Services
+#       - "traefik.http.routers.tubearchivist-rtr.service=tubearchivist-svc"
+#       - "traefik.http.services.tubearchivist-svc.loadbalancer.server.port=5055"
+#       ## Homepage
+#       - homepage.group=Manage
+#       - homepage.name=TubeArchivist
+#       - homepage.icon=tubearchivist.png
+#       - homepage.href=https://tubearchivist.mirwin.net
+#       - homepage.description=Youtube stuff
+#       # - homepage.weight=1
+#       - homepage.widget.type=tubearchivist
+#       - homepage.widget.url=http://tubearchivist:5055
+#       - homepage.widget.key=${TUBEARCHIVIST_API_KEY}
+
+
+  # Scrutiny - Hard Drive S.M.A.R.T Monitoring
+  # scrutiny:
+  #   container_name: scrutiny
+  #   image: ghcr.io/analogj/scrutiny:master-omnibus
+  #   cap_add:
+  #     - SYS_RAWIO
+  #   ports:
+  #     - "9004:8080" # webapp
+  #     # - "8086:8086" # influxDB admin
+  #   volumes:
+  #     - /run/udev:/run/udev:ro
+  #     - $DOCKERDIR/appdata/scrutiny:/opt/scrutiny/config
+  #     - $DOCKERDIR/appdata/influxdb:/opt/scrutiny/influxdb
+  #   devices:
+  #     - "/dev/sda"
+  #     - "/dev/nvme0"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.scrutiny-rtr.entrypoints=https"
+  #     - "traefik.http.routers.scrutiny-rtr.rule=Host(`scrutiny.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.scrutiny-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.scrutiny-rtr.service=scrutiny-svc"
+  #     - "traefik.http.services.scrutiny-svc.loadbalancer.server.port=8080"
