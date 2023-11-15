@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+  # https://github.com/jesec/flood/wiki/Run-rTorrent-and-Flood-via-Docker
   flood:
     image: jesec/flood
     container_name: flood
@@ -47,6 +48,7 @@ services:
     env_file:
       - "./geoip-updater.env"
 
+  # https://github.com/crazy-max/docker-rtorrent-rutorrent/blob/master/examples/compose/compose.yml
   rtorrent:
     image: crazymax/rtorrent-rutorrent:latest
     container_name: rtorrent

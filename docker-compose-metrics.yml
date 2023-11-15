@@ -1,6 +1,23 @@
 version: "3.9"
 
 services:
+  # https://medium.com/@sohammohite/docker-container-monitoring-with-cadvisor-prometheus-and-grafana-using-docker-compose-b47ec78efbc
+  # cadvisor:
+  #   container_name: cadvisor
+  #   image: gcr.io/cadvisor/cadvisor:latest
+  #   network_mode: "host"
+  #   ports:
+  #     - "8080:8080"
+  #   volumes: 
+  #     - "/:/rootfs"
+  #     - "/var/run:/var/run"
+  #     - "/sys:/sys"
+  #     - "/var/lib/docker/:/var/lib/docker"
+  #     - "/dev/disk/:/dev/disk"
+  #   privileged: true
+  #   devices: 
+  #     - "/dev/kmsg"
+
   # Prometheus - Database for sensor data
   prometheus:
     image: prom/prometheus:latest
@@ -41,13 +58,16 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: unless-stopped
+    # env_file: configuration.env
     profiles: ["dbs", "all"]
     ports:
       - "8086:8086"
     volumes:
       - $DOCKERDIR/appdata/influxdb2/config:/etc/influxdb2
       - $DOCKERDIR/appdata/influxdb2/db:/var/lib/influxdb2
-
+      # - influxdb_data:/var/lib/influxdb
+      # - ./:/imports
+  
   ############################# MONITORING
 
   # Radarr Exporter - Radarr metrics for Prometheus
@@ -200,9 +220,12 @@ services:
       - t2_proxy
     ports:
       - "3069:3000"
+      # - '127.0.0.1:3000:3000'
     user: $PUID
     volumes:
       - $DOCKERDIR/appdata/grafana:/var/lib/grafana
+      # - ./grafana/provisioning/:/etc/grafana/provisioning/
+      # - ./grafana/dashboards/:/var/lib/grafana/dashboards/
     environment:
       GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel,cloudflare-app"
     labels:
@@ -222,6 +245,101 @@ services:
       - homepage.href=https://grafana.mirwin.net
       - homepage.description=Pretty graphs
       - homepage.weight=4
+
+  # https://github.com/Boerderij/Varken/blob/master/docker-compose.yml
+  # varken:
+  #   hostname: varken
+  #   container_name: varken
+  #   image: boerderij/varken
+  #   networks:
+  #     - internal
+  #     - t2_proxy
+  #   volumes:
+  #     - $DOCKERDIR/appdata/grafana:/config
+  #   environment:
+  #     - TZ=America/Chicago
+  #     - VRKN_GLOBAL_SONARR_SERVER_IDS=1
+  #     - VRKN_GLOBAL_RADARR_SERVER_IDS=1
+  #     - VRKN_GLOBAL_LIDARR_SERVER_IDS=false
+  #     - VRKN_GLOBAL_TAUTULLI_SERVER_IDS=1
+  #     - VRKN_GLOBAL_OMBI_SERVER_IDS=1
+  #     - VRKN_GLOBAL_SICKCHILL_SERVER_IDS=false
+  #     - VRKN_GLOBAL_UNIFI_SERVER_IDS=false
+  #     - VRKN_GLOBAL_MAXMIND_LICENSE_KEY=$MAXMIND_LICENSE_KEY
+  #     - VRKN_INFLUXDB_URL=influxdb.domain.tld
+  #     - VRKN_INFLUXDB_PORT=8086
+  #     - VRKN_INFLUXDB_SSL=false
+  #     - VRKN_INFLUXDB_VERIFY_SSL=false
+  #     - VRKN_INFLUXDB_USERNAME=root
+  #     - VRKN_INFLUXDB_PASSWORD=root
+  #     - VRKN_TAUTULLI_1_URL=tautulli.domain.tld:8181
+  #     - VRKN_TAUTULLI_1_FALLBACK_IP=1.1.1.1
+  #     - VRKN_TAUTULLI_1_APIKEY=$TAUTULLI_API_KEY
+  #     - VRKN_TAUTULLI_1_SSL=false
+  #     - VRKN_TAUTULLI_1_VERIFY_SSL=false
+  #     - VRKN_TAUTULLI_1_GET_ACTIVITY=true
+  #     - VRKN_TAUTULLI_1_GET_ACTIVITY_RUN_SECONDS=30
+  #     - VRKN_TAUTULLI_1_GET_STATS=true
+  #     - VRKN_TAUTULLI_1_GET_STATS_RUN_SECONDS=3600
+  #     - VRKN_SONARR_1_URL=sonarr1.domain.tld:8989
+  #     - VRKN_SONARR_1_APIKEY=$SONARR_API_KEY
+  #     - VRKN_SONARR_1_SSL=false
+  #     - VRKN_SONARR_1_VERIFY_SSL=false
+  #     - VRKN_SONARR_1_MISSING_DAYS=7
+  #     - VRKN_SONARR_1_MISSING_DAYS_RUN_SECONDS=300
+  #     - VRKN_SONARR_1_FUTURE_DAYS=1
+  #     - VRKN_SONARR_1_FUTURE_DAYS_RUN_SECONDS=300
+  #     - VRKN_SONARR_1_QUEUE=true
+  #     - VRKN_SONARR_1_QUEUE_RUN_SECONDS=300
+  #     - VRKN_RADARR_1_URL=radarr1.domain.tld
+  #     - VRKN_RADARR_1_APIKEY=xxxxxxxxxxxxxxxx
+  #     - VRKN_RADARR_1_SSL=false
+  #     - VRKN_RADARR_1_VERIFY_SSL=false
+  #     - VRKN_RADARR_1_QUEUE=true
+  #     - VRKN_RADARR_1_QUEUE_RUN_SECONDS=300
+  #     - VRKN_RADARR_1_GET_MISSING=true
+  #     - VRKN_RADARR_1_GET_MISSING_RUN_SECONDS=300
+  #     - VRKN_LIDARR_1_URL=lidarr1.domain.tld:8686
+  #     - VRKN_LIDARR_1_APIKEY=xxxxxxxxxxxxxxxx
+  #     - VRKN_LIDARR_1_SSL=false
+  #     - VRKN_LIDARR_1_VERIFY_SSL=false
+  #     - VRKN_LIDARR_1_MISSING_DAYS=30
+  #     - VRKN_LIDARR_1_MISSING_DAYS_RUN_SECONDS=300
+  #     - VRKN_LIDARR_1_FUTURE_DAYS=30
+  #     - VRKN_LIDARR_1_FUTURE_DAYS_RUN_SECONDS=300
+  #     - VRKN_LIDARR_1_QUEUE=true
+  #     - VRKN_LIDARR_1_QUEUE_RUN_SECONDS=300
+  #     - VRKN_OMBI_1_URL=ombi.domain.tld
+  #     - VRKN_OMBI_1_APIKEY=xxxxxxxxxxxxxxxx
+  #     - VRKN_OMBI_1_SSL=false
+  #     - VRKN_OMBI_1_VERIFY_SSL=false
+  #     - VRKN_OMBI_1_GET_REQUEST_TYPE_COUNTS=true
+  #     - VRKN_OMBI_1_REQUEST_TYPE_RUN_SECONDS=300
+  #     - VRKN_OMBI_1_GET_REQUEST_TOTAL_COUNTS=true
+  #     - VRKN_OMBI_1_REQUEST_TOTAL_RUN_SECONDS=300
+  #     - VRKN_OMBI_1_GET_ISSUE_STATUS_COUNTS=true
+  #     - VRKN_OMBI_1_ISSUE_STATUS_RUN_SECONDS=300
+  #     - VRKN_SICKCHILL_1_URL=sickchill.domain.tld:8081
+  #     - VRKN_SICKCHILL_1_APIKEY=xxxxxxxxxxxxxxxx
+  #     - VRKN_SICKCHILL_1_SSL=false
+  #     - VRKN_SICKCHILL_1_VERIFY_SSL=false
+  #     - VRKN_SICKCHILL_1_GET_MISSING=true
+  #     - VRKN_SICKCHILL_1_GET_MISSING_RUN_SECONDS=300
+  #   depends_on:
+  #     - influxdb
+  #   restart: unless-stopped
+
+  # https://github.com/bcremer/docker-telegraf-influx-grafana-stack/blob/latest/docker-compose.yml
+  # telegraf:
+  #   image: telegraf:1.18-alpine
+  #   volumes:
+  #   - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+  #   depends_on:
+  #     - influxdb
+  #   links:
+  #     - influxdb
+  #   ports:
+  #   - '127.0.0.1:8125:8125/udp'
 
   # loki:
   #   image: grafana/loki:2.9.0

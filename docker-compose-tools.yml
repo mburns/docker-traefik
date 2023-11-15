@@ -270,7 +270,8 @@ services:
     ports:
       - "81:80"
     volumes:
-      - $DOCKERDIR/appdata/filebrowser:/config
+      - $DOCKERDIR/appdata/filebrowser/config:/config
+      - $DOCKERDIR/appdata/filebrowser/database:/database
       - $EXTDRIVE:/data/media
       - $USERDIR:/data/home
     environment:
@@ -519,3 +520,30 @@ services:
       ## HTTP Services
       - "traefik.http.routers.serge-rtr.service=serge-svc"
       - "traefik.http.services.serge-svc.loadbalancer.server.port=8008"
+
+  # Scrutiny - Hard Drive S.M.A.R.T Monitoring
+  # scrutiny:
+  #   container_name: scrutiny
+  #   image: ghcr.io/analogj/scrutiny:master-omnibus
+  #   cap_add:
+  #     - SYS_RAWIO
+  #   ports:
+  #     - "9004:8080" # webapp
+  #     # - "8086:8086" # influxDB admin
+  #   volumes:
+  #     - /run/udev:/run/udev:ro
+  #     - $DOCKERDIR/appdata/scrutiny:/opt/scrutiny/config
+  #     - $DOCKERDIR/appdata/influxdb:/opt/scrutiny/influxdb
+  #   devices:
+  #     - "/dev/sda"
+  #     - "/dev/nvme0"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.scrutiny-rtr.entrypoints=https"
+  #     - "traefik.http.routers.scrutiny-rtr.rule=Host(`scrutiny.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.scrutiny-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.scrutiny-rtr.service=scrutiny-svc"
+  #     - "traefik.http.services.scrutiny-svc.loadbalancer.server.port=8080"

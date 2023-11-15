@@ -1,8 +1,6 @@
 version: "3.9"
 
 services:
-  ############################# MAINTENANCE
-
   # Docker-GC - Automatic Docker Garbage Collection
   # Create docker-gc-exclude file
   dockergc:

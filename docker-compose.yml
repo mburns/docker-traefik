@@ -1,24 +1,7 @@
 version: "3.9"
 
-# include:
-#   - docker-compose-arr.yml
-#   - docker-compose-bittorrent.yml
-#   - docker-compose-broken.yml
-#   - docker-compose-crowdsec.yml
-#   - docker-compose-datastore.yml
-#   - docker-compose-media.yml
-#   - docker-compose-meta.yml
-#   - docker-compose-metrics.yml
-#   - docker-compose-nextcloud.yml
-#   - docker-compose-tools.yml
-#   - docker-compose-tor.yml
-#   - docker-compose-usenet.yml
-#   - docker-compose-web.yml
-
-########################### NETWORKS
-# There is no need to create any networks outside this docker-compose file.
 # You may customize the network subnets (192.168.90.0/24 and 91.0/24) below as you please.
-# Docker Compose version 3.5 or higher required to define networks this way.
+# Docker Compose version 3.5+ required
 
 networks:
   default:
@@ -37,7 +20,6 @@ networks:
       config:
         - subnet: 192.168.91.0/24
 
-########################### SECRETS
 secrets:
   htpasswd:
     file: $DOCKERDIR/secrets/htpasswd
@@ -72,10 +54,7 @@ secrets:
   plex_claim:
     file: $DOCKERDIR/secrets/plex_claim
 
-########################### SERVICES
 services:
-  ############################# FRONTENDS
-
   # Traefik 2 - Reverse Proxy
   # Touch (create empty files) traefik.log and acme/acme.json. Set acme.json permissions to 600.
   # touch $DOCKERDIR/appdata/traefik2/acme/acme.json
@@ -216,117 +195,6 @@ services:
       - homepage.description=Load Balancer stats
       - homepage.weight=4
 
-  # Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
-  socket-proxy:
-    container_name: socket-proxy
-    image: tecnativa/docker-socket-proxy
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      socket_proxy:
-        ipv4_address: 192.168.91.254 # You can specify a static IP
-    # privileged: true # true for VM. False for unprivileged LXC container.
-    ports:
-    #  - "$ZEROTIER_IP_CLOUDSERVER:2375:2375" # Port 2375 should only ever get exposed to the internal network. When possible use this line.
-    # I use the next line instead, as I want portainer to manage multiple docker endpoints within my home network.
-      - "2375:2375" # Do not expose this to the internet with port forwarding
-    volumes:
-      # - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    environment:
-      - LOG_LEVEL=info # debug,info,notice,warning,err,crit,alert,emerg
-      ## Variables match the URL prefix (i.e. AUTH blocks access to /auth/* parts of the API, etc.).
-      # 0 to revoke access.
-      # 1 to grant access.
-      ## Granted by Default
-      - EVENTS=1
-      - PING=1
-      - VERSION=1
-      ## Revoked by Default
-      # Security critical
-      - AUTH=0
-      - SECRETS=0
-      - POST=1 # Watchtower
-      # Not always needed
-      - BUILD=0
-      - COMMIT=0
-      - CONFIGS=0
-      - CONTAINERS=1 # Traefik, portainer, etc.
-      - DISTRIBUTION=0
-      - EXEC=0
-      - IMAGES=1 # Portainer
-      - INFO=1 # Portainer
-      - NETWORKS=1 # Portainer
-      - NODES=0
-      - PLUGINS=0
-      - SERVICES=1 # Portainer
-      - SESSION=0
-      - SWARM=0
-      - SYSTEM=0
-      - TASKS=1 # Portainer
-      - VOLUMES=1 # Portainer
-
-  # Google OAuth - Single Sign On using OAuth 2.0
-  # https://www.smarthomebeginner.com/google-oauth-with-traefik-docker/
-  oauth:
-    container_name: oauth
-    image: thomseddon/traefik-forward-auth:latest
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    # Allow apps to bypass OAuth. Radarr example below will bypass OAuth if API key is present in the request (eg. from NZB360 mobile app).
-    # While this is one way, the recommended way is to bypass authentication using Traefik labels shown in some of the -Arr apps in this file.
-    # command:
-    #   - '--rule.radarr.action=allow --rule.radarr.rule="Headers(`X-Api-Key`, `$RADARR_API_KEY`)"'
-      # - '--rule.sabnzbd.action=allow --rule.sabnzbd.rule="HeadersRegexp(`X-Forwarded-Uri`, `$SABNZBD_API_KEY`)"'
-    environment:
-      - CONFIG=/config
-      - COOKIE_DOMAIN=$DOMAINNAME_CLOUD_SERVER
-      - INSECURE_COOKIE=false
-      - AUTH_HOST=oauth.$DOMAINNAME_CLOUD_SERVER
-      - URL_PATH=/_oauth
-      - LOG_LEVEL=warn # set to trace while testing bypass rules
-      - LOG_FORMAT=text
-      - LIFETIME=86400 # 1 day
-      - DEFAULT_ACTION=auth
-      - DEFAULT_PROVIDER=google
-    secrets:
-      - source: traefik_forward_auth
-        target: /config
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.oauth-rtr.tls=true"
-      - "traefik.http.routers.oauth-rtr.entrypoints=https"
-      - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.oauth-rtr.service=oauth-svc"
-      - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
-
-  # ZeroTier-One - Private Network over Internet
-  zerotier:
-    image: zerotier/zerotier-synology:latest
-    container_name: zerotier
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    network_mode: host
-    cap_add:
-      - NET_ADMIN
-      - SYS_ADMIN
-    devices:
-      - /dev/net/tun
-    volumes:
-      - $DOCKERDIR/appdata/zerotier:/var/lib/zerotier-one
-
   # Homepage - Application Dashboard
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
@@ -358,41 +226,3 @@ services:
       ## HTTP Services
       - "traefik.http.routers.homepage-rtr.service=homepage-svc"
       - "traefik.http.services.homepage-svc.loadbalancer.server.port=3000"
-
-  # WG-EASY - WireGuard Easy
-  wg-easy:
-    image: weejewel/wg-easy
-    container_name: wg-easy
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - default
-      - t2_proxy
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
-    ports:
-      - "51820:51820/udp"
-      - "51821:51821/tcp"
-    volumes:
-      - $DOCKERDIR/appdata/wireguard:/etc/wireguard
-    environment:
-      # ⚠️ Required:
-      # Change this to your host's public address
-      - WG_HOST=$SERVER_IP
-      - PASSWORD=$WGEASY_PASSWORD
-      # Optional:
-      # - WG_PORT=51820
-      - WG_DEFAULT_ADDRESS=192.168.20.x
-      - WG_DEFAULT_DNS=1.1.1.1
-      # - WG_MTU=1420
-      - WG_ALLOWED_IPS=0.0.0.0/0
-      # - WG_PRE_UP=echo "Pre Up" > /etc/wireguard/pre-up.txt
-      # - WG_POST_UP=echo "Post Up" > /etc/wireguard/post-up.txt
-      # - WG_PRE_DOWN=echo "Pre Down" > /etc/wireguard/pre-down.txt
-      # - WG_POST_DOWN=echo "Post Down" > /etc/wireguard/post-down.txt

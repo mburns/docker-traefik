@@ -23,7 +23,7 @@ services:
   # MariaDB - MySQL Database
   # After starting container for first time dexec and mysqladmin -u root password <password>
   mariadb:
-    container_name: mariadb
+    container_name: mariadb # mariadb:10.6
     image: lscr.io/linuxserver/mariadb
     # security_opt:
     #   - no-new-privileges:true
@@ -35,25 +35,19 @@ services:
       - "$DB_PORT:3306"
     volumes:
       - $DOCKERDIR/appdata/mariadb/data:/config
+      # - db:/var/lib/mysql
     environment:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
       FILE__MYSQL_ROOT_PASSWORD: /run/secrets/mysql_root_password # Note FILE__ (double underscore) - Issue #127
+      # - MYSQL_ROOT_PASSWORD=
+      # - MYSQL_PASSWORD=
+      # - MYSQL_DATABASE=nextcloud
+      # - MYSQL_USER=nextcloud
     secrets:
       - mysql_root_password
-
-  # db:
-  #   image: mariadb:10.6
-  #   restart: always
-  #   command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
-  #   volumes:
-  #     - db:/var/lib/mysql
-  #   environment:
-  #     - MYSQL_ROOT_PASSWORD=
-  #     - MYSQL_PASSWORD=
-  #     - MYSQL_DATABASE=nextcloud
-  #     - MYSQL_USER=nextcloud
+    # command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
 
   # phpMyAdmin - Database management
   # Create a new user with admin privileges. Cannot login as MySQL root for some reason.
