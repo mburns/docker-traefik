@@ -37,6 +37,7 @@ services:
     ports:
       - "8765:80"
     labels:
+      - "sablier.enable=true"
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.freshrss-rtr.entrypoints=https"
@@ -143,7 +144,7 @@ services:
       - "traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
       - "traefik.http.routers.mercury-rtr.service=mercury-svc"
-      - "traefik.http.services.readability-svc.loadbalancer.server.port=3001"
+      - "traefik.http.services.mercury-svc.loadbalancer.server.port=3000"
 
 
   # lounge - irc client
@@ -191,6 +192,7 @@ services:
       - EMERGENCY_ACCESS_ALLOWED=true
       - WEB_VAULT_ENABLED=true
     labels:
+      - "sablier.enable=true"
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.vaultwarden-rtr.entrypoints=https"
@@ -246,6 +248,7 @@ services:
     ports:
       - 8202:5000
     labels:
+      - "sablier.enable=true"
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.whoogle-rtr.entrypoints=https"
@@ -353,18 +356,25 @@ services:
 
   # https://github.com/matrix-org/synapse/blob/develop/contrib/docker/docker-compose.yml
   # synapse:
-  #   image: docker.io/matrixdotorg/synapse:latest
+  #   image: matrixdotorg/synapse:latest
+  #   container_name: synapse
   #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
   #   # See the readme for a full documentation of the environment settings
-  #   # NOTE: You must edit homeserver.yaml to use postgres, it defaults to sqlite
   #   environment:
-  #     - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+  #     - SYNAPSE_CONFIG_PATH=/conf/homeserver.yaml
+  #     - VIRTUAL_HOST="synapse.$DOMAINNAME_CLOUD_SERVER"
+  #     - LETSENCRYPT_HOST="synapse.$DOMAINNAME_CLOUD_SERVER"
+  #     - SYNAPSE_SERVER_NAME="synapse.$DOMAINNAME_CLOUD_SERVER"
+  #     - SYNAPSE_REPORT_STATS="yes"
+  #     - VIRTUAL_PORT=8448
+      
   #   volumes:
   #     - $DOCKERDIR/appdata/synapse:/data
-  #     - $DATADIR/:/data/media
   #   ports:
   #     - 8448:8448/tcp
-  #   # ... or use a reverse proxy, here is an example for traefik:
   #   labels:
   #     # Alternatively, for Traefik version 2.0:
   #     - traefik.enable=true
@@ -377,7 +387,7 @@ services:
   #     - traefik.http.routers.https-synapse.rule=Host(`synapse.$DOMAINNAME_CLOUD_SERVER`)
   #     - traefik.http.routers.https-synapse.service=synapse
   #     - traefik.http.routers.https-synapse.tls=true
-  #     - traefik.http.services.synapse.loadbalancer.server.port=8008
+  #     - traefik.http.services.synapse.loadbalancer.server.port=8448
   #     - traefik.http.routers.https-synapse.tls.certResolver=le-ssl
 
 #   tubearchivist:
@@ -428,28 +438,40 @@ services:
 #       - homepage.widget.url=http://tubearchivist:5055
 #       - homepage.widget.key=${TUBEARCHIVIST_API_KEY}
 
-#   searxng:
-#     container_name: searxng
-#     image: searxng/searxng:latest
-#     networks:
-#       - searxng
-#     ports:
-#      - "127.0.0.1:8080:8080"
-#     volumes:
-#       - ./searxng:/etc/searxng:rw
-#     environment:
-#       - SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME:-localhost}/
-#     cap_drop:
-#       - ALL
-#     cap_add:
-#       - CHOWN
-#       - SETGID
-#       - SETUID
-#     logging:
-#       driver: "json-file"
-#       options:
-#         max-size: "1m"
-#         max-file: "1"
+  searx:
+    container_name: searx
+    image: searxng/searxng:latest
+    networks:
+      # - searxng
+      - t2_proxy
+    ports:
+     - "127.0.0.1:4080:8080"
+    volumes:
+      - $DOCKERDIR/appdata/searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=https://searx.$DOMAINNAME_CLOUD_SERVER # ${SEARXNG_HOSTNAME:-localhost}/
+    # cap_drop:
+    #   - ALL
+    # cap_add:
+    #   - CHOWN
+    #   - SETGID
+    #   - SETUID
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.searx-rtr.entrypoints=https"
+      - "traefik.http.routers.searx-rtr.rule=Host(`searx.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.searx-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.searx-rtr.service=searx-svc"
+      - "traefik.http.services.searx-svc.loadbalancer.server.port=8080"
+
 # networks:
 #   searxng:
 #     ipam:

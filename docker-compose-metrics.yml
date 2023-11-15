@@ -55,6 +55,7 @@ services:
     container_name: influxdb
     networks:
       - default
+      - t2_proxy
     # security_opt:
     #   - no-new-privileges:true
     restart: unless-stopped
@@ -248,16 +249,19 @@ services:
 
   # https://github.com/Boerderij/Varken/blob/master/docker-compose.yml
   # varken:
-  #   hostname: varken
+  #   # hostname: varken
   #   container_name: varken
   #   image: boerderij/varken
+  #   restart: unless-stopped
   #   networks:
-  #     - internal
+  #     # - internal
   #     - t2_proxy
   #   volumes:
   #     - $DOCKERDIR/appdata/grafana:/config
+  #   depends_on:
+  #     - influxdb
   #   environment:
-  #     - TZ=America/Chicago
+  #     - TZ=$TZ
   #     - VRKN_GLOBAL_SONARR_SERVER_IDS=1
   #     - VRKN_GLOBAL_RADARR_SERVER_IDS=1
   #     - VRKN_GLOBAL_LIDARR_SERVER_IDS=false
@@ -266,13 +270,13 @@ services:
   #     - VRKN_GLOBAL_SICKCHILL_SERVER_IDS=false
   #     - VRKN_GLOBAL_UNIFI_SERVER_IDS=false
   #     - VRKN_GLOBAL_MAXMIND_LICENSE_KEY=$MAXMIND_LICENSE_KEY
-  #     - VRKN_INFLUXDB_URL=influxdb.domain.tld
+  #     - VRKN_INFLUXDB_URL=influxdb
   #     - VRKN_INFLUXDB_PORT=8086
   #     - VRKN_INFLUXDB_SSL=false
   #     - VRKN_INFLUXDB_VERIFY_SSL=false
   #     - VRKN_INFLUXDB_USERNAME=root
-  #     - VRKN_INFLUXDB_PASSWORD=root
-  #     - VRKN_TAUTULLI_1_URL=tautulli.domain.tld:8181
+  #     - VRKN_INFLUXDB_PASSWORD=jkui78fl
+  #     - VRKN_TAUTULLI_1_URL=tautulli:8181
   #     - VRKN_TAUTULLI_1_FALLBACK_IP=1.1.1.1
   #     - VRKN_TAUTULLI_1_APIKEY=$TAUTULLI_API_KEY
   #     - VRKN_TAUTULLI_1_SSL=false
@@ -281,7 +285,7 @@ services:
   #     - VRKN_TAUTULLI_1_GET_ACTIVITY_RUN_SECONDS=30
   #     - VRKN_TAUTULLI_1_GET_STATS=true
   #     - VRKN_TAUTULLI_1_GET_STATS_RUN_SECONDS=3600
-  #     - VRKN_SONARR_1_URL=sonarr1.domain.tld:8989
+  #     - VRKN_SONARR_1_URL=sonarr:8989
   #     - VRKN_SONARR_1_APIKEY=$SONARR_API_KEY
   #     - VRKN_SONARR_1_SSL=false
   #     - VRKN_SONARR_1_VERIFY_SSL=false
@@ -291,16 +295,16 @@ services:
   #     - VRKN_SONARR_1_FUTURE_DAYS_RUN_SECONDS=300
   #     - VRKN_SONARR_1_QUEUE=true
   #     - VRKN_SONARR_1_QUEUE_RUN_SECONDS=300
-  #     - VRKN_RADARR_1_URL=radarr1.domain.tld
-  #     - VRKN_RADARR_1_APIKEY=xxxxxxxxxxxxxxxx
+  #     - VRKN_RADARR_1_URL=radarr
+  #     - VRKN_RADARR_1_APIKEY=$RADARR_API_KEY
   #     - VRKN_RADARR_1_SSL=false
   #     - VRKN_RADARR_1_VERIFY_SSL=false
   #     - VRKN_RADARR_1_QUEUE=true
   #     - VRKN_RADARR_1_QUEUE_RUN_SECONDS=300
   #     - VRKN_RADARR_1_GET_MISSING=true
   #     - VRKN_RADARR_1_GET_MISSING_RUN_SECONDS=300
-  #     - VRKN_LIDARR_1_URL=lidarr1.domain.tld:8686
-  #     - VRKN_LIDARR_1_APIKEY=xxxxxxxxxxxxxxxx
+  #     - VRKN_LIDARR_1_URL=lidarr:8686
+  #     - VRKN_LIDARR_1_APIKEY=$LIDARR_API_KEY
   #     - VRKN_LIDARR_1_SSL=false
   #     - VRKN_LIDARR_1_VERIFY_SSL=false
   #     - VRKN_LIDARR_1_MISSING_DAYS=30
@@ -309,50 +313,59 @@ services:
   #     - VRKN_LIDARR_1_FUTURE_DAYS_RUN_SECONDS=300
   #     - VRKN_LIDARR_1_QUEUE=true
   #     - VRKN_LIDARR_1_QUEUE_RUN_SECONDS=300
-  #     - VRKN_OMBI_1_URL=ombi.domain.tld
-  #     - VRKN_OMBI_1_APIKEY=xxxxxxxxxxxxxxxx
-  #     - VRKN_OMBI_1_SSL=false
-  #     - VRKN_OMBI_1_VERIFY_SSL=false
-  #     - VRKN_OMBI_1_GET_REQUEST_TYPE_COUNTS=true
-  #     - VRKN_OMBI_1_REQUEST_TYPE_RUN_SECONDS=300
-  #     - VRKN_OMBI_1_GET_REQUEST_TOTAL_COUNTS=true
-  #     - VRKN_OMBI_1_REQUEST_TOTAL_RUN_SECONDS=300
-  #     - VRKN_OMBI_1_GET_ISSUE_STATUS_COUNTS=true
-  #     - VRKN_OMBI_1_ISSUE_STATUS_RUN_SECONDS=300
-  #     - VRKN_SICKCHILL_1_URL=sickchill.domain.tld:8081
-  #     - VRKN_SICKCHILL_1_APIKEY=xxxxxxxxxxxxxxxx
-  #     - VRKN_SICKCHILL_1_SSL=false
-  #     - VRKN_SICKCHILL_1_VERIFY_SSL=false
-  #     - VRKN_SICKCHILL_1_GET_MISSING=true
-  #     - VRKN_SICKCHILL_1_GET_MISSING_RUN_SECONDS=300
-  #   depends_on:
-  #     - influxdb
-  #   restart: unless-stopped
+      # - VRKN_OMBI_1_URL=ombi.domain.tld
+      # - VRKN_OMBI_1_APIKEY=xxxxxxxxxxxxxxxx
+      # - VRKN_OMBI_1_SSL=false
+      # - VRKN_OMBI_1_VERIFY_SSL=false
+      # - VRKN_OMBI_1_GET_REQUEST_TYPE_COUNTS=true
+      # - VRKN_OMBI_1_REQUEST_TYPE_RUN_SECONDS=300
+      # - VRKN_OMBI_1_GET_REQUEST_TOTAL_COUNTS=true
+      # - VRKN_OMBI_1_REQUEST_TOTAL_RUN_SECONDS=300
+      # - VRKN_OMBI_1_GET_ISSUE_STATUS_COUNTS=true
+      # - VRKN_OMBI_1_ISSUE_STATUS_RUN_SECONDS=300
+      # - VRKN_SICKCHILL_1_URL=sickchill.domain.tld:8081
+      # - VRKN_SICKCHILL_1_APIKEY=xxxxxxxxxxxxxxxx
+      # - VRKN_SICKCHILL_1_SSL=false
+      # - VRKN_SICKCHILL_1_VERIFY_SSL=false
+      # - VRKN_SICKCHILL_1_GET_MISSING=true
+      # - VRKN_SICKCHILL_1_GET_MISSING_RUN_SECONDS=300
 
   # https://github.com/bcremer/docker-telegraf-influx-grafana-stack/blob/latest/docker-compose.yml
-  # telegraf:
-  #   image: telegraf:1.18-alpine
-  #   volumes:
-  #   - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
-  #   depends_on:
-  #     - influxdb
-  #   links:
-  #     - influxdb
-  #   ports:
-  #   - '127.0.0.1:8125:8125/udp'
+  telegraf:
+    image: telegraf:1.18-alpine
+    container_name: telegraf
+    profiles: ["monitoring", "all"]
+    networks:
+      - t2_proxy
+    volumes:
+      - $DOCKERDIR/appdata/telegraf:/etc/telegraf
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    ports:
+    - '127.0.0.1:8125:8125/udp'
 
-  # loki:
-  #   image: grafana/loki:2.9.0
-  #   ports:
-  #     - "3100:3100"
-  #   command: -config.file=/etc/loki/local-config.yaml
-  #   networks:
-  #     - loki
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    profiles: ["monitoring", "all"]
+    volumes:
+      - $DOCKERDIR/appdata/loki:/etc/loki
+    networks:
+      - t2_proxy
+      # - loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yaml
 
-  # promtail:
-  #   image: grafana/promtail:2.9.0
-  #   volumes:
-  #     - /var/log:/var/log
-  #   command: -config.file=/etc/promtail/config.yml
-  #   networks:
-  #     - loki
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    profiles: ["monitoring", "all"]
+    networks:
+      - t2_proxy
+      # - loki
+    volumes:
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/config.yml

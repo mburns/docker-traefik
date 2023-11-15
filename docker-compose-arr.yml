@@ -282,15 +282,15 @@ services:
       - "traefik.http.routers.readarr-rtr.service=readarr-svc"
       - "traefik.http.services.readarr-svc.loadbalancer.server.port=8787"
       ## Homepage
-      # - homepage.group=Manage
-      # - homepage.name=Readarr
-      # - homepage.icon=readarr.png
-      # - homepage.href=https://readarr.mirwin.net
-      # - homepage.description=Book management
-      # - homepage.weight=1
-      # - homepage.widget.type=readarr
-      # - homepage.widget.url=http://readarr:8787
-      # - homepage.widget.key=${READARR_API_KEY}
+      - homepage.group=Manage
+      - homepage.name=Readarr
+      - homepage.icon=readarr.png
+      - homepage.href=https://readarr.mirwin.net
+      - homepage.description=Book management
+      - homepage.weight=1
+      - homepage.widget.type=readarr
+      - homepage.widget.url=http://readarr:8787
+      - homepage.widget.key=${READARR_API_KEY}
 
   whisparr:
     image: ghcr.io/hotio/whisparr
@@ -454,12 +454,12 @@ services:
       - 8265:8265
       - 8267:8267 # node port. It should be mapped on this container because  the node container use the network from the main container
     volumes:
-      - $DOCKERDIR/appdata/tdarr/server:/app/server
+      - $DOCKERDIR/appdata/tdarr:/app/server
       - $DOCKERDIR/appdata/tdarr/configs:/app/configs
       - $DOCKERDIR/appdata/tdarr/logs:/app/logs
-      - $DOWNLOADSDIR/transcode/tdarr:/data/temp
-      - $DATADIR/Photos/zVideos:/data/media:ro
-      - $DATADIR/media/zvideos:/data/output
+      - $INCOMPLETEDIR:/data/temp
+      - $DATADIR/Photos:/data/media:ro
+      - $COMPLETEDIR/tdarr:/data/output
     environment:
       TZ: $TZ
       PUID: $PUID

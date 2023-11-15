@@ -48,7 +48,7 @@ services:
       - homepage.icon=sabnzbd.png
       - homepage.href=https://sabnzbd.mirwin.net
       - homepage.description=Usenet downloader
-      - homepage.weight=4
+      - homepage.weight=1
 
   spotweb:
     image: jgeusebroek/spotweb

@@ -1,64 +1,66 @@
-# version: "3.9"
+version: "3.9"
 
-# services:
-#   # https://gitlab.torproject.org/tpo/anti-censorship/docker-obfs4-bridge/-/raw/main/docker-compose.yml
-#   obfs4-bridge:
-#     image: thetorproject/obfs4-bridge:latest
-#     container_name: tor-bridge
-#     profiles: ["all"]
-#     networks:
-#       # - obfs4_bridge_external_network
-#       - t2_proxy
-#     environment:
-#       # Exit with an error message if TOR_OR_PORT is unset or empty.
-#       - OR_PORT=${TOR_OR_PORT:?Env var TOR_OR_PORT is not set.}
-#       # Exit with an error message if TOR_PT_PORT is unset or empty.
-#       - PT_PORT=${TOR_PT_PORT:?Env var TOR_PT_PORT is not set.}
-#       # Exit with an error message if EMAIL is unset or empty.
-#       - EMAIL=${TOR_EMAIL:?Env var EMAIL is not set.}
-#       # Nickname with default value: "DockerObfs4Bridge"
-#       - NICKNAME=${NICKNAME:-DockerObfs4Bridge}
-#     # volumes:
-#       # - $DOCKERDIR/appdata/tor:/var/lib/tor
-#     ports:
-#       - ${TOR_OR_PORT}:${TOR_OR_PORT}
-#       - ${TOR_PT_PORT}:${TOR_PT_PORT}
-#     restart: unless-stopped
-#     labels:
-#       - "traefik.enable=true"
-#       ## HTTP Routers Auth
-#       - "traefik.http.routers.freshrss-rtr.entrypoints=https"
-#       - "traefik.http.routers.freshrss-rtr.rule=Host(`bridge.$DOMAINNAME_CLOUD_SERVER`)"
-#       ## Middlewares
-#       - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
-#       ## HTTP Services
-#       - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
-#       - "traefik.http.services.freshrss-svc.loadbalancer.server.port=80"
+services:
+  # https://gitlab.torproject.org/tpo/anti-censorship/docker-obfs4-bridge/-/raw/main/docker-compose.yml
+  # obfs4-bridge:
+  #   image: thetorproject/obfs4-bridge:latest
+  #   container_name: tor-bridge
+  #   profiles: ["all"]
+  #   networks:
+  #     # - obfs4_bridge_external_network
+  #     - t2_proxy
+  #   environment:
+  #     # Exit with an error message if TOR_OR_PORT is unset or empty.
+  #     - OR_PORT=${TOR_OR_PORT:?Env var TOR_OR_PORT is not set.}
+  #     # Exit with an error message if TOR_PT_PORT is unset or empty.
+  #     - PT_PORT=${TOR_PT_PORT:?Env var TOR_PT_PORT is not set.}
+  #     # Exit with an error message if EMAIL is unset or empty.
+  #     - EMAIL=${TOR_EMAIL:?Env var EMAIL is not set.}
+  #     # Nickname with default value: "DockerObfs4Bridge"
+  #     - NICKNAME=${NICKNAME:-DockerObfs4Bridge}
+  #   # volumes:
+  #     # - $DOCKERDIR/appdata/tor:/var/lib/tor
+  #   ports:
+  #     - ${TOR_OR_PORT}:${TOR_OR_PORT}
+  #     - ${TOR_PT_PORT}:${TOR_PT_PORT}
+  #   restart: unless-stopped
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers Auth
+  #     - "traefik.http.routers.freshrss-rtr.entrypoints=https"
+  #     - "traefik.http.routers.freshrss-rtr.rule=Host(`bridge.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
+  #     - "traefik.http.services.freshrss-svc.loadbalancer.server.port=80"
 
-#   # https://hub.docker.com/r/peterdavehello/tor-socks-proxy/
-#   tor:
-#     image: peterdavehello/tor-socks-proxy:latest
-#     container_name: tor
-#     restart: unless-stopped
-#     profiles: ["all"]
-#     # volumes:
-#       # - $DOCKERDIR/appdata/tor:/var/lib/tor
-#     networks:
-#       - t2_proxy
-#     ports:
-#       - 9150:9150
-#       # - 53:8853:udp
+  # https://hub.docker.com/r/peterdavehello/tor-socks-proxy/
+  tor:
+    image: peterdavehello/tor-socks-proxy:latest
+    container_name: tor
+    restart: unless-stopped
+    profiles: ["all"]
+    # volumes:
+      # - $DOCKERDIR/appdata/tor:/var/lib/tor
+    networks:
+      - t2_proxy
+    ports:
+      - 9150:9150
+      # - 53:8853:udp
 
-#     snowflake-proxy:
-#         network_mode: host
-#         image: thetorproject/snowflake-proxy:latest
-#         container_name: snowflake-proxy
-#         restart: unless-stopped
-#         #command: [ "-ephemeral-ports-range", "30000:60000" ]
-#     watchtower:
-#         image: containrrr/watchtower
-#         container_name: watchtower
-#         volumes:
-#           - /var/run/docker.sock:/var/run/docker.sock
-#         command: snowflake-proxy
+  # snowflake-proxy:
+  #   image: thetorproject/snowflake-proxy:latest
+  #   container_name: snowflake-proxy
+  #   networks:
+  #     - t2_proxy
+  #   restart: unless-stopped
+  #   command: [ "-ephemeral-ports-range", "30000:60000" ]
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: snowflake-proxy
 

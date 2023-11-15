@@ -8,7 +8,8 @@
 !.bash_aliases.example
 !.env.example
 
-# !docker-compose-all.yml
+!docker-compose.yml
+!docker-compose-*.yml
 
 !.github
 .github/*
