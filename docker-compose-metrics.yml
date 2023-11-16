@@ -257,7 +257,7 @@ services:
   #     # - internal
   #     - t2_proxy
   #   volumes:
-  #     - $DOCKERDIR/appdata/grafana:/config
+  #     - $DOCKERDIR/appdata/varken:/config
   #   depends_on:
   #     - influxdb
   #   environment:
@@ -274,8 +274,8 @@ services:
   #     - VRKN_INFLUXDB_PORT=8086
   #     - VRKN_INFLUXDB_SSL=false
   #     - VRKN_INFLUXDB_VERIFY_SSL=false
-  #     - VRKN_INFLUXDB_USERNAME=root
-  #     - VRKN_INFLUXDB_PASSWORD=jkui78fl
+  #     - VRKN_INFLUXDB_USERNAME=$INFLUXDB_ADMIN_USER # TODO change
+  #     - VRKN_INFLUXDB_PASSWORD=$INFLUXDB_ADMIN_PASSWORD
   #     - VRKN_TAUTULLI_1_URL=tautulli:8181
   #     - VRKN_TAUTULLI_1_FALLBACK_IP=1.1.1.1
   #     - VRKN_TAUTULLI_1_APIKEY=$TAUTULLI_API_KEY
@@ -313,22 +313,6 @@ services:
   #     - VRKN_LIDARR_1_FUTURE_DAYS_RUN_SECONDS=300
   #     - VRKN_LIDARR_1_QUEUE=true
   #     - VRKN_LIDARR_1_QUEUE_RUN_SECONDS=300
-      # - VRKN_OMBI_1_URL=ombi.domain.tld
-      # - VRKN_OMBI_1_APIKEY=xxxxxxxxxxxxxxxx
-      # - VRKN_OMBI_1_SSL=false
-      # - VRKN_OMBI_1_VERIFY_SSL=false
-      # - VRKN_OMBI_1_GET_REQUEST_TYPE_COUNTS=true
-      # - VRKN_OMBI_1_REQUEST_TYPE_RUN_SECONDS=300
-      # - VRKN_OMBI_1_GET_REQUEST_TOTAL_COUNTS=true
-      # - VRKN_OMBI_1_REQUEST_TOTAL_RUN_SECONDS=300
-      # - VRKN_OMBI_1_GET_ISSUE_STATUS_COUNTS=true
-      # - VRKN_OMBI_1_ISSUE_STATUS_RUN_SECONDS=300
-      # - VRKN_SICKCHILL_1_URL=sickchill.domain.tld:8081
-      # - VRKN_SICKCHILL_1_APIKEY=xxxxxxxxxxxxxxxx
-      # - VRKN_SICKCHILL_1_SSL=false
-      # - VRKN_SICKCHILL_1_VERIFY_SSL=false
-      # - VRKN_SICKCHILL_1_GET_MISSING=true
-      # - VRKN_SICKCHILL_1_GET_MISSING_RUN_SECONDS=300
 
   # https://github.com/bcremer/docker-telegraf-influx-grafana-stack/blob/latest/docker-compose.yml
   telegraf:

@@ -2,11 +2,81 @@ version: "3.9"
 
 services:
 
+  # https://dchublist.biz/?do=hublist&page=1&language=en
+  airdcpp:
+    image: gangefors/airdcpp-webclient
+    container_name: airdcpp
+    restart: unless-stopped
+    profiles: ["p2p", "all"]
+    networks:
+      - t2_proxy
+    volumes:
+      - $DOCKERDIR/appdata/airdcpp:/.airdcpp
+      - $DATADIR:/Share
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - UMASK=${UMASK:-0022}
+    ports:
+      - 4180:5600
+      # - 443:5601
+      - 21248:21248
+      - 21248:21248/udp
+      - 21249:21249
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.airdcpp-rtr.entrypoints=https"
+      - "traefik.http.routers.airdcpp-rtr.rule=Host(`airdcpp.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.airdcpp-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.airdcpp-rtr.service=airdcpp-svc"
+      - "traefik.http.services.airdcpp-svc.loadbalancer.server.port=5600"
+      ## Homepage
+      - homepage.group=Downloaders
+      - homepage.name=DC++
+      - homepage.icon=airdcpp.png
+      - homepage.href=https://airdcpp.mirwin.net/
+      - homepage.description=DC++ p2p client
+
+  i2p:
+    image: geti2p/i2p
+    container_name: i2p
+    restart: unless-stopped
+    profiles: ["p2p", "all"]
+    # network_mode: host
+    networks:
+      - t2_proxy
+    ports:
+      # TODO UDP port
+      # - 1901:1900/udp
+      - 4444:4444
+      - 7657:7657
+    volumes:
+      - $DOCKERDIR/appdata/i2p:/i2p/.i2p
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.i2p-rtr.entrypoints=https"
+      - "traefik.http.routers.i2p-rtr.rule=Host(`i2p.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.i2p-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.i2p-rtr.service=i2p-svc"
+      - "traefik.http.services.i2p-svc.loadbalancer.server.port=7657"
+      ## Homepage
+      - homepage.group=Downloaders
+      - homepage.name=I2P
+      - homepage.icon=i2p.png
+      - homepage.href=https://i2p.mirwin.net/
+      - homepage.description=I2P p2p client
+
   ipfs:
     image: ipfs/kubo:latest
     container_name: ipfs
     restart: unless-stopped
-    profiles: ["all"]
+    profiles: ["p2p", "all"]
     volumes:
       - $DOCKERDIR/appdata/ipfs:/data/ipfs
       - $EXTDRIVE/ipfs:/ipfs

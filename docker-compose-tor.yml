@@ -30,6 +30,7 @@ services:
   #     - "traefik.http.routers.freshrss-rtr.entrypoints=https"
   #     - "traefik.http.routers.freshrss-rtr.rule=Host(`bridge.$DOMAINNAME_CLOUD_SERVER`)"
   #     ## Middlewares
+  #     # - "traefik.http.routers.plex-rtr.middlewares=chain-no-auth@file"
   #     - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
   #     ## HTTP Services
   #     - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
@@ -56,11 +57,3 @@ services:
   #     - t2_proxy
   #   restart: unless-stopped
   #   command: [ "-ephemeral-ports-range", "30000:60000" ]
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: snowflake-proxy
-

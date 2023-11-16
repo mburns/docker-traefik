@@ -2,92 +2,6 @@ version: "3.9"
 
 services:
 
-  # Book library https://github.com/linuxserver/docker-calibre-web
-  calibre:
-    image: lscr.io/linuxserver/calibre-web:latest
-    container_name: calibre
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
-      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
-      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
-    volumes:
-      - $DOCKERDIR/appdata/calibre:/config
-      - $EXTDRIVE/Dropbox/Calibre:/data/Library
-      - $DATADIR/Books:/data/Books
-      - $DATADIR/Comics:/data/Comics
-      - $DATADIR/Manga:/data/Manga
-    ports:
-      - 3083:8083
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.calibre-rtr.entrypoints=https"
-      - "traefik.http.routers.calibre-rtr.rule=Host(`calibre.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.calibre-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.calibre-rtr.service=calibre-svc"
-      - "traefik.http.services.calibre-svc.loadbalancer.server.port=8083"
-      ## Homepage
-      # - homepage.group=Media
-      # - homepage.name=Calibre
-      # - homepage.icon=calibre.png
-      # - homepage.href=https://calibre.mirwin.net
-      # - homepage.description=Read stuff
-      # - homepage.weight=3
-
-  ############################# MEDIA
-
-  kavita:
-    image: lscr.io/linuxserver/kavita:latest
-    container_name: kavita
-    profiles: ["media", "all"]
-    networks:
-      - t2_proxy
-    ports:
-      - "5000:5000"
-    restart: unless-stopped
-    volumes:
-      - $DOCKERDIR/appdata/kavita:/config
-      - $DATADIR/Manga:/data/Manga
-      - $DATADIR/Comics:/data/Comics
-      - $DATADIR/Books:/data/Books
-      - $EXTDRIVE/Dropbox/Calibre:/data/Library
-      - $EXTDRIVE/Dropbox/Text:/data/Text
-
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers Auth Bypass
-      - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
-      - "traefik.http.routers.kavita-rtr-bypass.priority=100"
-      ## HTTP Routers Auth
-      - "traefik.http.routers.kavita-rtr.entrypoints=https"
-      - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.kavita-rtr.priority=99"
-      ## Middlewares
-      - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
-      - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.kavita-rtr.service=kavita-svc"
-      - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
-      - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
-      - homepage.group=Media
-      - homepage.name=Kavita
-      - homepage.icon=kavita.png
-      - homepage.href=http://kavita.mirwin.net/
-      - homepage.description=Book reader
-      - homepage.weight=2
-      # - homepage.widget.type=kavita
-      # - homepage.widget.url=http://kavita:5000/
-      # - homepage.widget.key=${KAVITA_API_KEY}
-
   # Airsonic Advanced - Music Server
   airsonic-advanced:
     image: lscr.io/linuxserver/airsonic-advanced
@@ -111,9 +25,130 @@ services:
       PGID: $PGID
       JAVA_OPTS: '-Dserver.forward-headers-strategy=native' # optional - if you use a reverse-proxy
 
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf
+    container_name: audiobookshelf
+    ports:
+      - 13378:80
+    volumes:
+      - $DOCKERDIR/appdata/audiobookshelf:/config
+      - $EXTDRIVE:/data
+    restart: unless-stopped
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.audiobookshelf-rtr.entrypoints=https"
+      - "traefik.http.routers.audiobookshelf-rtr.rule=Host(`audio.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.audiobookshelf-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.audiobookshelf-rtr.service=audiobookshelf-svc"
+      - "traefik.http.services.audiobookshelf-svc.loadbalancer.server.port=80"
+      ## Homepage
+      - homepage.group=Library
+      - homepage.name=AudioBookshelf
+      - homepage.icon=audiobookshelf.png
+      - homepage.href=https://audio.mirwin.net
+      - homepage.description=Read & Listen to stuff
+      - homepage.weight=2
+      # - homepage.widget.type=audiobookshelf
+      # - homepage.widget.url=http://audio:80
+      # - homepage.widget.key=${AUDIOBOOKSHELF_API_KEY}
+
+  # Book library https://github.com/linuxserver/docker-calibre-web
+  calibre:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    volumes:
+      - $DOCKERDIR/appdata/calibre:/config
+      - $EXTDRIVE/Dropbox/Calibre:/data/Library
+      - $DATADIR/Books:/data/Books
+      - $DATADIR/Comics:/data/Comics
+      - $DATADIR/Manga:/data/Manga
+    ports:
+      - 3083:8083
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.calibre-rtr.entrypoints=https"
+      - "traefik.http.routers.calibre-rtr.rule=Host(`calibre.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.calibre-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.calibre-rtr.service=calibre-svc"
+      - "traefik.http.services.calibre-svc.loadbalancer.server.port=8083"
+      ## Homepage
+      - homepage.group=Library
+      - homepage.name=Calibre
+      - homepage.icon=calibre.png
+      - homepage.href=https://calibre.mirwin.net
+      - homepage.description=Book library & reader
+      - homepage.weight=2
+
+  kavita:
+    image: lscr.io/linuxserver/kavita:latest
+    container_name: kavita
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    volumes:
+      - $DOCKERDIR/appdata/kavita:/config
+      - $DATADIR/bookmarks:/kavita/config/bookmarks
+      - $DATADIR/Manga:/data/Manga
+      - $DATADIR/Comics:/data/Comics
+      - $DATADIR/Books:/data/Books
+      - $EXTDRIVE/Dropbox/Calibre:/data/Library
+      - $EXTDRIVE/Dropbox/Text:/data/Text
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.kavita-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.kavita-rtr.entrypoints=https"
+      - "traefik.http.routers.kavita-rtr.rule=Host(`kavita.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.kavita-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.kavita-rtr.service=kavita-svc"
+      - "traefik.http.routers.kavita-rtr-bypass.service=kavita-svc"
+      - "traefik.http.services.kavita-svc.loadbalancer.server.port=5000"
+      - homepage.group=Library
+      - homepage.name=Kavita
+      - homepage.icon=kavita.png
+      - homepage.href=http://kavita.mirwin.net/
+      - homepage.description=Book library & reader
+      - homepage.weight=3
+      # - homepage.widget.type=kavita
+      # - homepage.widget.url=http://kavita:5000/
+      # - homepage.widget.key=${KAVITA_API_KEY}
+
   metube:
     image: ghcr.io/alexta69/metube
     container_name: metube
+    profiles: ["media", "all"]
     networks:
       - t2_proxy
     restart: unless-stopped
@@ -137,38 +172,6 @@ services:
       ## HTTP Services
       - "traefik.http.routers.metube-rtr.service=metube-svc"
       - "traefik.http.services.metube-svc.loadbalancer.server.port=8081"
-
-  audiobookshelf:
-    image: ghcr.io/advplyr/audiobookshelf
-    container_name: audiobookshelf
-    ports:
-      - 13378:80
-    volumes:
-      - $DOCKERDIR/appdata/audiobookshelf:/config
-      - $EXTDRIVE:/data
-    restart: unless-stopped
-    profiles: ["media","arrs", "all"]
-    networks:
-      - t2_proxy
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers Auth
-      - "traefik.http.routers.audiobookshelf-rtr.entrypoints=https"
-      - "traefik.http.routers.audiobookshelf-rtr.rule=Host(`audio.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.audiobookshelf-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.audiobookshelf-rtr.service=audiobookshelf-svc"
-      - "traefik.http.services.audiobookshelf-svc.loadbalancer.server.port=80"
-      ## Homepage
-      - homepage.group=Media
-      - homepage.name=AudioBookshelf
-      - homepage.icon=audiobookshelf.png
-      - homepage.href=https://audio.mirwin.net
-      - homepage.description=Read & Listen to stuff
-      - homepage.weight=2
-      # - homepage.widget.type=audiobookshelf
-      # - homepage.widget.url=http://audiobookshelf:13378
 
   # Jellyfin - Media Server
   # jellyfin:
@@ -209,7 +212,7 @@ services:
       - $DATADIR:/data
     ports:
       - 5299:5299
-    profiles: ["media","arrs", "all"]
+    profiles: ["media", "all"]
     networks:
       - t2_proxy
     restart: unless-stopped
@@ -223,15 +226,53 @@ services:
       ## HTTP Services
       - "traefik.http.routers.lazylibrarian-rtr.service=lazylibrarian-svc"
       - "traefik.http.services.lazylibrarian-svc.loadbalancer.server.port=5299"
-      - homepage.group=Media
+      - homepage.group=Request
       - homepage.name=LazyLibrarian
       - homepage.icon=lazylibrarian.png
       - homepage.href=http://lazylibrarian.mirwin.net/
-      - homepage.description=Book reader
-      - homepage.weight=2
-      # - homepage.widget.type=kavita
-      # - homepage.widget.url=http://kavita:5000/
-      # - homepage.widget.key=${KAVITA_API_KEY}
+      - homepage.description=Book series & author tracking
+      - homepage.weight=4
+
+  # Picard - Music Library Tagging and Management
+  picard:
+    image: mikenye/picard:latest
+    container_name: picard
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    # ports:
+    #   - "$PICARD_PORT:5801"
+    volumes:
+      - $DATADIR:/data:rw
+      - $DOCKERDIR/appdata/picard:/config:rw
+      - /dev/shm:/dev/shm
+    environment:
+      USER_ID: $PUID
+      GROUP_ID: $PGID
+      TZ: $TZ
+      UMASK: 002
+      DISPLAY_WIDTH: 1600
+      DISPLAY_HEIGHT: 960
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.picard-rtr.entrypoints=https"
+      - "traefik.http.routers.picard-rtr.rule=Host(`picard.$DOMAINNAME_CLOUD_SERVER`)"
+      ## Middlewares
+      - "traefik.http.routers.picard-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.picard-rtr.service=picard-svc"
+      - "traefik.http.services.picard-svc.loadbalancer.server.port=5801"
+      ## Homepage
+      - homepage.group=Meta
+      - homepage.name=Picard
+      - homepage.icon=picard.png
+      - homepage.href=https://picard.mirwin.net
+      - homepage.description=Music Library Tagging and Management
+      - homepage.weight=5
 
   # Plex Meta Manager - Automatic Metadata Manager for Plex
   plexmm:
@@ -252,55 +293,6 @@ services:
       PMM_NO_MISSING: "False" #optional
     volumes:
       - $DOCKERDIR/appdata/plex-meta-manager:/config
-
-  # Tautulli - Plex statistics and monitoring
-  # Set HTTP Root in Tautulli settings if using PathPrefix
-  tautulli:
-    image: lscr.io/linuxserver/tautulli:latest
-    container_name: tautulli
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: "no"
-    profiles: ["media", "all"]
-    networks:
-      - t2_proxy
-    ports:
-      - "8181:8181"
-    volumes:
-      - $DOCKERDIR/appdata/tautulli/config:/config
-      - $DOCKERDIR/appdata/plexms/Library/Application Support/Plex Media Server/Logs:/logs:ro # For tautulli Plex log viewer
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers Auth Bypass
-      - "traefik.http.routers.tautulli-rtr-bypass.entrypoints=https"
-      #- "traefik.http.routers.tautulli-rtr-bypass.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$TAUTULLI_API_KEY`) || Query(`apikey`, `$TAUTULLI_API_KEY`))"
-      - "traefik.http.routers.tautulli-rtr-bypass.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
-      - "traefik.http.routers.tautulli-rtr-bypass.priority=100"
-      ## HTTP Routers
-      - "traefik.http.routers.tautulli-rtr.entrypoints=https"
-      - "traefik.http.routers.tautulli-rtr.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`)"
-      - "traefik.http.routers.tautulli-rtr.priority=99"
-      ## Middlewares
-      - "traefik.http.routers.tautulli-rtr-bypass.middlewares=chain-no-auth@file"
-      - "traefik.http.routers.tautulli-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.tautulli-rtr.service=tautulli-svc"
-      - "traefik.http.routers.tautulli-rtr-bypass.service=tautulli-svc"
-      - "traefik.http.services.tautulli-svc.loadbalancer.server.port=8181"
-      ## Homepage
-      - homepage.group=Media
-      - homepage.name=Tautulli
-      - homepage.icon=tautulli.png
-      - homepage.href=https://tautulli.mirwin.net
-      - homepage.description=Plex Stats
-      - homepage.weight=5
-      - homepage.widget.type=tautulli
-      - homepage.widget.url=http://tautulli:6767
-      - homepage.widget.key=${TAUTULLI_API_KEY}
 
   # Plex - Media Server
   plex:
@@ -350,7 +342,7 @@ services:
       - "traefik.http.routers.plex-rtr.service=plex-svc"
       - "traefik.http.services.plex-svc.loadbalancer.server.port=32400"
       ## Homepage
-      - homepage.group=Media
+      - homepage.group=Library
       - homepage.name=Plex
       - homepage.icon=plex.png
       - homepage.href=https://splex.mirwin.net
@@ -366,6 +358,7 @@ services:
     networks:
       - t2_proxy
     restart: "unless-stopped"
+    profiles: ["media", "all"]
     ports:
       - 9080:8080
     environment:
@@ -422,7 +415,7 @@ services:
       - "traefik.http.routers.romm-rtr-bypass.service=romm-svc"
       - "traefik.http.services.romm-svc.loadbalancer.server.port=8080"
       ## Homepage
-      - homepage.group=Media
+      - homepage.group=Library
       - homepage.name=Romm
       - homepage.icon=romm.png
       - homepage.href=https://romm.mirwin.net
@@ -432,78 +425,51 @@ services:
       # - homepage.widget.url=http://romm:9080
       # - homepage.widget.key=${ROMM_API_KEY}
 
-  # Picard - Music Library Tagging and Management
-  picard:
-    image: mikenye/picard:latest
-    container_name: picard
+  # Tautulli - Plex statistics and monitoring
+  # Set HTTP Root in Tautulli settings if using PathPrefix
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["media", "all"]
+    profiles: ["media", "metrics", "all"]
     networks:
       - t2_proxy
-    # ports:
-    #   - "$PICARD_PORT:5801"
+    ports:
+      - "8181:8181"
     volumes:
-      - $DATADIR:/data:rw
-      - $DOCKERDIR/appdata/picard:/config:rw
-      - /dev/shm:/dev/shm
-    environment:
-      USER_ID: $PUID
-      GROUP_ID: $PGID
-      TZ: $TZ
-      UMASK: 002
-      DISPLAY_WIDTH: 1600
-      DISPLAY_HEIGHT: 960
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.picard-rtr.entrypoints=https"
-      - "traefik.http.routers.picard-rtr.rule=Host(`picard.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.picard-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.picard-rtr.service=picard-svc"
-      - "traefik.http.services.picard-svc.loadbalancer.server.port=5801"
-
-  # Overseerr - Get recommendations and request media downloads
-  overseerr:
-    image: sctx/overseerr:latest
-    container_name: overseerr
-    # security_opt:
-    #   - no-new-privileges:true
+      - $DOCKERDIR/appdata/tautulli/config:/config
+      - $DOCKERDIR/appdata/plexms/Library/Application Support/Plex Media Server/Logs:/logs:ro # For tautulli Plex log viewer
     environment:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
-      PORT: 5055 #optional
-      # LOG_LEVEL: debug
-    ports:
-      - 5055:5055
-    volumes:
-      - $DOCKERDIR/appdata/overseerr:/app/config
-    restart: unless-stopped
-    profiles: ["media", "arrs", "all"]
-    networks:
-      - t2_proxy
     labels:
       - "traefik.enable=true"
-      ## HTTP Routers Auth
-      - "traefik.http.routers.overseerr-rtr.entrypoints=https"
-      - "traefik.http.routers.overseerr-rtr.rule=Host(`overseerr.$DOMAINNAME_CLOUD_SERVER`)"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.tautulli-rtr-bypass.entrypoints=https"
+      #- "traefik.http.routers.tautulli-rtr-bypass.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$TAUTULLI_API_KEY`) || Query(`apikey`, `$TAUTULLI_API_KEY`))"
+      - "traefik.http.routers.tautulli-rtr-bypass.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      - "traefik.http.routers.tautulli-rtr-bypass.priority=100"
+      ## HTTP Routers
+      - "traefik.http.routers.tautulli-rtr.entrypoints=https"
+      - "traefik.http.routers.tautulli-rtr.rule=Host(`tautulli.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.tautulli-rtr.priority=99"
       ## Middlewares
-      - "traefik.http.routers.overseerr-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.tautulli-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.tautulli-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
-      - "traefik.http.routers.overseerr-rtr.service=overseerr-svc"
-      - "traefik.http.services.overseerr-svc.loadbalancer.server.port=5055"
+      - "traefik.http.routers.tautulli-rtr.service=tautulli-svc"
+      - "traefik.http.routers.tautulli-rtr-bypass.service=tautulli-svc"
+      - "traefik.http.services.tautulli-svc.loadbalancer.server.port=8181"
       ## Homepage
-      - homepage.group=Media
-      - homepage.name=Overseerr
-      - homepage.icon=overseerr.png
-      - homepage.href=https://overseerr.mirwin.net
-      - homepage.description=Request TV/Movies
-      - homepage.weight=4
-      - homepage.widget.type=overseerr
-      - homepage.widget.url=http://overseerr:5055
-      - homepage.widget.key=${OVERSEERR_API_KEY}
-
+      # - homepage.group=Meta
+      # - homepage.name=Tautulli
+      # - homepage.icon=tautulli.png
+      # - homepage.href=https://tautulli.mirwin.net
+      # - homepage.description=Plex Stats
+      # - homepage.weight=5
+      # - homepage.widget.type=tautulli
+      # - homepage.widget.url=http://tautulli:6767
+      # - homepage.widget.key=${TAUTULLI_API_KEY}
