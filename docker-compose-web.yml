@@ -13,7 +13,7 @@ services:
     container_name: freshrss
     hostname: freshrss
     restart: unless-stopped
-    profiles: ["all"]
+    profiles: ["tools", "web", "all"]
     # Optional build section if you want to build the image locally:
     # build:
     #   # Pick #latest (stable release) or #edge (rolling release) or a specific release like #1.21.0
@@ -25,7 +25,7 @@ services:
     volumes:
       - $DOCKERDIR/appdata/freshrss:/var/www/FreshRSS/data
       # - $DATADIR/media:/var/www/FreshRSS/data
-      # - $DOCKERDIR/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
+      - $DOCKERDIR/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -37,7 +37,8 @@ services:
     ports:
       - "8765:80"
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.freshrss-rtr.entrypoints=https"
@@ -64,7 +65,7 @@ services:
     container_name: ladder
     # build: .
     restart: unless-stopped
-    profiles: ["all"]
+    profiles: ["tools", "web", "all"]
     networks:
       - t2_proxy
     #command: sh -c ./ladder
@@ -87,6 +88,8 @@ services:
           cpus: "0.25"
           memory: 128M
     labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.ladder-rtr.entrypoints=https"
@@ -109,7 +112,7 @@ services:
     image: phpdockerio/readability-js-server
     container_name: readability
     restart: unless-stopped
-    profiles: ["all"]
+    profiles: ["tools", "all"]
     ports:
       - 127.0.0.1:3000:3000
     networks:
@@ -130,7 +133,7 @@ services:
     image: wangqiru/mercury-parser-api
     container_name: mercury
     restart: unless-stopped
-    profiles: ["all"]
+    profiles: ["tools", "all"]
     ports:
       - 127.0.0.1:3001:3000
     networks:
@@ -151,6 +154,7 @@ services:
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
+    profiles: ["tools", "all"]
     networks:
       t2_proxy:
         ipv4_address: 192.168.90.160
@@ -163,7 +167,6 @@ services:
      - "8191:8191"
     restart: unless-stopped
     labels:
-      - "sablier.enable=true"
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.flaresolverr-rtr.entrypoints=https"
@@ -178,6 +181,7 @@ services:
   lounge:
     image: ghcr.io/thelounge/thelounge:latest
     container_name: lounge
+    profiles: ["tools", "all"]
     networks:
       - t2_proxy
     ports:
@@ -201,6 +205,7 @@ services:
   vaultwarden:
     container_name: vaultwarden
     image: vaultwarden/server:latest
+    profiles: ["tools", "all"]
     networks:
       - t2_proxy
     restart: unless-stopped
@@ -238,6 +243,7 @@ services:
     pids_limit: 50
     mem_limit: 256mb
     memswap_limit: 256mb
+    profiles: ["tools", "all"]
     # user debian-tor from tor package
     user: whoogle
     # security_opt:
@@ -248,8 +254,8 @@ services:
       - t2_proxy
     tmpfs:
       - /config/:size=10M,uid=927,gid=927,mode=1700
-      - /var/lib/tor/:size=15M,uid=927,gid=927,mode=1700
-      - /run/tor/:size=1M,uid=927,gid=927,mode=1700
+      # - /var/lib/tor/:size=15M,uid=927,gid=927,mode=1700
+      # - /run/tor/:size=1M,uid=927,gid=927,mode=1700
     environment: # Uncomment to configure environment variables
       # Site alternative configurations, uncomment to enable
       # Note: If not set, the feature will still be available
@@ -275,7 +281,8 @@ services:
     ports:
       - 8202:5000
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.whoogle-rtr.entrypoints=https"

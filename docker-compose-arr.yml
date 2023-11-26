@@ -10,7 +10,7 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: unless-stopped
-    profiles: ["apps", "all"]
+    profiles: ["apps", "arrs", "all"]
     networks:
       - t2_proxy
     ports:
@@ -59,8 +59,7 @@ services:
       - "6767:6767"
     volumes:
       - $DOCKERDIR/appdata/bazarr:/config
-      - $DATADIR/media:/data/media
-      - $DOWNLOADSDIR:/config/Downloads
+      - $DATADIR/media:/data
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -76,7 +75,7 @@ services:
       - "traefik.http.routers.bazarr-rtr.service=bazarr-svc"
       - "traefik.http.services.bazarr-svc.loadbalancer.server.port=6767"
       ## Homepage
-      - homepage.group=Request
+      - homepage.group=Meta
       - homepage.name=Bazarr
       - homepage.icon=bazarr.png
       - homepage.href=https://bazarr.mirwin.net
@@ -112,7 +111,7 @@ services:
       ## HTTP Routers Auth Bypass
       - "traefik.http.routers.kapowarr-rtr-bypass.entrypoints=https"
       #- "traefik.http.routers.kapowarr-rtr-bypass.rule=Host(`kapowarr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
-      - "traefik.http.routers.kapowarr-rtr-bypass.rule=Host(`kapowarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      # - "traefik.http.routers.kapowarr-rtr-bypass.rule=Host(`kapowarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
       - "traefik.http.routers.kapowarr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.kapowarr-rtr.entrypoints=https"
@@ -151,8 +150,8 @@ services:
     volumes:
       - $DOCKERDIR/appdata/lidarr:/config
       - $DATADIR:/data
-      - $COMPLETEDIR/lidarr:/config/Downloads/complete/lidarr
-      - $DATADIR/downloads:/downloads
+      - $DOWNLOADSDIR:/downloads
+      # - $COMPLETEDIR/lidarr:/config/Downloads/complete/lidarr
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       TZ: $TZ
@@ -278,11 +277,8 @@ services:
       - "7878:7878"
     volumes:
       - $DOCKERDIR/appdata/radarr:/config
-      - $COMPLETEDIR/radarr:/config/Downloads/complete/radarr
       - $DATADIR:/data
-      - $DATADIR/downloads:/downloads
       - "/etc/localtime:/etc/localtime:ro"
-      
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -331,9 +327,7 @@ services:
       - "8787:8787"
     volumes:
       - $DOCKERDIR/appdata/readarr:/config
-      - $EXTDRIVE:/data
-      - $DOWNLOADSDIR:/config/Downloads
-      - $DATADIR/downloads:/downloads
+      - $DATADIR:/data
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       TZ: $TZ
@@ -378,7 +372,6 @@ services:
     volumes:
       - $DOCKERDIR/appdata/sonarr:/config
       - $DATADIR:/data
-      - $COMPLETEDIR/sonarr:/config/Downloads/complete/sonarr
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       TZ: $TZ
@@ -389,7 +382,7 @@ services:
       ## HTTP Routers Auth Bypass
       # - "traefik.http.routers.sonarr-rtr-bypass.entrypoints=https"
       #- "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
-      # - "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      - "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
       # - "traefik.http.routers.sonarr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.sonarr-rtr.entrypoints=https"
@@ -424,9 +417,9 @@ services:
     networks:
       - t2_proxy
     ports:
-      - 8266:8266
       - 8265:8265
-      - 8267:8267 # node port. It should be mapped on this container because  the node container use the network from the main container
+      - 8266:8266
+      - 8267:8267 # node port. It should be mapped on this container because the node container use the network from the main container
     volumes:
       - $DOCKERDIR/appdata/tdarr:/app/server
       - $DOCKERDIR/appdata/tdarr/configs:/app/configs
@@ -485,9 +478,9 @@ services:
     volumes:
       - $DOCKERDIR/appdata/tdarr/configs:/app/configs
       - $DOCKERDIR/appdata/tdarr/logs:/app/logs
-      - $DOWNLOADSDIR/transcode/tdarr:/data/temp
+      - $DATADIR/transcode:/data/temp
       - $DATADIR/Photos/zVideos:/data/media:ro
-      - $DATADIR/media/zvideos:/data/output
+      - $DATADIR/zvideos:/data/output
 
   # Adult videos
   whisparr:
@@ -509,7 +502,6 @@ services:
     volumes:
       - $DOCKERDIR/appdata/whisparr:/config
       - $DATADIR:/data
-      - $DOWNLOADSDIR:/config/Downloads
       - "/etc/localtime:/etc/localtime:ro"
     labels:
       - "traefik.enable=true"
@@ -558,7 +550,7 @@ services:
       - "traefik.http.routers.wizarr-rtr.service=wizarr-svc"
       - "traefik.http.services.wizarr-svc.loadbalancer.server.port=5690"
       ## Homepage
-      - homepage.group=Meta
+      - homepage.group=Admin
       - homepage.name=Wizarr
       - homepage.icon=wizarr.png
       - homepage.href=https://wizarr.mirwin.net

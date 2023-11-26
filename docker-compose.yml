@@ -245,7 +245,7 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: unless-stopped
-    profiles: ["apps", "all"]
+    profiles: ["apps", "core", "all"]
     networks:
       - t2_proxy
       - socket_proxy
@@ -260,6 +260,8 @@ services:
       PUID: $PUID
       PGID: $PGID
     labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.homepage-rtr.entrypoints=https"

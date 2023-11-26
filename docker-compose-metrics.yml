@@ -78,7 +78,7 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["all", "media", "arrs"]
+    profiles: ["all", "metrics", "arrs"]
     networks:
       - t2_proxy
     ports:
@@ -97,7 +97,7 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["all", "media", "arrs"]
+    profiles: ["all", "metrics", "arrs"]
     networks:
       - t2_proxy
     ports:
@@ -116,7 +116,7 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["all", "media", "arrs"]
+    profiles: ["all", "metrics", "arrs"]
     networks:
       - t2_proxy
     ports:
@@ -207,8 +207,6 @@ services:
       - --collector.filesystem.ignored-mount-points
       - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
 
-  ############################# UTILITIES
-
   # Grafana - Graphical data visualization for InfluxDB data
   grafana:
     image: grafana/grafana:latest
@@ -223,6 +221,9 @@ services:
       - "3069:3000"
       # - '127.0.0.1:3000:3000'
     user: $PUID
+    depends_on:
+      - influxdb
+      - varken
     volumes:
       - $DOCKERDIR/appdata/grafana:/var/lib/grafana
       # - ./grafana/provisioning/:/etc/grafana/provisioning/
@@ -247,72 +248,79 @@ services:
       - homepage.description=Pretty graphs
       - homepage.weight=4
 
+  # TODO influx perms: 'influxdb.exceptions.InfluxDBClientError: 401: {"code":"unauthorized","message":"Unauthorized"}'
   # https://github.com/Boerderij/Varken/blob/master/docker-compose.yml
-  # varken:
-  #   # hostname: varken
-  #   container_name: varken
-  #   image: boerderij/varken
-  #   restart: unless-stopped
-  #   networks:
-  #     # - internal
-  #     - t2_proxy
-  #   volumes:
-  #     - $DOCKERDIR/appdata/varken:/config
-  #   depends_on:
-  #     - influxdb
-  #   environment:
-  #     - TZ=$TZ
-  #     - VRKN_GLOBAL_SONARR_SERVER_IDS=1
-  #     - VRKN_GLOBAL_RADARR_SERVER_IDS=1
-  #     - VRKN_GLOBAL_LIDARR_SERVER_IDS=false
-  #     - VRKN_GLOBAL_TAUTULLI_SERVER_IDS=1
-  #     - VRKN_GLOBAL_OMBI_SERVER_IDS=1
-  #     - VRKN_GLOBAL_SICKCHILL_SERVER_IDS=false
-  #     - VRKN_GLOBAL_UNIFI_SERVER_IDS=false
-  #     - VRKN_GLOBAL_MAXMIND_LICENSE_KEY=$MAXMIND_LICENSE_KEY
-  #     - VRKN_INFLUXDB_URL=influxdb
-  #     - VRKN_INFLUXDB_PORT=8086
-  #     - VRKN_INFLUXDB_SSL=false
-  #     - VRKN_INFLUXDB_VERIFY_SSL=false
-  #     - VRKN_INFLUXDB_USERNAME=$INFLUXDB_ADMIN_USER # TODO change
-  #     - VRKN_INFLUXDB_PASSWORD=$INFLUXDB_ADMIN_PASSWORD
-  #     - VRKN_TAUTULLI_1_URL=tautulli:8181
-  #     - VRKN_TAUTULLI_1_FALLBACK_IP=1.1.1.1
-  #     - VRKN_TAUTULLI_1_APIKEY=$TAUTULLI_API_KEY
-  #     - VRKN_TAUTULLI_1_SSL=false
-  #     - VRKN_TAUTULLI_1_VERIFY_SSL=false
-  #     - VRKN_TAUTULLI_1_GET_ACTIVITY=true
-  #     - VRKN_TAUTULLI_1_GET_ACTIVITY_RUN_SECONDS=30
-  #     - VRKN_TAUTULLI_1_GET_STATS=true
-  #     - VRKN_TAUTULLI_1_GET_STATS_RUN_SECONDS=3600
-  #     - VRKN_SONARR_1_URL=sonarr:8989
-  #     - VRKN_SONARR_1_APIKEY=$SONARR_API_KEY
-  #     - VRKN_SONARR_1_SSL=false
-  #     - VRKN_SONARR_1_VERIFY_SSL=false
-  #     - VRKN_SONARR_1_MISSING_DAYS=7
-  #     - VRKN_SONARR_1_MISSING_DAYS_RUN_SECONDS=300
-  #     - VRKN_SONARR_1_FUTURE_DAYS=1
-  #     - VRKN_SONARR_1_FUTURE_DAYS_RUN_SECONDS=300
-  #     - VRKN_SONARR_1_QUEUE=true
-  #     - VRKN_SONARR_1_QUEUE_RUN_SECONDS=300
-  #     - VRKN_RADARR_1_URL=radarr
-  #     - VRKN_RADARR_1_APIKEY=$RADARR_API_KEY
-  #     - VRKN_RADARR_1_SSL=false
-  #     - VRKN_RADARR_1_VERIFY_SSL=false
-  #     - VRKN_RADARR_1_QUEUE=true
-  #     - VRKN_RADARR_1_QUEUE_RUN_SECONDS=300
-  #     - VRKN_RADARR_1_GET_MISSING=true
-  #     - VRKN_RADARR_1_GET_MISSING_RUN_SECONDS=300
-  #     - VRKN_LIDARR_1_URL=lidarr:8686
-  #     - VRKN_LIDARR_1_APIKEY=$LIDARR_API_KEY
-  #     - VRKN_LIDARR_1_SSL=false
-  #     - VRKN_LIDARR_1_VERIFY_SSL=false
-  #     - VRKN_LIDARR_1_MISSING_DAYS=30
-  #     - VRKN_LIDARR_1_MISSING_DAYS_RUN_SECONDS=300
-  #     - VRKN_LIDARR_1_FUTURE_DAYS=30
-  #     - VRKN_LIDARR_1_FUTURE_DAYS_RUN_SECONDS=300
-  #     - VRKN_LIDARR_1_QUEUE=true
-  #     - VRKN_LIDARR_1_QUEUE_RUN_SECONDS=300
+  varken:
+    # hostname: varken
+    container_name: varken
+    image: boerderij/varken
+    restart: unless-stopped
+    networks:
+      # - internal
+      - t2_proxy
+    volumes:
+      - $DOCKERDIR/appdata/varken:/config
+    depends_on:
+      - influxdb
+    environment:
+      - TZ=$TZ
+
+      - VRKN_GLOBAL_SONARR_SERVER_IDS=1
+      - VRKN_GLOBAL_RADARR_SERVER_IDS=1
+      - VRKN_GLOBAL_LIDARR_SERVER_IDS=false
+      - VRKN_GLOBAL_TAUTULLI_SERVER_IDS=1
+      - VRKN_GLOBAL_OMBI_SERVER_IDS=1
+      - VRKN_GLOBAL_SICKCHILL_SERVER_IDS=false
+      - VRKN_GLOBAL_UNIFI_SERVER_IDS=false
+      - VRKN_GLOBAL_MAXMIND_LICENSE_KEY=$MAXMIND_LICENSE_KEY
+
+      - VRKN_INFLUXDB_URL=influxdb
+      - VRKN_INFLUXDB_PORT=8086
+      - VRKN_INFLUXDB_SSL=false
+      - VRKN_INFLUXDB_VERIFY_SSL=false
+      - VRKN_INFLUXDB_USERNAME=$INFLUXDB_ADMIN_USER # TODO change
+      - VRKN_INFLUXDB_PASSWORD=$INFLUXDB_ADMIN_PASSWORD
+
+      - VRKN_TAUTULLI_1_URL=tautulli:8181
+      - VRKN_TAUTULLI_1_FALLBACK_IP=1.1.1.1
+      - VRKN_TAUTULLI_1_APIKEY=$TAUTULLI_API_KEY
+      - VRKN_TAUTULLI_1_SSL=false
+      - VRKN_TAUTULLI_1_VERIFY_SSL=false
+      - VRKN_TAUTULLI_1_GET_ACTIVITY=true
+      - VRKN_TAUTULLI_1_GET_ACTIVITY_RUN_SECONDS=30
+      - VRKN_TAUTULLI_1_GET_STATS=true
+      - VRKN_TAUTULLI_1_GET_STATS_RUN_SECONDS=3600
+
+      - VRKN_SONARR_1_URL=sonarr:8989
+      - VRKN_SONARR_1_APIKEY=$SONARR_API_KEY
+      - VRKN_SONARR_1_SSL=false
+      - VRKN_SONARR_1_VERIFY_SSL=false
+      - VRKN_SONARR_1_MISSING_DAYS=7
+      - VRKN_SONARR_1_MISSING_DAYS_RUN_SECONDS=300
+      - VRKN_SONARR_1_FUTURE_DAYS=1
+      - VRKN_SONARR_1_FUTURE_DAYS_RUN_SECONDS=300
+      - VRKN_SONARR_1_QUEUE=true
+      - VRKN_SONARR_1_QUEUE_RUN_SECONDS=300
+
+      - VRKN_RADARR_1_URL=radarr
+      - VRKN_RADARR_1_APIKEY=$RADARR_API_KEY
+      - VRKN_RADARR_1_SSL=false
+      - VRKN_RADARR_1_VERIFY_SSL=false
+      - VRKN_RADARR_1_QUEUE=true
+      - VRKN_RADARR_1_QUEUE_RUN_SECONDS=300
+      - VRKN_RADARR_1_GET_MISSING=true
+      - VRKN_RADARR_1_GET_MISSING_RUN_SECONDS=300
+
+      - VRKN_LIDARR_1_URL=lidarr:8686
+      - VRKN_LIDARR_1_APIKEY=$LIDARR_API_KEY
+      - VRKN_LIDARR_1_SSL=false
+      - VRKN_LIDARR_1_VERIFY_SSL=false
+      - VRKN_LIDARR_1_MISSING_DAYS=30
+      - VRKN_LIDARR_1_MISSING_DAYS_RUN_SECONDS=300
+      - VRKN_LIDARR_1_FUTURE_DAYS=30
+      - VRKN_LIDARR_1_FUTURE_DAYS_RUN_SECONDS=300
+      - VRKN_LIDARR_1_QUEUE=true
+      - VRKN_LIDARR_1_QUEUE_RUN_SECONDS=300
 
   # https://github.com/bcremer/docker-telegraf-influx-grafana-stack/blob/latest/docker-compose.yml
   telegraf:

@@ -3,42 +3,42 @@ version: "3.9"
 services:
 
   # https://dchublist.biz/?do=hublist&page=1&language=en
-  airdcpp:
-    image: gangefors/airdcpp-webclient
-    container_name: airdcpp
-    restart: unless-stopped
-    profiles: ["p2p", "all"]
-    networks:
-      - t2_proxy
-    volumes:
-      - $DOCKERDIR/appdata/airdcpp:/.airdcpp
-      - $DATADIR:/Share
-    environment:
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
-      - UMASK=${UMASK:-0022}
-    ports:
-      - 4180:5600
-      # - 443:5601
-      - 21248:21248
-      - 21248:21248/udp
-      - 21249:21249
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.airdcpp-rtr.entrypoints=https"
-      - "traefik.http.routers.airdcpp-rtr.rule=Host(`airdcpp.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.airdcpp-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.airdcpp-rtr.service=airdcpp-svc"
-      - "traefik.http.services.airdcpp-svc.loadbalancer.server.port=5600"
-      ## Homepage
-      - homepage.group=Downloaders
-      - homepage.name=DC++
-      - homepage.icon=airdcpp.png
-      - homepage.href=https://airdcpp.mirwin.net/
-      - homepage.description=DC++ p2p client
+  # airdcpp:
+  #   image: gangefors/airdcpp-webclient
+  #   container_name: airdcpp
+  #   restart: unless-stopped
+  #   profiles: ["p2p", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   volumes:
+  #     - $DOCKERDIR/appdata/airdcpp:/.airdcpp
+  #     - $DATADIR:/Share
+  #   environment:
+  #     - PUID=${PUID:-1000}
+  #     - PGID=${PGID:-1000}
+  #     - UMASK=${UMASK:-0022}
+  #   ports:
+  #     - 4180:5600
+  #     # - 443:5601
+  #     - 21248:21248
+  #     - 21248:21248/udp
+  #     - 21249:21249
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.airdcpp-rtr.entrypoints=https"
+  #     - "traefik.http.routers.airdcpp-rtr.rule=Host(`airdcpp.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.airdcpp-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.airdcpp-rtr.service=airdcpp-svc"
+  #     - "traefik.http.services.airdcpp-svc.loadbalancer.server.port=5600"
+  #     ## Homepage
+  #     - homepage.group=Downloaders
+  #     - homepage.name=DC++
+  #     - homepage.icon=airdcpp.png
+  #     - homepage.href=https://airdcpp.mirwin.net/
+  #     - homepage.description=DC++ p2p client
 
   i2p:
     image: geti2p/i2p
@@ -146,7 +146,7 @@ services:
     # Allow apps to bypass OAuth. Radarr example below will bypass OAuth if API key is present in the request (eg. from NZB360 mobile app).
     # While this is one way, the recommended way is to bypass authentication using Traefik labels shown in some of the -Arr apps in this file.
     # command:
-    #   - '--rule.radarr.action=allow --rule.radarr.rule="Headers(`X-Api-Key`, `$RADARR_API_KEY`)"'
+      # - '--rule.radarr.action=allow --rule.radarr.rule="Headers(`X-Api-Key`, `$RADARR_API_KEY`)"'
       # - '--rule.sabnzbd.action=allow --rule.sabnzbd.rule="HeadersRegexp(`X-Forwarded-Uri`, `$SABNZBD_API_KEY`)"'
     environment:
       - CONFIG=/config
@@ -188,8 +188,8 @@ services:
   #     dns:
   #       ipv4_address: 172.20.0.53
   #   volumes:
-  #     - ./etc/pihole:/etc/pihole
-  #     - ./etc/dnsmasq:/etc/dnsmasq.d
+  #     - $DOCKERDIR/appdata/pihole:/etc/pihole
+  #     - $DOCKERDIR/appdata/dnsmasq:/etc/dnsmasq.d
 
   # Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
   socket-proxy:
@@ -242,6 +242,38 @@ services:
       - SYSTEM=0
       - TASKS=1 # Portainer
       - VOLUMES=1 # Portainer
+
+  # Sunshine - remote desktop
+  # sunshine:
+  #   image: lizardbyte/sunshine:latest-archlinux
+  #   container_name: sunshine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - $DOCKERDIR/appdata/sunshine:/config
+  #   environment:
+  #     - PUID=$PUID
+  #     - PGID=$PGID
+  #     - TZ=$TZ
+  #   ports:
+  #     - "47984-47990:47984-47990/tcp"
+  #     - "48010:48010"
+  #     - "47998-48000:47998-48000/udp"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.sunshine-rtr.entrypoints=https"
+  #     - "traefik.http.routers.sunshine-rtr.rule=Host(`sunshine.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.sunshine-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.sunshine-rtr.service=sunshine-svc"
+  #     - "traefik.http.services.sunshine-svc.loadbalancer.server.port=47990"
+  #     ## Homepage
+  #     - homepage.group=Tools
+  #     - homepage.name=DC++
+  #     - homepage.icon=sunshine.png
+  #     - homepage.href=https://sunshine.mirwin.net/
+  #     - homepage.description=Virtual Desktop
 
   # tailscale: 
   #   container_name: tailscale 

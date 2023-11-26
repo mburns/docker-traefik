@@ -116,7 +116,7 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: unless-stopped
-    profiles: ["core", "all"]
+    profiles: ["core", "apps", "downloads", "all"]
     networks:
       - t2_proxy
     cap_add:

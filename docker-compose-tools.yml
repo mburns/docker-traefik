@@ -105,7 +105,8 @@ services:
       DISPLAY_HEIGHT: 1080
       VNC_PASSWD: $FIREFOX_VNC_PASSWD
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.firefox-rtr.entrypoints=https"
@@ -150,7 +151,8 @@ services:
       DISPLAY_HEIGHT: 960
       VNC_PASSWORD: $QDIRSTAT_VNC_PASSWD
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.qdirstat-rtr.entrypoints=https"
@@ -190,7 +192,8 @@ services:
       # PROXY_DOMAIN: code-server.my.domain #optional
       DEFAULT_WORKSPACE: /config/data/User/Workspaces/AZ.code-workspace #optional
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.vscode-rtr.entrypoints=https"
@@ -219,7 +222,8 @@ services:
     networks:
       - t2_proxy
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.it-tools-rtr.entrypoints=https"
@@ -251,7 +255,8 @@ services:
     volumes:
       - $DOCKERDIR/appdata/uptime-kuma:/app/data
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.uptime-kuma-rtr.entrypoints=https"
@@ -317,7 +322,8 @@ services:
     # volumes:
     #  - /var/run/docker.sock:/var/run/docker.sock # Use Docker Socket Proxy instead for improved security
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.dozzle-rtr.entrypoints=https"
@@ -348,7 +354,8 @@ services:
     volumes:
       - $DOCKERDIR/appdata/sitespeed:/var/lib/nginx/html:ro # Location you want to index
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.sitespeed-rtr.entrypoints=https"
@@ -379,7 +386,8 @@ services:
       - 4002:4001 #optional
     restart: unless-stopped
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.emulatorjs-rtr.entrypoints=https"
@@ -418,7 +426,8 @@ services:
       GLANCES_OPT: "-w"
       DOCKER_HOST: tcp://socket-proxy:2375
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.glances-rtr.entrypoints=https"
@@ -455,7 +464,8 @@ services:
       - guac_mysql_user
       - guac_mysql_password
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.guacamole-rtr.entrypoints=https"
@@ -487,7 +497,8 @@ services:
     networks:
       - t2_proxy
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.whoami-rtr.entrypoints=https"
@@ -523,7 +534,8 @@ services:
       # PUID: $PUID
       # PGID: $PGID
     labels:
-      - "sablier.enable=true"
+      - sablier.enable=true
+      - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.serge-rtr.entrypoints=https"

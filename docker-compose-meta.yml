@@ -91,6 +91,7 @@ services:
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
+    profiles: ["meta", "all"]
     restart: unless-stopped
     networks:
       - socket_proxy
