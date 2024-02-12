@@ -3,37 +3,37 @@ version: "3.9"
 services:
 
   # Airsonic Advanced - Music Server
-  airsonic:
-    image: lscr.io/linuxserver/airsonic-advanced:latest
-    container_name: airsonic
-    networks:
-      - default
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: "no"
-    profiles: ["media", "all"]
-    volumes:
-      - $DOCKERDIR/appdata/airsonic/playlists:/playlists
-      - $DOCKERDIR/appdata/airsonic/config:/config
-      - $DATADIR/Podcasts:/podcasts
-      - $DATADIR/Music:/Music
-    ports:
-      - "4040:8080"
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-      # JAVA_OPTS: '-Dserver.forward-headers-strategy=native' # optional - if you use a reverse-proxy
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.airsonic-rtr.entrypoints=https"
-      - "traefik.http.routers.airsonic-rtr.rule=Host(`airsonic.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.airsonic-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.airsonic-rtr.service=airsonic-svc"
-      - "traefik.http.services.airsonic-svc.loadbalancer.server.port=8080"
+  # airsonic:
+  #   image: lscr.io/linuxserver/airsonic-advanced:latest
+  #   container_name: airsonic
+  #   networks:
+  #     - default
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: "no"
+  #   profiles: ["media", "all"]
+  #   volumes:
+  #     - $DOCKERDIR/appdata/airsonic/playlists:/playlists
+  #     - $DOCKERDIR/appdata/airsonic/config:/config
+  #     - $DATADIR/Podcasts:/podcasts
+  #     - $DATADIR/Music:/Music
+  #   ports:
+  #     - "4040:8080"
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #     # JAVA_OPTS: '-Dserver.forward-headers-strategy=native' # optional - if you use a reverse-proxy
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.airsonic-rtr.entrypoints=https"
+  #     - "traefik.http.routers.airsonic-rtr.rule=Host(`airsonic.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.airsonic-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.airsonic-rtr.service=airsonic-svc"
+  #     - "traefik.http.services.airsonic-svc.loadbalancer.server.port=8080"
 
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf
