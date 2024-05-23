@@ -93,7 +93,7 @@ services:
     #   - "8081:8080" # Explosed via gluetun. 8081 because crowdsec is using port 8080
     volumes:
       - $DOCKERDIR/appdata/qbittorrent:/config
-      - $DATADIR/downloads:/downloads
+      - $DOWNLOADSDIR:/downloads
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -177,7 +177,7 @@ services:
       - $DOCKERDIR/appdata/rapidbay:/rapidbay
     environment:
       TZ: $TZ
-      JACKETT_HOST: jackett.mirwin.net
+      JACKETT_HOST: jackett.$DOMAINNAME_CLOUD_SERVER
       JACKETT_API_KEY: $JACKETT_API_KEY
 
     labels:
@@ -204,6 +204,6 @@ services:
       - homepage.href=https://rapidbay.mirwin.net
       - homepage.description=BitTorrent Streaming
       - homepage.weight=3
-      - homepage.widget.type=rapidbay
-      - homepage.widget.url=http://rapidbay:5000
+      # - homepage.widget.type=rapidbay
+      # - homepage.widget.url=http://rapidbay:5000
 

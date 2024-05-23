@@ -22,68 +22,68 @@ services:
 
   # MariaDB - MySQL Database
   # After starting container for first time dexec and mysqladmin -u root password <password>
-  mariadb:
-    container_name: mariadb # mariadb:10.6
-    image: lscr.io/linuxserver/mariadb
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    ports:
-      - "$DB_PORT:3306"
-    volumes:
-      - $DOCKERDIR/appdata/mariadb/data:/config
-      # - db:/var/lib/mysql
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-      FILE__MYSQL_ROOT_PASSWORD: /run/secrets/mysql_root_password # Note FILE__ (double underscore) - Issue #127
-      # - MYSQL_ROOT_PASSWORD=
-      # - MYSQL_PASSWORD=
-      # - MYSQL_DATABASE=nextcloud
-      # - MYSQL_USER=nextcloud
-    secrets:
-      - mysql_root_password
+  # mariadb:
+  #   container_name: mariadb # mariadb:10.6
+  #   image: lscr.io/linuxserver/mariadb
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["core", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   ports:
+  #     - "$DB_PORT:3306"
+  #   volumes:
+  #     - $DOCKERDIR/appdata/mariadb/data:/config
+  #     # - db:/var/lib/mysql
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #     FILE__MYSQL_ROOT_PASSWORD: /run/secrets/mysql_root_password # Note FILE__ (double underscore) - Issue #127
+  #     # - MYSQL_ROOT_PASSWORD=
+  #     # - MYSQL_PASSWORD=
+  #     # - MYSQL_DATABASE=nextcloud
+  #     # - MYSQL_USER=nextcloud
+  #   secrets:
+  #     - mysql_root_password
     # command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
 
   # phpMyAdmin - Database management
   # Create a new user with admin privileges. Cannot login as MySQL root for some reason.
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: phpmyadmin
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "all"]
-    networks:
-      - t2_proxy
-    environment:
-      - PMA_HOST=$DB_HOST
-      - PMA_PORT=$DB_PORT
-      #- PMA_ARBITRARY=1
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_root_password
-    secrets:
-      - mysql_root_password
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.phpmyadmin-rtr.entrypoints=https"
-      - "traefik.http.routers.phpmyadmin-rtr.rule=Host(`pma.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.phpmyadmin-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.phpmyadmin-rtr.service=phpmyadmin-svc"
-      - "traefik.http.services.phpmyadmin-svc.loadbalancer.server.port=80"
-      ## Homepage
-      # - homepage.group=Admin
-      # - homepage.name=phpMyAdmin
-      # - homepage.icon=phpmyadmin.png
-      # - homepage.href=https://pma.mirwin.net
-      # - homepage.description=Database administration
-      # - homepage.weight=3
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin:latest
+  #   container_name: phpmyadmin
+  #   # security_opt:
+  #   #   - no-new-privileges:true
+  #   restart: unless-stopped
+  #   profiles: ["apps", "all"]
+  #   networks:
+  #     - t2_proxy
+  #   environment:
+  #     - PMA_HOST=$DB_HOST
+  #     - PMA_PORT=$DB_PORT
+  #     #- PMA_ARBITRARY=1
+  #     - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_root_password
+  #   secrets:
+  #     - mysql_root_password
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.phpmyadmin-rtr.entrypoints=https"
+  #     - "traefik.http.routers.phpmyadmin-rtr.rule=Host(`pma.$DOMAINNAME_CLOUD_SERVER`)"
+  #     ## Middlewares
+  #     - "traefik.http.routers.phpmyadmin-rtr.middlewares=chain-oauth@file"
+  #     ## HTTP Services
+  #     - "traefik.http.routers.phpmyadmin-rtr.service=phpmyadmin-svc"
+  #     - "traefik.http.services.phpmyadmin-svc.loadbalancer.server.port=80"
+  #     ## Homepage
+  #     - homepage.group=Admin
+  #     - homepage.name=phpMyAdmin
+  #     - homepage.icon=phpmyadmin.png
+  #     - homepage.href=https://pma.mirwin.net
+  #     - homepage.description=Database administration
+  #     - homepage.weight=3
 
   # Redis - Key-value Store
   redis:

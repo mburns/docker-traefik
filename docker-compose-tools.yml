@@ -282,8 +282,8 @@ services:
     volumes:
       - $DOCKERDIR/appdata/filebrowser/config:/config
       - $DOCKERDIR/appdata/filebrowser/database:/database
-      - $EXTDRIVE:/data/media
-      - $USERDIR:/data/home
+      - $EXTDRIVE:/data
+      # - $USERDIR:/data/home
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -451,6 +451,7 @@ services:
       - t2_proxy
       - default
     ports:
+      # - "4822:4822"
       - "8083:8080"
     environment:
       GUACD_HOSTNAME: guacd
