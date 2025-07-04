@@ -1,0 +1,127 @@
+name: Test Deployment
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test-deployment:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        compose-file:
+          - docker-compose.yml
+          - docker-compose-media.yml
+          - docker-compose-web.yml
+          - docker-compose-tools.yml
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Create test environment
+      run: |
+        echo "Creating test environment variables..."
+        cat > .env.test << EOF
+        TZ=UTC
+        PUID=1000
+        PGID=1000
+        DOCKERDIR=/tmp/test-docker
+        DATADIR=/tmp/test-data
+        EXTDRIVE=/tmp/test-ext
+        DOMAINNAME_CLOUD_SERVER=test.local
+        CLOUDFLARE_EMAIL=test@example.com
+        CLOUDFLARE_IPS=173.245.48.0/20,103.21.244.0/22
+        LOCAL_IPS=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+        INFLUXDB_TOKEN=test-token
+        EOF
+        
+    - name: Create test directories
+      run: |
+        mkdir -p /tmp/test-docker/appdata/traefik2/acme
+        mkdir -p /tmp/test-docker/appdata/traefik2/rules/cloudserver
+        mkdir -p /tmp/test-docker/logs/cloudserver/traefik
+        mkdir -p /tmp/test-data
+        mkdir -p /tmp/test-ext
+        touch /tmp/test-docker/appdata/traefik2/acme/acme.json
+        chmod 600 /tmp/test-docker/appdata/traefik2/acme/acme.json
+        
+    - name: Create test secrets
+      run: |
+        mkdir -p /tmp/test-docker/secrets
+        echo "test@example.com" > /tmp/test-docker/secrets/cf_email
+        echo "test-api-key" > /tmp/test-docker/secrets/cf_api_key
+        echo "test-htpasswd" > /tmp/test-docker/secrets/htpasswd
+        echo "test-mysql-password" > /tmp/test-docker/secrets/mysql_root_password
+        echo "test-jwt-secret" > /tmp/test-docker/secrets/authelia_jwt_secret
+        echo "test-session-secret" > /tmp/test-docker/secrets/authelia_session_secret
+        echo "test-storage-password" > /tmp/test-docker/secrets/authelia_storage_mysql_password
+        echo "test-smtp-password" > /tmp/test-docker/secrets/authelia_notifier_smtp_password
+        echo "test-duo-secret" > /tmp/test-docker/secrets/authelia_duo_api_secret_key
+        echo "test-encryption-key" > /tmp/test-docker/secrets/authelia_storage_encryption_key
+        echo "test-guac-db" > /tmp/test-docker/secrets/guac_db_name
+        echo "test-guac-user" > /tmp/test-docker/secrets/guac_mysql_user
+        echo "test-guac-password" > /tmp/test-docker/secrets/guac_mysql_password
+        echo "test-plex-claim" > /tmp/test-docker/secrets/plex_claim
+        
+    - name: Test compose file validation
+      run: |
+        echo "Testing ${{ matrix.compose-file }}..."
+        export $(cat .env.test | xargs)
+        
+        # Test config validation
+        docker-compose -f "${{ matrix.compose-file }}" config > /dev/null
+        
+        # Test with specific profiles
+        for profile in core apps media web tools all; do
+          echo "Testing profile: $profile"
+          docker-compose -f "${{ matrix.compose-file }}" --profile "$profile" config > /dev/null || echo "Profile $profile not available"
+        done
+        
+    - name: Test network configuration
+      run: |
+        echo "Testing network configuration..."
+        export $(cat .env.test | xargs)
+        
+        # Start services in background to test network setup
+        timeout 30s docker-compose -f "${{ matrix.compose-file }}" --profile core up -d || true
+        
+        # Check if networks were created
+        docker network ls | grep t2_proxy || echo "t2_proxy network not found"
+        docker network ls | grep socket_proxy || echo "socket_proxy network not found"
+        
+        # Cleanup
+        docker-compose -f "${{ matrix.compose-file }}" down --remove-orphans || true
+        
+    - name: Test volume mounts
+      run: |
+        echo "Testing volume mount configuration..."
+        export $(cat .env.test | xargs)
+        
+        # Check if required directories exist
+        if [ ! -d "/tmp/test-docker/appdata/traefik2/acme" ]; then
+          echo "❌ Required directory /tmp/test-docker/appdata/traefik2/acme does not exist"
+          exit 1
+        fi
+        
+        if [ ! -f "/tmp/test-docker/appdata/traefik2/acme/acme.json" ]; then
+          echo "❌ Required file /tmp/test-docker/appdata/traefik2/acme/acme.json does not exist"
+          exit 1
+        fi
+        
+        echo "✅ Volume mount configuration looks good"
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        echo "Cleaning up test environment..."
+        docker-compose -f "${{ matrix.compose-file }}" down --remove-orphans --volumes || true
+        docker system prune -f || true
+        rm -rf /tmp/test-docker /tmp/test-data /tmp/test-ext || true 

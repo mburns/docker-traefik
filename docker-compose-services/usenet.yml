@@ -15,26 +15,26 @@ services:
     ports:
       - "8084:8080"
     volumes:
-      - $DOCKERDIR/appdata/sabnzbd:/config
-      # - $DATADIR:/data/
-      - $DOWNLOADSDIR:/data/downloads
+      - ${DOCKERDIR:-/opt/docker}/appdata/sabnzbd:/config
+      # - ${DATADIR:-/data}:/data/
+      - ${DOWNLOADSDIR:-/downloads}:/data/downloads
       - $DATADIR/incomplete:/data/incomplete
       - $DATADIR/complete:/data/complete
     environment:
-      PUID: $PUID
-      PGID: $PGID
-      TZ: $TZ
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-UTC}
       UMASK_SET: 002
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
       - "traefik.http.routers.sabnzbd-rtr-bypass.entrypoints=https"
-      - "traefik.http.routers.sabnzbd-rtr-bypass.rule=Host(`sabnzbd.$DOMAINNAME_CLOUD_SERVER`) && Query(`apikey`, `$SABNZBD_API_KEY`)"
-      - "traefik.http.routers.sabnzbd-rtr-bypass.rule=Host(`sabnzbd.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      - "traefik.http.routers.sabnzbd-rtr-bypass.rule=Host(`sabnzbd.${DOMAINNAME_CLOUD_SERVER}`) && Query(`apikey`, `$SABNZBD_API_KEY`)"
+      - "traefik.http.routers.sabnzbd-rtr-bypass.rule=Host(`sabnzbd.${DOMAINNAME_CLOUD_SERVER}`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)"  # Bypass Auth for LunaSea on iOS
       - "traefik.http.routers.sabnzbd-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.sabnzbd-rtr.entrypoints=https"
-      - "traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.${DOMAINNAME_CLOUD_SERVER}`)"
       - "traefik.http.routers.sabnzbd-rtr.priority=99"
       ## Middlewares
       - "traefik.http.routers.sabnzbd-rtr-bypass.middlewares=chain-no-auth@file"
@@ -47,7 +47,7 @@ services:
       - homepage.group=Downloaders
       - homepage.name=Sabnzbd
       - homepage.icon=sabnzbd.png
-      - homepage.href=https://sabnzbd.mirwin.net
+      - homepage.href=https://sabnzbd.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Usenet downloader
       - homepage.weight=1
       # - homepage.widget.type=sabnzbd

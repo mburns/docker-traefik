@@ -14,7 +14,7 @@ services:
     ports:
       - "${AUTOINDEX_PORT:-8080}:80"
     volumes:
-      - ${MEDIADIR:-$DATADIR}:/var/lib/nginx/html:ro # Location you want to index
+      - ${MEDIADIR:-${DATADIR:-/data}}:/var/lib/nginx/html:ro # Location you want to index
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
       interval: 30s
@@ -31,7 +31,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.autoindex-rtr.entrypoints=https"
-      - "traefik.http.routers.autoindex-rtr.rule=Host(`index.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.autoindex-rtr.rule=Host(`index.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.autoindex-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -41,126 +41,10 @@ services:
       - homepage.group=Admin
       - homepage.name=Index
       - homepage.icon=index.png
-      - homepage.href=https://index.mirwin.net
+      - homepage.href=https://index.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Downloads directory (read-only)
       - homepage.weight=5
 
-  # jDownloader - Download management
-  jdownloader:
-    image: jlesage/jdownloader-2:v1.8.0
-    container_name: jdownloader
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "all"]
-    networks:
-      - t2_proxy
-    ports:
-      - "${JDOWNLOADER_PORT:-5801}:5800"
-    volumes:
-      - ${DOWNLOADSDIR:-$DATADIR/downloads}:/data/downloads
-      - $DOCKERDIR/appdata/jdownloader:/config
-    environment:
-      USER_ID: $PUID
-      GROUP_ID: $PGID
-      TZ: $TZ
-      UMASK: 002
-      KEEP_APP_RUNNING: 1
-      CLEAN_TMP_DIR: 1
-      DISPLAY_WIDTH: 1600
-      DISPLAY_HEIGHT: 960
-      VNC_PASSWORD: $JDOWN_VNC_PASSWD
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5800/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        tag: "{{.Name}}"
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.jdownloader-rtr.entrypoints=https"
-      - "traefik.http.routers.jdownloader-rtr.rule=Host(`jdown.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.jdownloader-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.jdownloader-rtr.service=jdownloader-svc"
-      - "traefik.http.services.jdownloader-svc.loadbalancer.server.port=5800"
-      # ## Homepage
-      - homepage.group=Downloaders
-      - homepage.name=JDownloader
-      - homepage.icon=jdowloader.png
-      - homepage.href=https://jdown.mirwin.net
-      - homepage.description=Download files
-      - homepage.weight=5
-
-  # Firefox - Web Broswer
-  # VNC password not working - check
-  firefox:
-    image: jlesage/firefox:v1.8.0
-    container_name: firefox
-    security_opt:
-      - seccomp:unconfined # October 15, 2020 https://github.com/jlesage/docker-firefox/blob/master/README.md#allowing-the-membarrier-system-call
-    restart: unless-stopped
-    profiles: ["apps", "all"]
-    networks:
-      - t2_proxy
-    ports:
-      - "${FIREFOX_PORT:-5802}:5800"
-    volumes:
-      - $DOCKERDIR/appdata/firefox:/config
-      - ${DOWNLOADSDIR:-$DATADIR/downloads}:/data/downloads
-      - /dev/shm:/dev/shm
-    environment:
-      USER_ID: $PUID
-      GROUP_ID: $PGID
-      TZ: $TZ
-      UMASK: 002
-      KEEP_APP_RUNNING: 1
-      CLEAN_TMP_DIR: 1
-      DISPLAY_WIDTH: 1920
-      DISPLAY_HEIGHT: 1080
-      VNC_PASSWD: $FIREFOX_VNC_PASSWD
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5800/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        tag: "{{.Name}}"
-    labels:
-      - sablier.enable=true
-      - sablier.group=mygroup
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.firefox-rtr.entrypoints=https"
-      - "traefik.http.routers.firefox-rtr.rule=Host(`firefox.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.firefox-rtr.middlewares=chain-oauth@file"
-      # - "traefik.http.routers.firefox-rtr.middlewares=my-fail2ban@file"
-      ## HTTP Services
-      - "traefik.http.routers.firefox-rtr.service=firefox-svc"
-      - "traefik.http.services.firefox-svc.loadbalancer.server.port=5800"
-      ## Homepage
-      - homepage.group=Tools
-      - homepage.name=Firefox
-      - homepage.icon=firefox.png
-      - homepage.href=https://firefox.mirwin.net
-      - homepage.description=Web Browser
-      # - homepage.weight=2
-
-  # qDirStat - Directory Statistics
   qdirstat:
     image: jlesage/qdirstat:latest
     container_name: qdirstat
@@ -174,12 +58,12 @@ services:
       - "5800:5800"
     volumes:
       - /volume1:/storage:ro
-      - $DOCKERDIR/appdata/qdirstat/config:/config:rw
+      - ${DOCKERDIR:-/opt/docker}/appdata/qdirstat/config:/config:rw
     environment:
-      USER_ID: $PUID
-      GROUP_ID: $PGID
+      USER_ID: ${PUID:-1000}
+      GROUP_ID: ${PGID:-1000}
       UMASK: 002
-      TZ: $TZ
+      TZ: ${TZ:-UTC}
       KEEP_APP_RUNNING: 1
       CLEAN_TMP_DIR: 1
       DISPLAY_WIDTH: 1600
@@ -191,80 +75,19 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.qdirstat-rtr.entrypoints=https"
-      - "traefik.http.routers.qdirstat-rtr.rule=Host(`qdir.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.qdirstat-rtr.rule=Host(`qdir.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.qdirstat-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
       - "traefik.http.routers.qdirstat-rtr.service=qdirstat-svc"
       - "traefik.http.services.qdirstat-svc.loadbalancer.server.port=5800"
 
-  # VSCode - VSCode Editing
-  vscode:
-    image: lscr.io/linuxserver/code-server:4.19.1
-    container_name: vscode
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    ports:
-      - "${VSCODE_PORT:-8443}:8443"
-    volumes:
-      - $DOCKERDIR:/data/docker
-      - ${USERDIR:-$HOME}:/data/server
-      - $DATADIR:/data/data
-      - $DOCKERDIR/appdata/vscode:/config
-    environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
-      # DOCKER_HOST: tcp://socket-proxy:2375
-      # PASSWORD: $VSCODE_PASSWORD
-      # HASHED_PASSWORD: #optional
-      # SUDO_PASSWORD: password #optional
-      # SUDO_PASSWORD_HASH: #optional
-      # PROXY_DOMAIN: code-server.my.domain #optional
-      DEFAULT_WORKSPACE: /config/data/User/Workspaces/AZ.code-workspace #optional
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8443/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        tag: "{{.Name}}"
-    labels:
-      - sablier.enable=true
-      - sablier.group=mygroup
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.vscode-rtr.entrypoints=https"
-      - "traefik.http.routers.vscode-rtr.rule=Host(`code.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.vscode-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.vscode-rtr.service=vscode-svc"
-      - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"
-      ## Homepage
-      - homepage.group=Tools
-      - homepage.name=VS Code
-      - homepage.icon=vscode.png
-      - homepage.href=https://code.mirwin.net
-      - homepage.description=VS Code Editor
-      # - homepage.weight=2
-
-  # https://github.com/jordan-dalby/ByteStash?ref=selfh.st
   bytestash:
     container_name: bytestash
     image: "ghcr.io/jordan-dalby/bytestash:latest"
     restart: always
     volumes:
-      - $DOCKERDIR/appdata/bytestash:/data/snippets
+      - ${DOCKERDIR:-/opt/docker}/appdata/bytestash:/data/snippets
     profiles: ["apps", "all"]
     networks:
       - t2_proxy
@@ -291,7 +114,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.bytestash-rtr.entrypoints=https"
-      - "traefik.http.routers.bytestash-rtr.rule=Host(`bytestash.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.bytestash-rtr.rule=Host(`bytestash.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.bytestash-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -300,7 +123,7 @@ services:
       ## Homepage
       - homepage.group=Admin
       - homepage.name=bytestash
-      - homepage.href=https://bytestash.mirwin.net
+      - homepage.href=https://bytestash.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Stash text snippets
       - homepage.weight=1
 
@@ -320,7 +143,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.it-tools-rtr.entrypoints=https"
-      - "traefik.http.routers.it-tools-rtr.rule=Host(`tools.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.it-tools-rtr.rule=Host(`tools.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.it-tools-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -330,7 +153,7 @@ services:
       - homepage.group=Tools
       - homepage.name=IT Tools
       - homepage.icon=tools.png
-      - homepage.href=https://tools.mirwin.net
+      - homepage.href=https://tools.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Random IT Tools
       - homepage.weight=3
 
@@ -338,14 +161,14 @@ services:
   whodb:
     image: clidey/whodb
     volumes: # (optional for sqlite) 
-      - $DOCKERDIR/appdata/whodb:/db
+      - ${DOCKERDIR:-/opt/docker}/appdata/whodb:/db
     # environment:
       # WHODB_OLLAMA_HOST:YOUR_OLLAMA_HOST
       # WHODB_OLLAMA_PORT:YOUR_OLLAMA_PORT
-      # USER_ID: $PUID
-      # GROUP_ID: $PGID
+      # USER_ID: ${PUID:-1000}
+      # GROUP_ID: ${PGID:-1000}
       # UMASK: 002
-      # TZ: $TZ
+      # TZ: ${TZ:-UTC}
     profiles: ["apps", "all"]
     ports:
       - "9134:8080"
@@ -355,7 +178,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.whodb-rtr.entrypoints=https"
-      - "traefik.http.routers.whodb-rtr.rule=Host(`whodb.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.whodb-rtr.rule=Host(`whodb.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.whodb-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -364,7 +187,7 @@ services:
       ## Homepage
       - homepage.group=Admin
       - homepage.name=whodb
-      - homepage.href=https://whodb.mirwin.net
+      - homepage.href=https://whodb.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=DB Exploration tool
       - homepage.weight=1
 
@@ -380,14 +203,14 @@ services:
       - t2_proxy
       - default
     volumes:
-      - $DOCKERDIR/appdata/uptime-kuma:/app/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/uptime-kuma:/app/data
     labels:
       - sablier.enable=true
       - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.uptime-kuma-rtr.entrypoints=https"
-      - "traefik.http.routers.uptime-kuma-rtr.rule=Host(`kuma.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.uptime-kuma-rtr.rule=Host(`kuma.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.uptime-kuma-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -407,20 +230,20 @@ services:
     ports:
       - "81:80"
     volumes:
-      - $DOCKERDIR/appdata/filebrowser/config:/config
-      - $DOCKERDIR/appdata/filebrowser/database:/database
-      - $EXTDRIVE:/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/config:/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/database:/database
+      - ${EXTDRIVE:-/extdrive}:/data
       # - $USERDIR:/data/home
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     labels:
       - "sablier.enable=true"
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.filebrowser-rtr.entrypoints=https"
-      - "traefik.http.routers.filebrowser-rtr.rule=Host(`fb.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.filebrowser-rtr.rule=Host(`fb.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.filebrowser-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -454,7 +277,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.dozzle-rtr.entrypoints=https"
-      - "traefik.http.routers.dozzle-rtr.rule=Host(`dozzle.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.dozzle-rtr.rule=Host(`dozzle.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.dozzle-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -464,11 +287,12 @@ services:
       - homepage.group=Admin
       - homepage.name=Dozzle
       - homepage.icon=dozzle.png
-      - homepage.href=https://dozzle.mirwin.net
+      - homepage.href=https://dozzle.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Real-time Docker Log Viewer
       # - homepage.weight=2
 
   # Autoindex - Simple Directory Index (for Sitespeed.io Results)
+
   sitespeed:
     container_name: sitespeed
     image: dceoy/nginx-autoindex:latest
@@ -479,14 +303,14 @@ services:
     networks:
       - t2_proxy
     volumes:
-      - $DOCKERDIR/appdata/sitespeed:/var/lib/nginx/html:ro # Location you want to index
+      - ${DOCKERDIR:-/opt/docker}/appdata/sitespeed:/var/lib/nginx/html:ro # Location you want to index
     labels:
       - sablier.enable=true
       - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.sitespeed-rtr.entrypoints=https"
-      - "traefik.http.routers.sitespeed-rtr.rule=Host(`sitespeed.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.sitespeed-rtr.rule=Host(`sitespeed.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.sitespeed-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -505,7 +329,7 @@ services:
       - TZ=Etc/UTC
       # - SUBFOLDER=/ #optional
     volumes:
-      - $DOCKERDIR/appdata/emulatorjs:/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/emulatorjs:/config
       - $EXTDRIVE/Dropbox/roms:/data
     ports:
       - 3006:3000
@@ -518,7 +342,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.emulatorjs-rtr.entrypoints=https"
-      - "traefik.http.routers.emulatorjs-rtr.rule=Host(`emulatorjs.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.emulatorjs-rtr.rule=Host(`emulatorjs.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.emulatorjs-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -543,9 +367,9 @@ services:
       - "61208:61208"
     pid: host
     volumes:
-      - $DOCKERDIR/appdata/glances/glances.conf:/glances/conf/glances.conf # Use this if you want to add a glances.conf file
-      - $DATADIR:/data/data:ro
-      - $DOCKERDIR:/data/docker:ro
+      - ${DOCKERDIR:-/opt/docker}/appdata/glances/glances.conf:/glances/conf/glances.conf # Use this if you want to add a glances.conf file
+      - ${DATADIR:-/data}:/data/data:ro
+      - ${DOCKERDIR:-/opt/docker}:/data/docker:ro
       # - /var/run/docker.sock:/var/run/docker.sock:ro # Use Docker Socket Proxy instead for improved security
     environment:
       # GLANCES_OPT: "-C /glances/conf/glances.conf --quiet --export influxdb"
@@ -558,61 +382,12 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.glances-rtr.entrypoints=https"
-      - "traefik.http.routers.glances-rtr.rule=Host(`glances.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.glances-rtr.rule=Host(`glances.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.glances-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
       - "traefik.http.routers.glances-rtr.service=glances-svc"
       - "traefik.http.services.glances-svc.loadbalancer.server.port=61208"
-
-  # Guacamole - Remote desktop, SSH, on Telnet on any HTML5 Browser
-  # Create all databases and tables first
-  guacamole:
-    image: guacamole/guacamole:latest
-    container_name: guacamole
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "all"]
-    networks:
-      - t2_proxy
-      - default
-    ports:
-      # - "4822:4822"
-      - "8083:8080"
-    environment:
-      GUACD_HOSTNAME: guacd
-      MYSQL_HOSTNAME: $DB_HOST
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE_FILE: /run/secrets/guac_db_name
-      MYSQL_USER_FILE: /run/secrets/guac_mysql_user
-      MYSQL_PASSWORD_FILE: /run/secrets/guac_mysql_password
-    secrets:
-      - guac_db_name
-      - guac_mysql_user
-      - guac_mysql_password
-    labels:
-      - sablier.enable=true
-      - sablier.group=mygroup
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.guacamole-rtr.entrypoints=https"
-      - "traefik.http.routers.guacamole-rtr.rule=Host(`guac.$DOMAINNAME_CLOUD_SERVER`)"
-      ## Middlewares
-      - "traefik.http.routers.guacamole-rtr.middlewares=chain-oauth@file,add-guacamole"
-      - "traefik.http.middlewares.add-guacamole.addPrefix.prefix=/guacamole"
-      ## HTTP Services
-      - "traefik.http.routers.guacamole-rtr.service=guacamole-svc"
-      - "traefik.http.services.guacamole-svc.loadbalancer.server.port=8080"
-
-  # Guacamole Daemon - Needed for Guacamole
-  guacd:
-    image: guacamole/guacd
-    container_name: guacd
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "all"]
 
   # WhoAmI - For Testing and Troubleshooting
   whoami:
@@ -630,7 +405,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.whoami-rtr.entrypoints=https"
-      - "traefik.http.routers.whoami-rtr.rule=Host(`whoami.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.whoami-rtr.rule=Host(`whoami.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.whoami-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -640,11 +415,12 @@ services:
       # - homepage.group=Tools
       # - homepage.name=Who Am I
       # - homepage.icon=whoami.png
-      # - homepage.href=https://whoami.mirwin.net
+      # - homepage.href=https://whoami.${DOMAINNAME_CLOUD_SERVER}
       # - homepage.description=Whoami host information
       # - homepage.weight=4
 
   # AI/ML bot
+
   serge:
     image: ghcr.io/serge-chat/serge:latest
     container_name: serge
@@ -655,19 +431,19 @@ services:
     networks:
       - t2_proxy
     volumes:
-      - $DOCKERDIR/appdata/serge:/serge/db
+      - ${DOCKERDIR:-/opt/docker}/appdata/serge:/serge/db
       - $EXTDRIVE/weights:/usr/src/app/weights
     # environment:
-      # TZ: $TZ
-      # PUID: $PUID
-      # PGID: $PGID
+      # TZ: ${TZ:-UTC}
+      # PUID: ${PUID:-1000}
+      # PGID: ${PGID:-1000}
     labels:
       - sablier.enable=true
       - sablier.group=mygroup
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.serge-rtr.entrypoints=https"
-      - "traefik.http.routers.serge-rtr.rule=Host(`serge.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.serge-rtr.rule=Host(`serge.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.serge-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -688,8 +464,8 @@ services:
       # - "8086:8086" # influxDB admin
     volumes:
       - /run/udev:/run/udev:ro
-      - $DOCKERDIR/appdata/scrutiny:/opt/scrutiny/config
-      - $DOCKERDIR/appdata/influxdb2:/opt/scrutiny/influxdb
+      - ${DOCKERDIR:-/opt/docker}/appdata/scrutiny:/opt/scrutiny/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/influxdb2:/opt/scrutiny/influxdb
     devices:
       - "/dev/sda"
       - "/dev/nvme0"
@@ -697,7 +473,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.scrutiny-rtr.entrypoints=https"
-      - "traefik.http.routers.scrutiny-rtr.rule=Host(`scrutiny.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.scrutiny-rtr.rule=Host(`scrutiny.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.scrutiny-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -707,6 +483,6 @@ services:
       - homepage.group=Admin
       - homepage.name=Scrutiny
       - homepage.icon=scrutiny.png
-      - homepage.href=https://scrutiny.mirwin.net
+      - homepage.href=https://scrutiny.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Hard Drive S.M.A.R.T Monitoring
       - homepage.weight=5

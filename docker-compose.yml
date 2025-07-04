@@ -2,7 +2,7 @@
 # This file contains only the essential core services required for basic functionality
 # Other services are organized in the services/ directory by category
 
-version: "3.9"
+# version: "3.9"
 
 networks:
   default:
@@ -200,7 +200,7 @@ services:
       - homepage.group=Admin
       - homepage.name=Traefik
       - homepage.icon=traefik.png
-      - homepage.href=https://traefik.mirwin.net
+      - homepage.href=https://traefik.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Load Balancer stats
       - homepage.weight=4
 

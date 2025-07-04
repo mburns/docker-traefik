@@ -14,7 +14,7 @@ services:
       - socket_proxy
     volumes:
       # - /var/run/docker.sock:/var/run/docker.sock # Use Docker Socket Proxy instead for improved security
-      - $DOCKERDIR/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
+      - ${DOCKERDIR:-/opt/docker}/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
     environment:
       CRON: 0 0 0 * * ? # Everyday at midnight. Previously 0 0 * * *
       FORCE_IMAGE_REMOVAL: 1
@@ -22,7 +22,7 @@ services:
       GRACE_PERIOD_SECONDS: 604800
       DRY_RUN: 0
       CLEAN_UP_VOLUMES: 1
-      TZ: $TZ
+      TZ: ${TZ:-UTC}
       DOCKER_HOST: tcp://socket-proxy:2375
 
   # Traefik Certs Dumper - Extract LetsEncrypt Certificates - Traefik2 Compatible
@@ -36,11 +36,11 @@ services:
     network_mode: none
     # command: --restart-containers container1,container2,container3
     volumes:
-      - $DOCKERDIR/appdata/traefik2/acme:/traefik:ro
-      - $DOCKERDIR/shared/certs/$DOMAINNAME_CLOUD_SERVER:/output:rw
+      - ${DOCKERDIR:-/opt/docker}/appdata/traefik2/acme:/traefik:ro
+      - ${DOCKERDIR:-/opt/docker}/shared/certs/${DOMAINNAME_CLOUD_SERVER}:/output:rw
       # - /var/run/docker.sock:/var/run/docker.sock:ro # Only needed if restarting containers (use Docker Socket Proxy instead)
     environment:
-      DOMAIN: $DOMAINNAME_CLOUD_SERVER
+      DOMAIN: ${DOMAINNAME_CLOUD_SERVER}
 
   # Cloudflare DDNS - Dynamic DNS Updater
   ddns-updater:
@@ -52,11 +52,11 @@ services:
     ports:
       - 8000:8000/tcp
     volumes:
-      - $DOCKERDIR/appdata/ddns-updater:/updater/data # Owned by UID 1000
+      - ${DOCKERDIR:-/opt/docker}/appdata/ddns-updater:/updater/data # Owned by UID 1000
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       PERIOD: 12h
       UPDATE_COOLDOWN_PERIOD: 5m
       PUBLICIP_DNS_TIMEOUT: 3s
@@ -72,6 +72,7 @@ services:
 
   # TODO logs: "INFO Monitoring 0 containers to restart when becoming unhealthy"
   # DeUnhealth - Restart your unhealthy containers safely (e.g. containers depending on VPN and VPN reconnects)
+
   deunhealth:
     image: qmcgaw/deunhealth
     container_name: deunhealth
@@ -84,7 +85,7 @@ services:
     environment:
       LOG_LEVEL: info
       HEALTH_SERVER_ADDRESS: 127.0.0.1:9999
-      TZ: $TZ
+      TZ: ${TZ:-UTC}
       DOCKER_HOST: tcp://socket-proxy:2375
 
   # WatchTower - Automatic Docker Container Updates
@@ -99,7 +100,7 @@ services:
     depends_on:
       - socket-proxy
     environment:
-      TZ: $TZ
+      TZ: ${TZ:-UTC}
       WATCHTOWER_CLEANUP: "true"
       WATCHTOWER_REMOVE_VOLUMES: "true"
       WATCHTOWER_INCLUDE_STOPPED: "true"

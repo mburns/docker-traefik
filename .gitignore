@@ -111,3 +111,5 @@ appdata/nginx/sites/*
 appdata/nginx/common/*
 !appdata/nginx/common/*.example
 
+!docker-compose-services/*
+

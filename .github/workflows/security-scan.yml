@@ -1,0 +1,59 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+        
+    - name: Check for exposed secrets
+      run: |
+        echo "Checking for potential secrets in configuration files..."
+        
+        # Check for common secret patterns
+        if grep -r -i "password\|secret\|key\|token" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "secrets_example"; then
+          echo "⚠️  Potential secrets found in configuration files"
+          echo "Review these files for hardcoded secrets:"
+          grep -r -i "password\|secret\|key\|token" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "secrets_example"
+        fi
+        
+    - name: Check Docker socket access
+      run: |
+        echo "Checking for Docker socket access..."
+        if grep -r "/var/run/docker.sock" . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
+          echo "⚠️  Found Docker socket access. Review security implications:"
+          grep -r "/var/run/docker.sock" . --include="*.yml" --include="*.yaml" | grep -v ".git"
+        fi
+        
+    - name: Check for privileged containers
+      run: |
+        echo "Checking for privileged containers..."
+        if grep -r "privileged: true" . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
+          echo "⚠️  Found privileged containers. Review security implications:"
+          grep -r "privileged: true" . --include="*.yml" --include="*.yaml" | grep -v ".git"
+        fi 

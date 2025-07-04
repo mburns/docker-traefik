@@ -1,14 +1,12 @@
 # version: "3.9"
 
 services:
-  ############################# INDEXERS
-
   # Prowlarr - Torrent proxy
   prowlarr:
     image: ghcr.io/linuxserver/prowlarr:develop
     container_name: prowlarr
-    # security_opt:
-    #   - no-new-privileges:true
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "arrs", "all"]
     networks:
@@ -16,17 +14,37 @@ services:
     ports:
       - "9696:9696"
     volumes:
-      - $DOCKERDIR/appdata/prowlarr:/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/prowlarr:/config
       - "/etc/localtime:/etc/localtime:ro"
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9696/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.prowlarr-rtr.entrypoints=https"
-      - "traefik.http.routers.prowlarr-rtr.rule=Host(`prowlarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.prowlarr-rtr.rule=Host(`prowlarr.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.prowlarr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -36,7 +54,7 @@ services:
       - homepage.group=Meta
       - homepage.name=Prowlarr
       - homepage.icon=prowlarr.png
-      - homepage.href=https://prowlarr.mirwin.net
+      - homepage.href=https://prowlarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Indexer management
       - homepage.weight=3
       - homepage.widget.type=prowlarr
@@ -46,27 +64,49 @@ services:
   jackett:
     image: lscr.io/linuxserver/jackett:latest
     container_name: jackett
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     profiles: ["apps", "arrs", "all"]
     networks:
       - t2_proxy
     environment:
-      - TZ=$TZ
-      - PUID=$PUID
-      - PGID=$PGID
+      - TZ=${TZ:-UTC}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
       - AUTO_UPDATE=true #optional
       # - RUN_OPTS= #optional
     volumes:
-      - $DOCKERDIR/appdata/jackett:/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/jackett:/config
       - /tmp/jackett:/downloads
       - "/etc/localtime:/etc/localtime:ro"
     ports:
       - 9117:9117
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9117/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.jackett-rtr.entrypoints=https"
-      - "traefik.http.routers.jackett-rtr.rule=Host(`jackett.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.jackett-rtr.rule=Host(`jackett.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.jackett-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -76,7 +116,7 @@ services:
       - homepage.group=Meta
       - homepage.name=Jackett
       - homepage.icon=jackett.png
-      - homepage.href=https://jackett.mirwin.net
+      - homepage.href=https://jackett.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Indexer management
       - homepage.weight=3
       - homepage.widget.type=jackett
@@ -86,11 +126,12 @@ services:
   ############################# PVRS
   
   # Bazarr - Subtitle Management
+
   bazarr:
     image: lscr.io/linuxserver/bazarr
     container_name: bazarr
-    # security_opt:
-    #   - no-new-privileges:true
+    security_opt:
+      - no-new-privileges:true
     restart: "no"
     profiles: ["arrs", "all"]
     networks:
@@ -98,17 +139,37 @@ services:
     ports:
       - "6767:6767"
     volumes:
-      - $DOCKERDIR/appdata/bazarr:/config
-      - $DATADIR:/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/bazarr:/config
+      - ${DATADIR:-/data}:/data
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6767/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.bazarr-rtr.entrypoints=https"
-      - "traefik.http.routers.bazarr-rtr.rule=Host(`bazarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.bazarr-rtr.rule=Host(`bazarr.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.bazarr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -118,7 +179,7 @@ services:
       - homepage.group=Meta
       - homepage.name=Bazarr
       - homepage.icon=bazarr.png
-      - homepage.href=https://bazarr.mirwin.net
+      - homepage.href=https://bazarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Subtitle management
       - homepage.weight=5
       - homepage.widget.type=bazarr
@@ -131,31 +192,31 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["media","arrs", "all"]
+    profiles: ["media", "arrs", "all"]
     networks:
       - t2_proxy
     ports:
       - '5656:5656'
     volumes:
-      - $DOCKERDIR/appdata/kapowarr:/app/db
-      # - $DOCKERDIR/appdata/kapowarr:/config
-      - $DATADIR:/data
-      - $DOWNLOADSDIR:/config/Downloads
+      - ${DOCKERDIR:-/opt/docker}/appdata/kapowarr:/app/db
+      # - ${DOCKERDIR:-/opt/docker}/appdata/kapowarr:/config
+      - ${DATADIR:-/data}:/data
+      - ${DOWNLOADSDIR:-/downloads}:/config/Downloads
       - "/etc/localtime:/etc/localtime:ro"
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
       - "traefik.http.routers.kapowarr-rtr-bypass.entrypoints=https"
-      #- "traefik.http.routers.kapowarr-rtr-bypass.rule=Host(`kapowarr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
-      # - "traefik.http.routers.kapowarr-rtr-bypass.rule=Host(`kapowarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      #- "traefik.http.routers.kapowarr-rtr-bypass.rule=Host(`kapowarr.${DOMAINNAME_CLOUD_SERVER}`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
+      # - "traefik.http.routers.kapowarr-rtr-bypass.rule=Host(`kapowarr.${DOMAINNAME_CLOUD_SERVER}`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
       - "traefik.http.routers.kapowarr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.kapowarr-rtr.entrypoints=https"
-      - "traefik.http.routers.kapowarr-rtr.rule=Host(`kapowarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.kapowarr-rtr.rule=Host(`kapowarr.${DOMAINNAME_CLOUD_SERVER}`)"
       - "traefik.http.routers.kapowarr-rtr.priority=99"
       ## Middlewares
       - "traefik.http.routers.kapowarr-rtr-bypass.middlewares=chain-no-auth@file"
@@ -167,7 +228,7 @@ services:
       - homepage.group=Request
       - homepage.name=Kapowarr
       - homepage.icon=kapowarr.png
-      - homepage.href=https://kapowarr.mirwin.net
+      - homepage.href=https://kapowarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Comics management
       - homepage.weight=6
       # - homepage.widget.type=kapowarr
@@ -176,37 +237,38 @@ services:
 
   # Lidarr - Music Management
   # Set url_base in lidarr settings if using PathPrefix
+
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["media","arrs", "all"]
+    profiles: ["media", "arrs", "all"]
     networks:
       - t2_proxy
     ports:
       - "8686:8686"
     volumes:
-      - $DOCKERDIR/appdata/lidarr:/config
-      - $DATADIR:/data
-      - $DOWNLOADSDIR:/downloads
+      - ${DOCKERDIR:-/opt/docker}/appdata/lidarr:/config
+      - ${DATADIR:-/data}:/data
+      - ${DOWNLOADSDIR:-/downloads}:/downloads
       # - $COMPLETEDIR/lidarr:/config/Downloads/complete/lidarr
       - "/etc/localtime:/etc/localtime:ro"
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
       - "traefik.http.routers.lidarr-rtr-bypass.entrypoints=https"
-      #- "traefik.http.routers.lidarr-rtr-bypass.rule=Host(`lidarr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$LIDARR_API_KEY`) || Query(`apikey`, `$LIDARR_API_KEY`))"
-      - "traefik.http.routers.lidarr-rtr-bypass.rule=Host(`lidarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      #- "traefik.http.routers.lidarr-rtr-bypass.rule=Host(`lidarr.${DOMAINNAME_CLOUD_SERVER}`) && (Headers(`X-Api-Key`, `$LIDARR_API_KEY`) || Query(`apikey`, `$LIDARR_API_KEY`))"
+      - "traefik.http.routers.lidarr-rtr-bypass.rule=Host(`lidarr.${DOMAINNAME_CLOUD_SERVER}`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
       - "traefik.http.routers.lidarr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.lidarr-rtr.entrypoints=https"
-      - "traefik.http.routers.lidarr-rtr.rule=Host(`lidarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.lidarr-rtr.rule=Host(`lidarr.${DOMAINNAME_CLOUD_SERVER}`)"
       - "traefik.http.routers.lidarr-rtr.priority=99"
       ## Middlewares
       - "traefik.http.routers.lidarr-rtr-bypass.middlewares=chain-no-auth@file"
@@ -219,7 +281,7 @@ services:
       - homepage.group=Request
       - homepage.name=Lidarr
       - homepage.icon=lidarr.png
-      - homepage.href=https://lidarr.mirwin.net
+      - homepage.href=https://lidarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Music management
       - homepage.weight=3
       - homepage.widget.type=lidarr
@@ -230,8 +292,8 @@ services:
     image: jorenn92/maintainerr:latest
     container_name: maintainerr
     volumes:
-      - $DOCKERDIR/appdata/maintainerr:/opt/data
-      - $DOWNLOADSDIR:/config/Downloads
+      - ${DOCKERDIR:-/opt/docker}/appdata/maintainerr:/opt/data
+      - ${DOWNLOADSDIR:-/downloads}:/config/Downloads
     ports:
       - 8154:80
     restart: "no"
@@ -239,15 +301,15 @@ services:
     networks:
       - t2_proxy
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       UMASK: 002
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.maintainerr-rtr.entrypoints=https"
-      - "traefik.http.routers.maintainerr-rtr.rule=Host(`maintainerr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.maintainerr-rtr.rule=Host(`maintainerr.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.maintainerr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -257,7 +319,7 @@ services:
       - homepage.group=Meta
       - homepage.name=Maintainerr
       - homepage.icon=maintainerr.png
-      - homepage.href=https://maintainerr.mirwin.net
+      - homepage.href=https://maintainerr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Smells like Overseerr, does the opposite
       - homepage.weight=4
 
@@ -268,15 +330,15 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       PORT: 5055 #optional
       # LOG_LEVEL: debug
     ports:
       - 5055:5055
     volumes:
-      - $DOCKERDIR/appdata/overseerr:/app/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/overseerr:/app/config
     restart: unless-stopped
     profiles: ["media", "arrs", "all"]
     networks:
@@ -285,7 +347,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.overseerr-rtr.entrypoints=https"
-      - "traefik.http.routers.overseerr-rtr.rule=Host(`overseerr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.overseerr-rtr.rule=Host(`overseerr.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       #- "traefik.http.routers.overseerr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -295,7 +357,7 @@ services:
       - homepage.group=Request
       - homepage.name=Overseerr
       - homepage.icon=overseerr.png
-      - homepage.href=https://overseerr.mirwin.net
+      - homepage.href=https://overseerr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Request TV/Movies
       - homepage.weight=1
       - homepage.widget.type=overseerr
@@ -316,27 +378,27 @@ services:
     ports:
       - "7878:7878"
     volumes:
-      - $DOCKERDIR/appdata/radarr:/config
-      - $DATADIR:/data/
+      - ${DOCKERDIR:-/opt/docker}/appdata/radarr:/config
+      - ${DATADIR:-/data}:/data/
       - "/etc/localtime:/etc/localtime:ro"
 
       - $DATADIR/complete/radarr:/data/complete/radarr
       - $DATADIR/Movies:/data/Movies
 
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
       - "traefik.http.routers.radarr-rtr-bypass.entrypoints=https"
-      - "traefik.http.routers.radarr-rtr-bypass.rule=Host(`radarr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$RADARR_API_KEY`) || Query(`apikey`, `$RADARR_API_KEY`))"
-      - "traefik.http.routers.radarr-rtr-bypass.rule=Host(`radarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      - "traefik.http.routers.radarr-rtr-bypass.rule=Host(`radarr.${DOMAINNAME_CLOUD_SERVER}`) && (Headers(`X-Api-Key`, `$RADARR_API_KEY`) || Query(`apikey`, `$RADARR_API_KEY`))"
+      - "traefik.http.routers.radarr-rtr-bypass.rule=Host(`radarr.${DOMAINNAME_CLOUD_SERVER}`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
       - "traefik.http.routers.radarr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.radarr-rtr.entrypoints=https"
-      - "traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.radarr-rtr.rule=Host(`radarr.${DOMAINNAME_CLOUD_SERVER}`)"
       - "traefik.http.routers.radarr-rtr.priority=99"
       ## Middlewares
       - "traefik.http.routers.radarr-rtr-bypass.middlewares=chain-no-auth@file"
@@ -349,7 +411,7 @@ services:
       - homepage.group=Request
       - homepage.name=Radarr
       - homepage.icon=radarr.png
-      - homepage.href=https://radarr.mirwin.net
+      - homepage.href=https://radarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Movie management
       - homepage.weight=2
       - homepage.widget.type=radarr
@@ -364,26 +426,26 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["media","arrs", "all"]
+    profiles: ["media", "arrs", "all"]
     networks:
       - t2_proxy
     ports:
       - "8787:8787"
     volumes:
-      - $DOCKERDIR/appdata/readarr:/config
-      - $DATADIR:/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/readarr:/config
+      - ${DATADIR:-/data}:/data
       - "/etc/localtime:/etc/localtime:ro"
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       UMASK: 002
       #ARGS: ""
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.readarr-rtr.entrypoints=https"
-      - "traefik.http.routers.readarr-rtr.rule=Host(`readarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.readarr-rtr.rule=Host(`readarr.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.readarr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -393,7 +455,7 @@ services:
       - homepage.group=Request
       - homepage.name=Readarr
       - homepage.icon=readarr.png
-      - homepage.href=https://readarr.mirwin.net
+      - homepage.href=https://readarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Book management
       - homepage.weight=4
       - homepage.widget.type=readarr
@@ -408,30 +470,30 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: "no"
-    profiles: ["media","arrs", "all"]
+    profiles: ["media", "arrs", "all"]
     networks:
       - t2_proxy
     ports:
       - "8989:8989"
     volumes:
-      - $DOCKERDIR/appdata/sonarr:/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/sonarr:/config
       - $DATADIR/complete/sonarr:/data/complete/sonarr
       - $DATADIR/TV:/data/TV
       - "/etc/localtime:/etc/localtime:ro"
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
       # - "traefik.http.routers.sonarr-rtr-bypass.entrypoints=https"
-      #- "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
-      - "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      #- "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.${DOMAINNAME_CLOUD_SERVER}`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
+      - "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.${DOMAINNAME_CLOUD_SERVER}`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
       # - "traefik.http.routers.sonarr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.sonarr-rtr.entrypoints=https"
-      - "traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.${DOMAINNAME_CLOUD_SERVER}`)"
       - "traefik.http.routers.sonarr-rtr.priority=99"
       ## Middlewares
       # - "traefik.http.routers.sonarr-rtr-bypass.middlewares=chain-no-auth@file"
@@ -444,7 +506,7 @@ services:
       - homepage.group=Request
       - homepage.name=Sonarr
       - homepage.icon=sonarr.png
-      - homepage.href=https://sonarr.mirwin.net
+      - homepage.href=https://sonarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=TV management
       - homepage.weight=2
       - homepage.widget.type=sonarr
@@ -466,16 +528,16 @@ services:
       - 8266:8266
       - 8267:8267 # node port. It should be mapped on this container because the node container use the network from the main container
     volumes:
-      - $DOCKERDIR/appdata/tdarr:/app/server
-      - $DOCKERDIR/appdata/tdarr/configs:/app/configs
-      - $DOCKERDIR/appdata/tdarr/logs:/app/logs
-      - $INCOMPLETEDIR:/data/temp
+      - ${DOCKERDIR:-/opt/docker}/appdata/tdarr:/app/server
+      - ${DOCKERDIR:-/opt/docker}/appdata/tdarr/configs:/app/configs
+      - ${DOCKERDIR:-/opt/docker}/appdata/tdarr/logs:/app/logs
+      - ${INCOMPLETEDIR:-/incomplete}:/data/temp
       - $DATADIR/Photos:/data/media:ro
       - $COMPLETEDIR/tdarr:/data/output
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       serverIP: tdarr # or hostname
       serverPort: 8266
       webUIPort: 8265
@@ -484,7 +546,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.tdarr-rtr.entrypoints=https"
-      - "traefik.http.routers.tdarr-rtr.rule=Host(`tdarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.tdarr-rtr.rule=Host(`tdarr.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.tdarr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -494,7 +556,7 @@ services:
       - homepage.group=Meta
       - homepage.name=TDarr
       - homepage.icon=tdarr.png
-      - homepage.href=https://tdarr.mirwin.net
+      - homepage.href=https://tdarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Transcode automation
       - homepage.weight=4
 
@@ -511,9 +573,9 @@ services:
     devices:
       - /dev/dri:/dev/dri # for hardware transcoding
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       UMASK_SET: 002
       nodeID: Node1
       nodeIP: tdarr-node1 # or hostname
@@ -521,8 +583,8 @@ services:
       serverIP: tdarr # or hostname
       serverPort: 8266
     volumes:
-      - $DOCKERDIR/appdata/tdarr/configs:/app/configs
-      - $DOCKERDIR/appdata/tdarr/logs:/app/logs
+      - ${DOCKERDIR:-/opt/docker}/appdata/tdarr/configs:/app/configs
+      - ${DOCKERDIR:-/opt/docker}/appdata/tdarr/logs:/app/logs
       - $DATADIR/transcode:/data/temp
       - $DATADIR/Photos/zVideos:/data/media:ro
       - $DATADIR/zvideos:/data/output
@@ -540,24 +602,24 @@ services:
     ports:
       - "6969:6969"
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       UMASK: 002
     volumes:
-      - $DOCKERDIR/appdata/whisparr:/config
-      - $DATADIR:/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/whisparr:/config
+      - ${DATADIR:-/data}:/data
       - "/etc/localtime:/etc/localtime:ro"
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
       - "traefik.http.routers.whisparr-rtr-bypass.entrypoints=https"
-      # - "traefik.http.routers.whisparr-rtr-bypass.rule=Host(`whisparr.$DOMAINNAME_CLOUD_SERVER`) && (Headers(`X-Api-Key`, `$WHISPARR_API_KEY`) || Query(`apikey`, `$WHISPARR_API_KEY`))"
-      # - "traefik.http.routers.whisparr-rtr-bypass.rule=Host(`whisparr.$DOMAINNAME_CLOUD_SERVER`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
+      # - "traefik.http.routers.whisparr-rtr-bypass.rule=Host(`whisparr.${DOMAINNAME_CLOUD_SERVER}`) && (Headers(`X-Api-Key`, `$WHISPARR_API_KEY`) || Query(`apikey`, `$WHISPARR_API_KEY`))"
+      # - "traefik.http.routers.whisparr-rtr-bypass.rule=Host(`whisparr.${DOMAINNAME_CLOUD_SERVER}`) && Headers(`traefik-auth-bypass-key`, `$TRAEFIK_AUTH_BYPASS_KEY`)" # Bypass Auth for LunaSea on iOS
       - "traefik.http.routers.whisparr-rtr-bypass.priority=100"
       ## HTTP Routers Auth
       - "traefik.http.routers.whisparr-rtr.entrypoints=https"
-      - "traefik.http.routers.whisparr-rtr.rule=Host(`whisparr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.whisparr-rtr.rule=Host(`whisparr.${DOMAINNAME_CLOUD_SERVER}`)"
       - "traefik.http.routers.whisparr-rtr.priority=99"
       ## Middlewares
       - "traefik.http.routers.whisparr-rtr-bypass.middlewares=chain-no-auth@file"
@@ -574,21 +636,21 @@ services:
     ports:
       - 5690:5690
     volumes:
-      - $DOCKERDIR/appdata/wizarr/database:/data/database
+      - ${DOCKERDIR:-/opt/docker}/appdata/wizarr/database:/data/database
     restart: "no"
     profiles: ["arrs", "all"]
     networks:
       - t2_proxy
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       UMASK: 002
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.wizarr-rtr.entrypoints=https"
-      - "traefik.http.routers.wizarr-rtr.rule=Host(`wizarr.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.wizarr-rtr.rule=Host(`wizarr.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.wizarr-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -598,7 +660,7 @@ services:
       - homepage.group=Admin
       - homepage.name=Wizarr
       - homepage.icon=wizarr.png
-      - homepage.href=https://wizarr.mirwin.net
+      - homepage.href=https://wizarr.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Invites for plex, overseerr
       - homepage.weight=1
 
@@ -606,9 +668,9 @@ services:
     image: thewicklowwolf/lidatube:latest
     container_name: lidatube
     volumes:
-      - $DOCKERDIR/appdata/lidatube/database:/lidatube/config
-      - $DOWNLOADSDIR:/lidatube/downloads
-      - $DATADIR:/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/lidatube/database:/lidatube/config
+      - ${DOWNLOADSDIR:-/downloads}:/lidatube/downloads
+      - ${DATADIR:-/data}:/data
       - /etc/localtime:/etc/localtime:ro
     ports:
       - 5190:5000
@@ -617,9 +679,9 @@ services:
     networks:
       - t2_proxy
     environment:
-      TZ: $TZ
-      PUID: $PUID
-      PGID: $PGID
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       UMASK: 002
       lidarr_address: "http://lidarr:8686" 
       lidarr_api_key: $LIDARR_API_KEY 
@@ -627,7 +689,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers Auth
       - "traefik.http.routers.lidatube-rtr.entrypoints=https"
-      - "traefik.http.routers.lidatube-rtr.rule=Host(`lidatube.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.lidatube-rtr.rule=Host(`lidatube.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.lidatube-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -637,6 +699,6 @@ services:
       - homepage.group=Downloaders
       - homepage.name=Lidatube
         # - homepage.icon=wizarr.png
-      - homepage.href=https://lidatube.mirwin.net
+      - homepage.href=https://lidatube.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Find missing Lidar images via Youtube
       - homepage.weight=1

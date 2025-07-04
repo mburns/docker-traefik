@@ -25,11 +25,11 @@ services:
       AGENT_PASSWORD: $CROWDSEC_AGENT_PASSWORD 
       LOCAL_API_URL: $CROWDSEC_LOCAL_API_URL 
     volumes:
-      - $DOCKERDIR/logs/cloudserver:/logs/cloudserver:ro
+      - ${DOCKERDIR:-/opt/docker}/logs/cloudserver:/logs/cloudserver:ro
       - /var/log:/var/log:ro
       - $EXTDRIVE/zbox/var/log:/logs/zbox:ro
-      - $DOCKERDIR/appdata/crowdsec/data:/var/lib/crowdsec/data
-      - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
+      - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/data:/var/lib/crowdsec/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/config:/etc/crowdsec
 
   # CrowdSec Bouncer - Traefik
   traefik-bouncer:
@@ -59,4 +59,4 @@ services:
     networks:
       - t2_proxy
     volumes:
-      - $DOCKERDIR/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+      - ${DOCKERDIR:-/opt/docker}/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml

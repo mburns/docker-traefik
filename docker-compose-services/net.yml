@@ -1,4 +1,4 @@
-# version: "3.9"
+# Networking
 
 services:
 
@@ -16,12 +16,12 @@ services:
       - 4444:4444
       - 7657:7657
     volumes:
-      - $DOCKERDIR/appdata/i2p:/i2p/.i2p
+      - ${DOCKERDIR:-/opt/docker}/appdata/i2p:/i2p/.i2p
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.i2p-rtr.entrypoints=https"
-      - "traefik.http.routers.i2p-rtr.rule=Host(`i2p.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.i2p-rtr.rule=Host(`i2p.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.i2p-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -31,7 +31,7 @@ services:
       - homepage.group=Downloaders
       - homepage.name=I2P
       - homepage.icon=i2p.png
-      - homepage.href=https://i2p.mirwin.net/
+      - homepage.href=https://i2p.${DOMAINNAME_CLOUD_SERVER}/
       - homepage.description=I2P p2p client
 
   ipfs:
@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
     profiles: ["p2p", "all"]
     volumes:
-      - $DOCKERDIR/appdata/ipfs:/data/ipfs
+      - ${DOCKERDIR:-/opt/docker}/appdata/ipfs:/data/ipfs
       - $EXTDRIVE/ipfs:/ipfs
       - $EXTDRIVE/ipns:/ipns
     networks:
@@ -65,7 +65,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.ipfs-rtr.entrypoints=https"
-      - "traefik.http.routers.ipfs-rtr.rule=Host(`ipfs.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.ipfs-rtr.rule=Host(`ipfs.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.ipfs-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -75,25 +75,9 @@ services:
       - homepage.group=Downloaders
       - homepage.name=IPFS
       - homepage.icon=ipfs.png
-      - homepage.href=https://ipfs.mirwin.net/webui
+      - homepage.href=https://ipfs.${DOMAINNAME_CLOUD_SERVER}/webui
       - homepage.description=IPFS Admin Dashboard
 
-  # https://github.com/binwiederhier/ntfy
-  # ntfy:
-  #   image: binwiederhier/ntfy
-  #   container_name: ntfy
-  #   command:
-  #     - serve
-  #   environment:
-  #     - TZ=$TZ
-  #   user: $PUID:$PGID
-  #   volumes:
-  #     - $DOCKERDIR/appdata/ntfy:/etc/ntfy
-  #     - $EXTDRIVE/cache:/var/cache/ntfy
-  #   ports:
-  #     - 2280:80
-  #   restart: unless-stopped
-  
   # Google OAuth - Single Sign On using OAuth 2.0
   # https://www.smarthomebeginner.com/google-oauth-with-traefik-docker/
   oauth:
@@ -112,9 +96,9 @@ services:
       # - '--rule.sabnzbd.action=allow --rule.sabnzbd.rule="HeadersRegexp(`X-Forwarded-Uri`, `$SABNZBD_API_KEY`)"'
     environment:
       - CONFIG=/config
-      - COOKIE_DOMAIN=$DOMAINNAME_CLOUD_SERVER
+      - COOKIE_DOMAIN=${DOMAINNAME_CLOUD_SERVER}
       - INSECURE_COOKIE=false
-      - AUTH_HOST=oauth.$DOMAINNAME_CLOUD_SERVER
+      - AUTH_HOST=oauth.${DOMAINNAME_CLOUD_SERVER}
       - URL_PATH=/_oauth
       - LOG_LEVEL=warn # set to trace while testing bypass rules
       - LOG_FORMAT=text
@@ -129,7 +113,7 @@ services:
       ## HTTP Routers
       - "traefik.http.routers.oauth-rtr.tls=true"
       - "traefik.http.routers.oauth-rtr.entrypoints=https"
-      - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.$DOMAINNAME_CLOUD_SERVER`)"
+      - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.${DOMAINNAME_CLOUD_SERVER}`)"
       ## Middlewares
       - "traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file"
       ## HTTP Services
@@ -200,34 +184,6 @@ services:
         max-file: "3"
         tag: "{{.Name}}"
 
-  # tailscale: 
-  #   container_name: tailscale 
-  #   hostname: tailscale-nas 
-  #   image: tailscale/tailscale:stable 
-  #   volumes: 
-  #     - $DOCKERDIR/appdata/tailscale:/var/lib # State data will be stored in this directory 
-  #     - /dev/net/tun:/dev/net/tun # Required for tailscale to work 
-  #   cap_add: # Required for tailscale to work 
-  #     - net_admin 
-  #     - sys_module 
-  #   command: tailscaled 
-  #   privileged: true 
-  #   restart: unless-stopped
-  #   profiles: ["core", "all"]
-
-  # wireguard:
-  #   image: linuxserver/wireguard:latest
-  #   network_mode: 'service:archivebox'
-  #   cap_add:
-  #     - NET_ADMIN
-  #     - SYS_MODULE
-  #   sysctls:
-  #     - net.ipv4.conf.all.rp_filter=2
-  #     - net.ipv4.conf.all.src_valid_mark=1
-  #   volumes:
-  #     - /lib/modules:/lib/modules
-  #     - ./wireguard.conf:/config/wg0.conf:ro
-
   # WG-EASY - WireGuard Easy
   wg-easy:
     image: weejewel/wg-easy
@@ -249,7 +205,7 @@ services:
       - "51820:51820/udp"
       - "51821:51821/tcp"
     volumes:
-      - $DOCKERDIR/appdata/wireguard:/etc/wireguard
+      - ${DOCKERDIR:-/opt/docker}/appdata/wireguard:/etc/wireguard
     environment:
       # ⚠️ Required:
       # Change this to your host's public address
@@ -267,6 +223,7 @@ services:
       # - WG_POST_DOWN=echo "Post Down" > /etc/wireguard/post-down.txt
 
   # ZeroTier-One - Private Network over Internet
+
   zerotier:
     image: zerotier/zerotier-synology:latest
     container_name: zerotier
@@ -281,4 +238,4 @@ services:
     devices:
       - /dev/net/tun
     volumes:
-      - $DOCKERDIR/appdata/zerotier:/var/lib/zerotier-one
+      - ${DOCKERDIR:-/opt/docker}/appdata/zerotier:/var/lib/zerotier-one

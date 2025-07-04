@@ -16,7 +16,7 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - $DOCKERDIR/appdata/elasticsearch:/usr/share/elasticsearch/data    # check for permission error when using bind mount, see readme
+      - ${DOCKERDIR:-/opt/docker}/appdata/elasticsearch:/usr/share/elasticsearch/data    # check for permission error when using bind mount, see readme
     expose:
       - "9200"
 
@@ -43,6 +43,6 @@ services:
     #   - SETUID
     #   - DAC_OVERRIDE
     volumes:
-      - $DOCKERDIR/appdata/redis/data:/data
+      - ${DOCKERDIR:-/opt/docker}/appdata/redis/data:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro

@@ -1,0 +1,61 @@
+name: Validate Docker Compose Files
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  validate-compose:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Validate Docker Compose files
+      run: |
+        # Find all docker-compose files
+        find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | while read file; do
+          echo "Validating $file..."
+          docker-compose -f "$file" config > /dev/null
+          if [ $? -eq 0 ]; then
+            echo "✅ $file is valid"
+          else
+            echo "❌ $file has errors"
+            exit 1
+          fi
+        done
+        
+    - name: Check for hardcoded IPs
+      run: |
+        echo "Checking for hardcoded IP addresses..."
+        if grep -r "192\.168\." . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
+          echo "⚠️  Found hardcoded IP addresses. Consider using environment variables."
+          echo "Found in:"
+          grep -r "192\.168\." . --include="*.yml" --include="*.yaml" | grep -v ".git"
+        fi
+        
+    - name: Check for latest tags
+      run: |
+        echo "Checking for 'latest' image tags..."
+        if grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
+          echo "⚠️  Found 'latest' tags. Consider pinning to specific versions for stability."
+          echo "Found in:"
+          grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git"
+        fi
+        
+    - name: Validate secrets structure
+      run: |
+        echo "Checking secrets configuration..."
+        if [ -d "secrets_example" ]; then
+          echo "✅ Secrets example directory exists"
+          ls -la secrets_example/
+        else
+          echo "❌ No secrets example directory found"
+        fi 
