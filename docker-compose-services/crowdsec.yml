@@ -1,62 +1,49 @@
-# version: "3.9"
-
 services:
-
-  # https://plugins.traefik.io/plugins/6335346ca4caa9ddeffda116/crowdsec-bouncer-traefik-plugin
-
-  # CrowdSec - Open-source & collaborative security IPS
-  crowdsec:
-    image: crowdsecurity/crowdsec
-    container_name: crowdsec
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    ports:
-      - "8008:8080"
-      # - "$ZEROTIER_IP_CLOUDSERVER:6060:6060" # Exposing metrics via Zerotier IP
-    environment:
-      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux fulljackz/proxmox"
-      GID: "${GID-1000}"
-      CUSTOM_HOSTNAME: home-server
-      DISABLE_LOCAL_API: "true" # Only after successfully registering and validating remote agent below.
-      # For the following, check local_api_credentials.yaml after cscli lapi register (secondary machine) and cscli machine validate (on primary machine)
-      AGENT_USERNAME: $CROWDSEC_AGENT_USERNAME 
-      AGENT_PASSWORD: $CROWDSEC_AGENT_PASSWORD 
-      LOCAL_API_URL: $CROWDSEC_LOCAL_API_URL 
-    volumes:
-      - ${DOCKERDIR:-/opt/docker}/logs/cloudserver:/logs/cloudserver:ro
-      - /var/log:/var/log:ro
-      - $EXTDRIVE/zbox/var/log:/logs/zbox:ro
-      - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/data:/var/lib/crowdsec/data
-      - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/config:/etc/crowdsec
-
-  # CrowdSec Bouncer - Traefik
-  traefik-bouncer:
-    image: fbonalair/traefik-crowdsec-bouncer
-    container_name: traefik-bouncer
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    environment:
-      GIN_MODE: release # default is debug (more logs)
-      CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
-      CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT # CrowdSec host and port
-
-  # CrowdSec Bouncer - Cloudflare
-  # sudo docker exec crowdsec cscli bouncer add cloudflare-bouncer
-  # Set max ip number right the first time (max 10000). Recreating container deletes all ips and readds them causing cloudflare 429 rate limiting.
   cloudflare-bouncer:
-    image: crowdsecurity/cloudflare-bouncer
     container_name: cloudflare-bouncer
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
+    image: crowdsecurity/cloudflare-bouncer
     networks:
-      - t2_proxy
+    - t2_proxy
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
     volumes:
-      - ${DOCKERDIR:-/opt/docker}/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+    - ${DOCKERDIR:-/opt/docker}/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+  crowdsec:
+    container_name: crowdsec
+    environment:
+      AGENT_PASSWORD: $CROWDSEC_AGENT_PASSWORD
+      AGENT_USERNAME: $CROWDSEC_AGENT_USERNAME
+      COLLECTIONS: crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors
+        crowdsecurity/iptables crowdsecurity/linux fulljackz/proxmox
+      CUSTOM_HOSTNAME: home-server
+      DISABLE_LOCAL_API: "true"
+      GID: ${GID-1000}
+      LOCAL_API_URL: $CROWDSEC_LOCAL_API_URL
+    image: crowdsecurity/crowdsec
+    ports:
+    - 8008:8080
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/logs/cloudserver:/logs/cloudserver:ro
+    - /var/log:/var/log:ro
+    - $EXTDRIVE/zbox/var/log:/logs/zbox:ro
+    - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/data:/var/lib/crowdsec/data
+    - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/config:/etc/crowdsec
+  traefik-bouncer:
+    container_name: traefik-bouncer
+    environment:
+      CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT
+      CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
+      GIN_MODE: release
+    image: fbonalair/traefik-crowdsec-bouncer
+    networks:
+    - t2_proxy
+    profiles:
+    - core
+    - all
+    restart: unless-stopped

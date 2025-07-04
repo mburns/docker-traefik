@@ -1,99 +1,79 @@
-# Common service configurations and templates
-# This file contains shared configurations that can be extended by other services
-
-# version: "3.9"
-
-x-common-security: &common-security
-  security_opt:
-    - no-new-privileges:true
-  read_only: false
-  tmpfs:
-    - /tmp
-    - /var/tmp
-
-x-common-healthcheck: &common-healthcheck
+x-common-environment:
+  environment:
+    PGID: ${PGID:-1000}
+    PUID: ${PUID:-1000}
+    TZ: ${TZ:-UTC}
+x-common-healthcheck:
   healthcheck:
-    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${HEALTH_CHECK_PORT:-80}/"]
     interval: 30s
-    timeout: 10s
     retries: 3
     start_period: 40s
-
-x-common-logging: &common-logging
+    test:
+    - CMD
+    - wget
+    - --no-verbose
+    - --tries=1
+    - --spider
+    - http://localhost:${HEALTH_CHECK_PORT:-80}/
+    timeout: 10s
+x-common-homepage:
+  labels:
+  - homepage.group=${HOMEPAGE_GROUP:-Tools}
+  - homepage.name=${HOMEPAGE_NAME}
+  - homepage.icon=${HOMEPAGE_ICON:-default.png}
+  - homepage.href=https://${SERVICE_NAME}.${DOMAINNAME_CLOUD_SERVER}
+  - homepage.description=${HOMEPAGE_DESCRIPTION}
+  - homepage.weight=${HOMEPAGE_WEIGHT:-5}
+x-common-logging:
   logging:
-    driver: "json-file"
+    driver: json-file
     options:
-      max-size: "10m"
       max-file: "3"
-      tag: "{{.Name}}"
-
-x-common-resources: &common-resources
+      max-size: 10m
+      tag: '{{.Name}}'
+x-common-resources:
   deploy:
     resources:
       limits:
-        cpus: '0.5'
+        cpus: "0.5"
         memory: 512M
       reservations:
-        cpus: '0.25'
+        cpus: "0.25"
         memory: 256M
-
-x-common-resources-high: &common-resources-high
+x-common-resources-high:
   deploy:
     resources:
       limits:
-        cpus: '1.0'
+        cpus: "1.0"
         memory: 1G
       reservations:
-        cpus: '0.5'
+        cpus: "0.5"
         memory: 512M
-
-x-common-resources-low: &common-resources-low
+x-common-resources-low:
   deploy:
     resources:
       limits:
-        cpus: '0.25'
+        cpus: "0.25"
         memory: 256M
       reservations:
-        cpus: '0.1'
+        cpus: "0.1"
         memory: 128M
-
-x-common-environment: &common-environment
-  environment:
-    TZ: ${TZ:-UTC}
-    PUID: ${PUID:-1000}
-    PGID: ${PGID:-1000}
-
-x-common-sablier: &common-sablier
+x-common-sablier:
   labels:
-    - sablier.enable=true
-    - sablier.group=mygroup
-
-x-common-traefik: &common-traefik
+  - sablier.enable=true
+  - sablier.group=mygroup
+x-common-security:
+  read_only: false
+  security_opt:
+  - no-new-privileges:true
+  tmpfs:
+  - /tmp
+  - /var/tmp
+x-common-traefik:
   labels:
-    - "traefik.enable=true"
-    - "traefik.http.routers.${SERVICE_NAME}-rtr.entrypoints=https"
-    - "traefik.http.routers.${SERVICE_NAME}-rtr.rule=Host(`${SERVICE_NAME}.${DOMAINNAME_CLOUD_SERVER}`)"
-    - "traefik.http.routers.${SERVICE_NAME}-rtr.middlewares=chain-oauth@file"
-    - "traefik.http.routers.${SERVICE_NAME}-rtr.service=${SERVICE_NAME}-svc"
-    - "traefik.http.services.${SERVICE_NAME}-svc.loadbalancer.server.port=${SERVICE_PORT:-80}"
-
-x-common-homepage: &common-homepage
-  labels:
-    - homepage.group=${HOMEPAGE_GROUP:-Tools}
-    - homepage.name=${HOMEPAGE_NAME}
-    - homepage.icon=${HOMEPAGE_ICON:-default.png}
-    - homepage.href=https://${SERVICE_NAME}.${DOMAINNAME_CLOUD_SERVER}
-    - homepage.description=${HOMEPAGE_DESCRIPTION}
-    - homepage.weight=${HOMEPAGE_WEIGHT:-5}
-
-# This file contains YAML anchors and extensions for reuse in other service files.
-# It is NOT meant to be used directly with docker-compose config.
-# Use it by extending these anchors in your actual service files.
-#
-# Example usage:
-# services:
-#   my-service:
-#     <<: *common-security
-#     <<: *common-healthcheck
-#     image: my-image
-#     # ... other service configuration
+  - traefik.enable=true
+  - traefik.http.routers.${SERVICE_NAME}-rtr.entrypoints=https
+  - traefik.http.routers.${SERVICE_NAME}-rtr.rule=Host(`${SERVICE_NAME}.${DOMAINNAME_CLOUD_SERVER}`)
+  - traefik.http.routers.${SERVICE_NAME}-rtr.middlewares=chain-oauth@file
+  - traefik.http.routers.${SERVICE_NAME}-rtr.service=${SERVICE_NAME}-svc
+  - traefik.http.services.${SERVICE_NAME}-svc.loadbalancer.server.port=${SERVICE_PORT:-80}

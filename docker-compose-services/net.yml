@@ -1,241 +1,191 @@
-# Networking
-
 services:
-
   i2p:
-    image: geti2p/i2p
     container_name: i2p
-    restart: unless-stopped
-    profiles: ["p2p", "all"]
-    # network_mode: host
-    networks:
-      - t2_proxy
-    ports:
-      # TODO UDP port
-      # - 1901:1900/udp
-      - 4444:4444
-      - 7657:7657
-    volumes:
-      - ${DOCKERDIR:-/opt/docker}/appdata/i2p:/i2p/.i2p
+    image: geti2p/i2p
     labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.i2p-rtr.entrypoints=https"
-      - "traefik.http.routers.i2p-rtr.rule=Host(`i2p.${DOMAINNAME_CLOUD_SERVER}`)"
-      ## Middlewares
-      - "traefik.http.routers.i2p-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.i2p-rtr.service=i2p-svc"
-      - "traefik.http.services.i2p-svc.loadbalancer.server.port=7657"
-      ## Homepage
-      - homepage.group=Downloaders
-      - homepage.name=I2P
-      - homepage.icon=i2p.png
-      - homepage.href=https://i2p.${DOMAINNAME_CLOUD_SERVER}/
-      - homepage.description=I2P p2p client
-
+    - traefik.enable=true
+    - traefik.http.routers.i2p-rtr.entrypoints=https
+    - traefik.http.routers.i2p-rtr.rule=Host(`i2p.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.i2p-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.i2p-rtr.service=i2p-svc
+    - traefik.http.services.i2p-svc.loadbalancer.server.port=7657
+    - homepage.group=Downloaders
+    - homepage.name=I2P
+    - homepage.icon=i2p.png
+    - homepage.href=https://i2p.${DOMAINNAME_CLOUD_SERVER}/
+    - homepage.description=I2P p2p client
+    networks:
+    - t2_proxy
+    ports:
+    - 4444:4444
+    - 7657:7657
+    profiles:
+    - p2p
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/i2p:/i2p/.i2p
   ipfs:
-    image: ipfs/kubo:latest
     container_name: ipfs
-    restart: unless-stopped
-    profiles: ["p2p", "all"]
-    volumes:
-      - ${DOCKERDIR:-/opt/docker}/appdata/ipfs:/data/ipfs
-      - $EXTDRIVE/ipfs:/ipfs
-      - $EXTDRIVE/ipns:/ipns
-    networks:
-      - t2_proxy
     environment:
-      - IPFS_PATH=/data/ipfs
-    ports:
-      # Swarm listens on all interfaces, so is remotely reachable.
-      - 4001:4001/tcp
-      - 4001:4001/udp
-
-      # The following ports only listen on the loopback interface, so are not remotely reachable by default.
-      # If you want to override these or add more ports, see https://docs.docker.com/compose/extends/ .
-
-      # API port, which includes admin operations, so you probably don't want this remotely accessible.
-      - 5001:5001
-
-      # HTTP Gateway
-      # - 127.0.0.1:8080:8080
-      - 7070:8080
+    - IPFS_PATH=/data/ipfs
+    image: ipfs/kubo:latest
     labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.ipfs-rtr.entrypoints=https"
-      - "traefik.http.routers.ipfs-rtr.rule=Host(`ipfs.${DOMAINNAME_CLOUD_SERVER}`)"
-      ## Middlewares
-      - "traefik.http.routers.ipfs-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.ipfs-rtr.service=ipfs-svc"
-      - "traefik.http.services.ipfs-svc.loadbalancer.server.port=5001"
-      ## Homepage
-      - homepage.group=Downloaders
-      - homepage.name=IPFS
-      - homepage.icon=ipfs.png
-      - homepage.href=https://ipfs.${DOMAINNAME_CLOUD_SERVER}/webui
-      - homepage.description=IPFS Admin Dashboard
-
-  # Google OAuth - Single Sign On using OAuth 2.0
-  # https://www.smarthomebeginner.com/google-oauth-with-traefik-docker/
+    - traefik.enable=true
+    - traefik.http.routers.ipfs-rtr.entrypoints=https
+    - traefik.http.routers.ipfs-rtr.rule=Host(`ipfs.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.ipfs-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.ipfs-rtr.service=ipfs-svc
+    - traefik.http.services.ipfs-svc.loadbalancer.server.port=5001
+    - homepage.group=Downloaders
+    - homepage.name=IPFS
+    - homepage.icon=ipfs.png
+    - homepage.href=https://ipfs.${DOMAINNAME_CLOUD_SERVER}/webui
+    - homepage.description=IPFS Admin Dashboard
+    networks:
+    - t2_proxy
+    ports:
+    - 4001:4001/tcp
+    - 4001:4001/udp
+    - 5001:5001
+    - 7070:8080
+    profiles:
+    - p2p
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/ipfs:/data/ipfs
+    - $EXTDRIVE/ipfs:/ipfs
+    - $EXTDRIVE/ipns:/ipns
   oauth:
     container_name: oauth
-    image: thomseddon/traefik-forward-auth:latest
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - t2_proxy
-    # Allow apps to bypass OAuth. Radarr example below will bypass OAuth if API key is present in the request (eg. from NZB360 mobile app).
-    # While this is one way, the recommended way is to bypass authentication using Traefik labels shown in some of the -Arr apps in this file.
-    # command:
-      # - '--rule.radarr.action=allow --rule.radarr.rule="Headers(`X-Api-Key`, `$RADARR_API_KEY`)"'
-      # - '--rule.sabnzbd.action=allow --rule.sabnzbd.rule="HeadersRegexp(`X-Forwarded-Uri`, `$SABNZBD_API_KEY`)"'
     environment:
-      - CONFIG=/config
-      - COOKIE_DOMAIN=${DOMAINNAME_CLOUD_SERVER}
-      - INSECURE_COOKIE=false
-      - AUTH_HOST=oauth.${DOMAINNAME_CLOUD_SERVER}
-      - URL_PATH=/_oauth
-      - LOG_LEVEL=warn # set to trace while testing bypass rules
-      - LOG_FORMAT=text
-      - LIFETIME=86400 # 1 day
-      - DEFAULT_ACTION=auth
-      - DEFAULT_PROVIDER=google
-    secrets:
-      - source: traefik_forward_auth
-        target: /config
+    - CONFIG=/config
+    - COOKIE_DOMAIN=${DOMAINNAME_CLOUD_SERVER}
+    - INSECURE_COOKIE=false
+    - AUTH_HOST=oauth.${DOMAINNAME_CLOUD_SERVER}
+    - URL_PATH=/_oauth
+    - LOG_LEVEL=warn
+    - LOG_FORMAT=text
+    - LIFETIME=86400
+    - DEFAULT_ACTION=auth
+    - DEFAULT_PROVIDER=google
+    image: thomseddon/traefik-forward-auth:latest
     labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.oauth-rtr.tls=true"
-      - "traefik.http.routers.oauth-rtr.entrypoints=https"
-      - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.${DOMAINNAME_CLOUD_SERVER}`)"
-      ## Middlewares
-      - "traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.oauth-rtr.service=oauth-svc"
-      - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
-
-  # Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
+    - traefik.enable=true
+    - traefik.http.routers.oauth-rtr.tls=true
+    - traefik.http.routers.oauth-rtr.entrypoints=https
+    - traefik.http.routers.oauth-rtr.rule=Host(`oauth.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.oauth-rtr.service=oauth-svc
+    - traefik.http.services.oauth-svc.loadbalancer.server.port=4181
+    networks:
+    - t2_proxy
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    secrets:
+    - source: traefik_forward_auth
+      target: /config
   socket-proxy:
     container_name: socket-proxy
+    environment:
+    - LOG_LEVEL=info
+    - EVENTS=1
+    - PING=1
+    - VERSION=1
+    - AUTH=0
+    - SECRETS=0
+    - POST=1
+    - BUILD=0
+    - COMMIT=0
+    - CONFIGS=0
+    - CONTAINERS=1
+    - DISTRIBUTION=0
+    - EXEC=1
+    - IMAGES=1
+    - INFO=1
+    - NETWORKS=1
+    - NODES=0
+    - PLUGINS=0
+    - SERVICES=1
+    - SESSION=0
+    - SWARM=0
+    - SYSTEM=0
+    - TASKS=1
+    - VOLUMES=1
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:2375/version
+      timeout: 10s
     image: tecnativa/docker-socket-proxy
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
     networks:
       socket_proxy:
         ipv4_address: ${SOCKET_PROXY_IP:-192.168.91.254}
-    # privileged: true # true for VM. False for unprivileged LXC container.
     ports:
-    #  - "$ZEROTIER_IP_CLOUDSERVER:2375:2375" # Port 2375 should only ever get exposed to the internal network. When possible use this line.
-    # I use the next line instead, as I want portainer to manage multiple docker endpoints within my home network.
-      - "2375:2375" # Do not expose this to the internet with port forwarding
+    - 2375:2375
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    security_opt:
+    - no-new-privileges:true
     volumes:
-      # - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    environment:
-      - LOG_LEVEL=info # debug,info,notice,warning,err,crit,alert,emerg
-      ## Variables match the URL prefix (i.e. AUTH blocks access to /auth/* parts of the API, etc.).
-      # 0 to revoke access.
-      # 1 to grant access.
-      ## Granted by Default
-      - EVENTS=1
-      - PING=1
-      - VERSION=1
-      ## Revoked by Default
-      # Security critical
-      - AUTH=0
-      - SECRETS=0
-      - POST=1 # Watchtower, Sablier
-      # Not always needed
-      - BUILD=0
-      - COMMIT=0
-      - CONFIGS=0
-      - CONTAINERS=1 # Traefik, portainer, Sablier, etc.
-      - DISTRIBUTION=0
-      - EXEC=1 # Sablier needs this to start/stop containers
-      - IMAGES=1 # Portainer
-      - INFO=1 # Portainer
-      - NETWORKS=1 # Portainer
-      - NODES=0
-      - PLUGINS=0
-      - SERVICES=1 # Portainer
-      - SESSION=0
-      - SWARM=0
-      - SYSTEM=0
-      - TASKS=1 # Portainer
-      - VOLUMES=1 # Portainer
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2375/version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        tag: "{{.Name}}"
-
-  # WG-EASY - WireGuard Easy
+    - /var/run/docker.sock:/var/run/docker.sock
   wg-easy:
-    image: weejewel/wg-easy
+    cap_add:
+    - NET_ADMIN
+    - SYS_MODULE
     container_name: wg-easy
-    # security_opt:
-    #   - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["core", "all"]
-    networks:
-      - default
-      - t2_proxy
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
-    ports:
-      - "51820:51820/udp"
-      - "51821:51821/tcp"
-    volumes:
-      - ${DOCKERDIR:-/opt/docker}/appdata/wireguard:/etc/wireguard
     environment:
-      # ⚠️ Required:
-      # Change this to your host's public address
-      - WG_HOST=$SERVER_IP
-      - PASSWORD=$WGEASY_PASSWORD
-      # Optional:
-      # - WG_PORT=51820
-      - WG_DEFAULT_ADDRESS=192.168.20.x
-      - WG_DEFAULT_DNS=1.1.1.1
-      # - WG_MTU=1420
-      - WG_ALLOWED_IPS=0.0.0.0/0
-      # - WG_PRE_UP=echo "Pre Up" > /etc/wireguard/pre-up.txt
-      # - WG_POST_UP=echo "Post Up" > /etc/wireguard/post-up.txt
-      # - WG_PRE_DOWN=echo "Pre Down" > /etc/wireguard/pre-down.txt
-      # - WG_POST_DOWN=echo "Post Down" > /etc/wireguard/post-down.txt
-
-  # ZeroTier-One - Private Network over Internet
-
-  zerotier:
-    image: zerotier/zerotier-synology:latest
-    container_name: zerotier
-    # security_opt:
-    #   - no-new-privileges:true
+    - WG_HOST=$SERVER_IP
+    - PASSWORD=$WGEASY_PASSWORD
+    - WG_DEFAULT_ADDRESS=192.168.20.x
+    - WG_DEFAULT_DNS=1.1.1.1
+    - WG_ALLOWED_IPS=0.0.0.0/0
+    image: weejewel/wg-easy
+    networks:
+    - default
+    - t2_proxy
+    ports:
+    - 51820:51820/udp
+    - 51821:51821/tcp
+    profiles:
+    - core
+    - all
     restart: unless-stopped
-    profiles: ["core", "all"]
-    network_mode: host
-    cap_add:
-      - NET_ADMIN
-      - SYS_ADMIN
-    devices:
-      - /dev/net/tun
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.src_valid_mark=1
     volumes:
-      - ${DOCKERDIR:-/opt/docker}/appdata/zerotier:/var/lib/zerotier-one
+    - ${DOCKERDIR:-/opt/docker}/appdata/wireguard:/etc/wireguard
+  zerotier:
+    cap_add:
+    - NET_ADMIN
+    - SYS_ADMIN
+    container_name: zerotier
+    devices:
+    - /dev/net/tun
+    image: zerotier/zerotier-synology:latest
+    network_mode: host
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/zerotier:/var/lib/zerotier-one

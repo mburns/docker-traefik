@@ -1,77 +1,46 @@
-# version: "3.9"
-
 services:
   freshrss:
-    image: freshrss/freshrss:latest
     container_name: freshrss
+    environment:
+      CRON_MIN: 3,33
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TRUSTED_PROXY: 172.16.0.1/12 192.168.0.1/16 10.0.0.0/8
+      TZ: ${TZ:-UTC}
     hostname: freshrss
-    restart: unless-stopped
-    profiles: ["tools", "web", "all"]
-    # Optional build section if you want to build the image locally:
-    # build:
-    #   # Pick #latest (stable release) or #edge (rolling release) or a specific release like #1.21.0
-    #   context: https://github.com/FreshRSS/FreshRSS.git#latest
-    #   dockerfile: Docker/Dockerfile-Alpine
+    image: freshrss/freshrss:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.freshrss-rtr.entrypoints=https
+    - traefik.http.routers.freshrss-rtr.rule=Host(`freshrss.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.freshrss-rtr.service=freshrss-svc
+    - traefik.http.services.freshrss-svc.loadbalancer.server.port=80
+    - homepage.group=Tools
+    - homepage.name=FreshRSS
+    - homepage.icon=freshrss.png
+    - homepage.href=https://freshrss.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Blog feeds
+    - homepage.weight=4
     logging:
       options:
         max-size: 10m
-    volumes:
-      - ${DOCKERDIR:-/opt/docker}/appdata/freshrss:/var/www/FreshRSS/data
-      # - $DATADIR/media:/var/www/FreshRSS/data
-      - ${DOCKERDIR:-/opt/docker}/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
-    environment:
-      TZ: ${TZ:-UTC}
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      CRON_MIN: '3,33'
-      TRUSTED_PROXY: 172.16.0.1/12 192.168.0.1/16 10.0.0.0/8
     networks:
-      - t2_proxy
+    - t2_proxy
     ports:
-      - "8765:80"
-    labels:
-      - sablier.enable=true
-      - sablier.group=mygroup
-      - "traefik.enable=true"
-      ## HTTP Routers Auth
-      - "traefik.http.routers.freshrss-rtr.entrypoints=https"
-      - "traefik.http.routers.freshrss-rtr.rule=Host(`freshrss.${DOMAINNAME_CLOUD_SERVER}`)"
-      ## Middlewares
-      - "traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.freshrss-rtr.service=freshrss-svc"
-      - "traefik.http.services.freshrss-svc.loadbalancer.server.port=80"
-      ## Homepage
-      - homepage.group=Tools
-      - homepage.name=FreshRSS
-      - homepage.icon=freshrss.png
-      - homepage.href=https://freshrss.${DOMAINNAME_CLOUD_SERVER}
-      - homepage.description=Blog feeds
-      - homepage.weight=4
-      # - homepage.widget.type=freshrss
-      # - homepage.widget.url=http://freshrss:8765
-      # - homepage.widget.key=${FRESHRSS_API_KEY}
-
-  # Ladder - 12ft.io cline, website to circumvent paywalls
-  ladder:
-    image: ghcr.io/kubero-dev/ladder:latest
-    container_name: ladder
-    # build: .
+    - 8765:80
+    profiles:
+    - tools
+    - web
+    - all
     restart: unless-stopped
-    profiles: ["tools", "web", "all"]
-    networks:
-      - t2_proxy
-    #command: sh -c ./ladder
-    environment:
-      - PORT=8091
-      #- PREFORK=true
-      #- X_FORWARDED_FOR=66.249.66.1
-      #- USER_AGENT=Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-      #- USERPASS=foo:bar
-      - LOG_URLS=true
-      #- GODEBUG=netdns=go
-    ports:
-      - "8091:8091"
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/freshrss:/var/www/FreshRSS/data
+    - ${DOCKERDIR:-/opt/docker}/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
+  ladder:
+    container_name: ladder
     deploy:
       resources:
         limits:
@@ -80,64 +49,66 @@ services:
         reservations:
           cpus: "0.25"
           memory: 128M
+    environment:
+    - PORT=8091
+    - LOG_URLS=true
+    image: ghcr.io/kubero-dev/ladder:latest
     labels:
-      - sablier.enable=true
-      - sablier.group=mygroup
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.ladder-rtr.entrypoints=https"
-      - "traefik.http.routers.ladder-rtr.rule=Host(`ladder.${DOMAINNAME_CLOUD_SERVER}`)"
-      ## Middlewares
-      - "traefik.http.routers.ladder-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.ladder-rtr.service=ladder-svc"
-      - "traefik.http.services.ladder-svc.loadbalancer.server.port=8091"
-      ## Homepage
-      - homepage.group=Tools
-      - homepage.name=Ladder
-      - homepage.icon=ladder.png
-      - homepage.href=https://ladder.${DOMAINNAME_CLOUD_SERVER}
-      - homepage.description=Paywall bypass
-      # - homepage.weight=2
-
-  # via https://github.com/printfuck/xExtension-Readable
-  readability:
-    image: phpdockerio/readability-js-server
-    container_name: readability
-    restart: unless-stopped
-    profiles: ["tools", "all"]
-    ports:
-      - 127.0.0.1:3000:3000
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.ladder-rtr.entrypoints=https
+    - traefik.http.routers.ladder-rtr.rule=Host(`ladder.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.ladder-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.ladder-rtr.service=ladder-svc
+    - traefik.http.services.ladder-svc.loadbalancer.server.port=8091
+    - homepage.group=Tools
+    - homepage.name=Ladder
+    - homepage.icon=ladder.png
+    - homepage.href=https://ladder.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Paywall bypass
     networks:
-      - t2_proxy
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers Auth
-      - "traefik.http.routers.readability-rtr.entrypoints=https"
-      - "traefik.http.routers.readability-rtr.rule=Host(`readability.${DOMAINNAME_CLOUD_SERVER}`)"
-      ## Middlewares
-      - "traefik.http.routers.readability-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.readability-rtr.service=readability-svc"
-      - "traefik.http.services.readability-svc.loadbalancer.server.port=3000"
-
-  # via https://github.com/printfuck/xExtension-Readable
+    - t2_proxy
+    ports:
+    - 8091:8091
+    profiles:
+    - tools
+    - web
+    - all
+    restart: unless-stopped
   mercury:
-    image: wangqiru/mercury-parser-api
     container_name: mercury
-    restart: unless-stopped
-    profiles: ["tools", "all"]
-    ports:
-      - 127.0.0.1:3001:3000
-    networks:
-      - t2_proxy
+    image: wangqiru/mercury-parser-api
     labels:
-      - "traefik.enable=true"
-      ## HTTP Routers Auth
-      - "traefik.http.routers.mercury-rtr.entrypoints=https"
-      - "traefik.http.routers.mercury-rtr.rule=Host(`mercury.${DOMAINNAME_CLOUD_SERVER}`)"
-      ## Middlewares
-      - "traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file"
-      ## HTTP Services
-      - "traefik.http.routers.mercury-rtr.service=mercury-svc"
-      - "traefik.http.services.mercury-svc.loadbalancer.server.port=3000"
+    - traefik.enable=true
+    - traefik.http.routers.mercury-rtr.entrypoints=https
+    - traefik.http.routers.mercury-rtr.rule=Host(`mercury.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.mercury-rtr.service=mercury-svc
+    - traefik.http.services.mercury-svc.loadbalancer.server.port=3000
+    networks:
+    - t2_proxy
+    ports:
+    - 127.0.0.1:3001:3000
+    profiles:
+    - tools
+    - all
+    restart: unless-stopped
+  readability:
+    container_name: readability
+    image: phpdockerio/readability-js-server
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.readability-rtr.entrypoints=https
+    - traefik.http.routers.readability-rtr.rule=Host(`readability.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.readability-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.readability-rtr.service=readability-svc
+    - traefik.http.services.readability-svc.loadbalancer.server.port=3000
+    networks:
+    - t2_proxy
+    ports:
+    - 127.0.0.1:3000:3000
+    profiles:
+    - tools
+    - all
+    restart: unless-stopped
