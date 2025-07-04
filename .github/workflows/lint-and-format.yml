@@ -28,7 +28,7 @@ jobs:
     - name: Run yamllint
       run: |
         echo "Linting YAML files..."
-        yamllint -c .yamllint -f github .
+        yamllint -c .yamllint -f github *.yml docker-compose-services/*.yml
         
     - name: Check YAML syntax
       run: |

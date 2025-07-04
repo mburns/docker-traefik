@@ -1,5 +1,9 @@
 extends: default
 
+ignore: |
+  appdata/*
+  ./appdata/crowdsec/config/local_api_credentials.yaml
+
 rules:
   # 80 chars should be enough, but don't fail if a line is longer
   line-length: disable

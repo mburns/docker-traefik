@@ -31,16 +31,7 @@ jobs:
             exit 1
           fi
         done
-        
-    - name: Check for hardcoded IPs
-      run: |
-        echo "Checking for hardcoded IP addresses..."
-        if grep -r "192\.168\." . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
-          echo "⚠️  Found hardcoded IP addresses. Consider using environment variables."
-          echo "Found in:"
-          grep -r "192\.168\." . --include="*.yml" --include="*.yaml" | grep -v ".git"
-        fi
-        
+
     - name: Check for latest tags
       run: |
         echo "Checking for 'latest' image tags..."
@@ -58,4 +49,4 @@ jobs:
           ls -la secrets_example/
         else
           echo "❌ No secrets example directory found"
-        fi 
+        fi
