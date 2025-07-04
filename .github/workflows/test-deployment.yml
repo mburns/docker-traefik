@@ -77,12 +77,12 @@ jobs:
         export $(cat .env.test | xargs)
 
         # Test config validation
-        docker-compose -f "${{ matrix.compose-file }}" config > /dev/null
-
+        docker compose -f "${{ matrix.compose-file }}" config > /dev/null
+        
         # Test with specific profiles
         for profile in core apps media web tools all; do
           echo "Testing profile: $profile"
-          docker-compose -f "${{ matrix.compose-file }}" --profile "$profile" config > /dev/null || echo "Profile $profile not available"
+          docker compose -f "${{ matrix.compose-file }}" --profile "$profile" config > /dev/null || echo "Profile $profile not available"
         done
 
     - name: Test network configuration
@@ -91,14 +91,14 @@ jobs:
         export $(cat .env.test | xargs)
 
         # Start services in background to test network setup
-        timeout 30s docker-compose -f "${{ matrix.compose-file }}" --profile core up -d || true
-
+        timeout 30s docker compose -f "${{ matrix.compose-file }}" --profile core up -d || true
+        
         # Check if networks were created
         docker network ls | grep t2_proxy || echo "t2_proxy network not found"
         docker network ls | grep socket_proxy || echo "socket_proxy network not found"
-
+        
         # Cleanup
-        docker-compose -f "${{ matrix.compose-file }}" down --remove-orphans || true
+        docker compose -f "${{ matrix.compose-file }}" down --remove-orphans || true
 
     - name: Test volume mounts
       run: |
@@ -122,6 +122,6 @@ jobs:
       if: always()
       run: |
         echo "Cleaning up test environment..."
-        docker-compose -f "${{ matrix.compose-file }}" down --remove-orphans --volumes || true
+        docker compose -f "${{ matrix.compose-file }}" down --remove-orphans --volumes || true
         docker system prune -f || true
         rm -rf /tmp/test-docker /tmp/test-data /tmp/test-ext || true

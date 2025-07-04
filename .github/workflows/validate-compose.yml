@@ -23,7 +23,7 @@ jobs:
         # Find all docker-compose files
         find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | while read file; do
           echo "Validating $file..."
-          docker-compose -f "$file" config > /dev/null
+          docker compose -f "$file" config > /dev/null
           if [ $? -eq 0 ]; then
             echo "✅ $file is valid"
           else
