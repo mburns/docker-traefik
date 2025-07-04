@@ -60,7 +60,12 @@ jobs:
     - name: Check for consistent indentation
       run: |
         echo "Checking for consistent indentation..."
-        find . -name "*.yml" -o -name "*.yaml" | while read file; do
+        find . -type f \( -name "*.yml" -o -name "*.yaml" \) \
+          ! -path "./appdata/*" \
+          ! -path "./data/*" \
+          ! -path "./secrets/*" \
+          ! -path "./.git/*" | while read file; do
+
           if [[ "$file" != *".git"* ]]; then
             # Check for mixed tabs and spaces
             if grep -q $'\t' "$file"; then
