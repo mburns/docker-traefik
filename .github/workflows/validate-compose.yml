@@ -21,11 +21,7 @@ jobs:
     - name: Validate Docker Compose files
       run: |
         # Find all docker-compose files
-        find . -type f \( -name "docker-compose*.yml" -o -name "docker-compose*.yaml" \) \
-          ! -path "./appdata/*" \
-          ! -path "./data/*" \
-          ! -path "./secrets/*" \
-          ! -path "./.git/*" | while read file; do
+        find . \( -path "./appdata" -prune -o -path "./data" -prune -o -path "./secrets" -prune -o -path "./.git" -prune -o -type f \( -name "docker-compose*.yml" -o -name "docker-compose*.yaml" \) \) | while read file; do
           echo "Validating $file..."
           docker compose -f "$file" config > /dev/null
           if [ $? -eq 0 ]; then
