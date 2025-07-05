@@ -30,21 +30,24 @@ jobs:
         echo "Linting YAML files..."
         yamllint -c .yamllint -f github *.yml docker-compose-services/*.yml
         
+    - name: Find YAML files
+      uses: ./.github/actions/find-yaml-files
+      with:
+        pattern: "*.yml"
+        include-docker-compose-services: "true"
+        
     - name: Check YAML syntax
       run: |
         echo "Checking YAML syntax..."
-        find . -type f \( -name "*.yml" -o -name "*.yaml" \) | while read file; do
-          # Skip files in excluded directories
-          if [[ "$file" == *"/.git/"* ]] || [[ "$file" == *"/appdata/"* ]] || [[ "$file" == *"/data/"* ]] || [[ "$file" == *"/secrets/"* ]]; then
-            continue
-          fi
-          
-          python -c "import yaml; yaml.safe_load(open('$file', 'r'))" 2>/dev/null
-          if [ $? -eq 0 ]; then
-            echo "✅ $file syntax is valid"
-          else
-            echo "❌ $file has syntax errors"
-            exit 1
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            python -c "import yaml; yaml.safe_load(open('$file', 'r'))" 2>/dev/null
+            if [ $? -eq 0 ]; then
+              echo "✅ $file syntax is valid"
+            else
+              echo "❌ $file has syntax errors"
+              exit 1
+            fi
           fi
         done
         
@@ -60,15 +63,12 @@ jobs:
     - name: Check for consistent indentation
       run: |
         echo "Checking for consistent indentation..."
-        find . -type f \( -name "*.yml" -o -name "*.yaml" \) | while read file; do
-          # Skip files in excluded directories
-          if [[ "$file" == *"/.git/"* ]] || [[ "$file" == *"/appdata/"* ]] || [[ "$file" == *"/data/"* ]] || [[ "$file" == *"/secrets/"* ]]; then
-            continue
-          fi
-
-          # Check for mixed tabs and spaces
-          if grep -q $'\t' "$file"; then
-            echo "❌ $file contains tabs. Use spaces for indentation."
-            exit 1
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            # Check for mixed tabs and spaces
+            if grep -q $'\t' "$file"; then
+              echo "❌ $file contains tabs. Use spaces for indentation."
+              exit 1
+            fi
           fi
         done 

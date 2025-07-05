@@ -1,0 +1,89 @@
+name: Find YAML Files
+description: Find YAML files while excluding runtime directories
+
+inputs:
+  pattern:
+    description: File pattern to search for (e.g., "*.yml", "docker-compose*.yml")
+    required: true
+    default: "*.yml"
+  include-docker-compose-services:
+    description: Whether to also include files from docker-compose-services directory
+    required: false
+    default: "true"
+  output-format:
+    description: Output format - 'list' for newline-separated list, 'json' for JSON array
+    required: false
+    default: "list"
+
+outputs:
+  files:
+    description: List of found files
+    value: ${{ steps.find-files.outputs.files }}
+
+runs:
+  using: composite
+  steps:
+    - name: Find YAML files
+      id: find-files
+      shell: bash
+      run: |
+        # Function to find files with exclusion logic
+        find_files() {
+          local pattern="$1"
+          local output_format="$2"
+          
+          # Find files in current directory (excluding runtime dirs)
+          local files=""
+          while IFS= read -r file; do
+            # Skip files in excluded directories
+            if [[ "$file" == *"/.git/"* ]] || [[ "$file" == *"/appdata/"* ]] || [[ "$file" == *"/data/"* ]] || [[ "$file" == *"/secrets/"* ]]; then
+              continue
+            fi
+            files="${files}${file}"$'\n'
+          done < <(find . -type f \( -name "$pattern" -o -name "${pattern%.yml}.yaml" \) 2>/dev/null)
+          
+          # Also find files in docker-compose-services if requested
+          if [[ "${{ inputs.include-docker-compose-services }}" == "true" ]] && [ -d "docker-compose-services" ]; then
+            while IFS= read -r file; do
+              files="${files}${file}"$'\n'
+            done < <(find docker-compose-services -type f \( -name "$pattern" -o -name "${pattern%.yml}.yaml" \) 2>/dev/null)
+          fi
+          
+          # Remove trailing newline
+          files="${files%$'\n'}"
+          
+          # Format output
+          if [[ "$output_format" == "json" ]]; then
+            # Convert to JSON array
+            local json_files="["
+            local first=true
+            while IFS= read -r file; do
+              if [[ -n "$file" ]]; then
+                if [[ "$first" == "true" ]]; then
+                  first=false
+                else
+                  json_files="${json_files},"
+                fi
+                json_files="${json_files}\"${file}\""
+              fi
+            done < <(echo "$files")
+            json_files="${json_files}]"
+            echo "$json_files"
+          else
+            # Return as newline-separated list
+            echo "$files"
+          fi
+        }
+        
+        # Find files and set output
+        found_files=$(find_files "${{ inputs.pattern }}" "${{ inputs.output-format }}")
+        echo "files<<EOF" >> $GITHUB_OUTPUT
+        echo "$found_files" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        # Also set as environment variable for easy access
+        echo "FOUND_FILES<<EOF" >> $GITHUB_ENV
+        echo "$found_files" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+        
+        echo "Found $(echo "$found_files" | wc -l) files matching pattern '${{ inputs.pattern }}'" 

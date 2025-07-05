@@ -20,16 +20,20 @@ jobs:
     - name: Setup Docker
       uses: docker/setup-buildx-action@v3
       
+    - name: Find Docker Compose files
+      uses: ./.github/actions/find-yaml-files
+      with:
+        pattern: "docker-compose*.yml"
+        include-docker-compose-services: "true"
+        
     - name: Extract Docker images
       run: |
         echo "Extracting Docker images from compose files..."
-        find . -type f \( -name "docker-compose*.yml" -o -name "docker-compose*.yaml" \) | while read file; do
-          # Skip files in excluded directories
-          if [[ "$file" == *"/.git/"* ]] || [[ "$file" == *"/appdata/"* ]] || [[ "$file" == *"/data/"* ]] || [[ "$file" == *"/secrets/"* ]]; then
-            continue
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            echo "Processing $file..."
+            docker compose -f "$file" config | grep "image:" | sed 's/.*image: //' | sort -u >> images.txt
           fi
-          echo "Processing $file..."
-          docker compose -f "$file" config | grep "image:" | sed 's/.*image: //' | sort -u >> images.txt
         done
         
         echo "Found images:"
