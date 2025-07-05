@@ -21,7 +21,11 @@ jobs:
     - name: Validate Docker Compose files
       run: |
         # Find all docker-compose files
-        find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | while read file; do
+        find . -type f \( -name "docker-compose*.yml" -o -name "docker-compose*.yaml" \) \
+          ! -path "./appdata/*" \
+          ! -path "./data/*" \
+          ! -path "./secrets/*" \
+          ! -path "./.git/*" | while read file; do
           echo "Validating $file..."
           docker compose -f "$file" config > /dev/null
           if [ $? -eq 0 ]; then
@@ -35,10 +39,10 @@ jobs:
     - name: Check for latest tags
       run: |
         echo "Checking for 'latest' image tags..."
-        if grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
+        if grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"; then
           echo "⚠️  Found 'latest' tags. Consider pinning to specific versions for stability."
           echo "Found in:"
-          grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git"
+          grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"
         fi
         
     - name: Validate secrets structure
