@@ -6,10 +6,6 @@ inputs:
     description: File pattern to search for (e.g., "*.yml", "docker-compose*.yml")
     required: true
     default: "*.yml"
-  include-docker-compose-services:
-    description: Whether to also include files from docker-compose-services directory
-    required: false
-    default: "true"
   output-format:
     description: Output format - 'list' for newline-separated list, 'json' for JSON array
     required: false
@@ -41,13 +37,6 @@ runs:
             fi
             files="${files}${file}"$'\n'
           done < <(find . -type f \( -name "$pattern" -o -name "${pattern%.yml}.yaml" \) 2>/dev/null)
-          
-          # Also find files in docker-compose-services if requested
-          if [[ "${{ inputs.include-docker-compose-services }}" == "true" ]] && [ -d "docker-compose-services" ]; then
-            while IFS= read -r file; do
-              files="${files}${file}"$'\n'
-            done < <(find docker-compose-services -type f \( -name "$pattern" -o -name "${pattern%.yml}.yaml" \) 2>/dev/null)
-          fi
           
           # Remove trailing newline
           files="${files%$'\n'}"

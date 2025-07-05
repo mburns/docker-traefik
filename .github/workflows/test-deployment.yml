@@ -21,7 +21,6 @@ jobs:
         uses: ./.github/actions/find-yaml-files
         with:
           pattern: "docker-compose*.yml"
-          include-docker-compose-services: "true"
           output-format: "json"
 
   test-deployment:

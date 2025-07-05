@@ -28,13 +28,12 @@ jobs:
     - name: Run yamllint
       run: |
         echo "Linting YAML files..."
-        yamllint -c .yamllint -f github *.yml docker-compose-services/*.yml
+        yamllint -c .yamllint -f github docker-compose*.yml
         
     - name: Find YAML files
       uses: ./.github/actions/find-yaml-files
       with:
         pattern: "*.yml"
-        include-docker-compose-services: "true"
         
     - name: Check YAML syntax
       run: |
@@ -54,11 +53,22 @@ jobs:
     - name: Check for trailing whitespace
       run: |
         echo "Checking for trailing whitespace..."
-        if grep -r " $" . --include="*.yml" --include="*.yaml" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets" | grep -v ".git"; then
+        found_trailing_whitespace=false
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            if grep -q " $" "$file"; then
+              echo "❌ $file contains trailing whitespace"
+              found_trailing_whitespace=true
+            fi
+          fi
+        done
+        
+        if [[ "$found_trailing_whitespace" == "true" ]]; then
           echo "❌ Found trailing whitespace in YAML files"
-          grep -r " $" . --include="*.yml" --include="*.yaml" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets" | grep -v ".git"
           exit 1
         fi
+        
+        echo "✅ No trailing whitespace found"
         
     - name: Check for consistent indentation
       run: |
