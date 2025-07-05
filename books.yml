@@ -1,0 +1,171 @@
+networks:
+  t2_proxy:
+    external: true
+services:
+  audiobookshelf:
+    container_name: audiobookshelf
+    image: ghcr.io/advplyr/audiobookshelf
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.audiobookshelf-rtr.entrypoints=https
+    - traefik.http.routers.audiobookshelf-rtr.rule=Host(`audio.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.audiobookshelf-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.audiobookshelf-rtr.service=audiobookshelf-svc
+    - traefik.http.services.audiobookshelf-svc.loadbalancer.server.port=80
+    - homepage.group=Media
+    - homepage.name=AudioBookshelf
+    - homepage.icon=audiobookshelf.png
+    - homepage.href=https://audio.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Read & Listen to stuff
+    - homepage.weight=2
+    networks:
+    - t2_proxy
+    ports:
+    - 13378:80
+    profiles:
+    - media
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/audiobookshelf:/config
+    - ${EXTDRIVE:-/extdrive}:/data
+  calibre:
+    container_name: calibre
+    environment:
+    - PUID=${PUID:-1000}
+    - PGID=${PGID:-1000}
+    - TZ=${TZ:-UTC}
+    - DOCKER_MODS=linuxserver/mods:universal-calibre
+    - OAUTHLIB_RELAX_TOKEN_SCOPE=1
+    image: lscr.io/linuxserver/calibre-web:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.calibre-rtr.entrypoints=https
+    - traefik.http.routers.calibre-rtr.rule=Host(`calibre.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.calibre-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.calibre-rtr.service=calibre-svc
+    - traefik.http.services.calibre-svc.loadbalancer.server.port=8083
+    - homepage.group=Media
+    - homepage.name=Calibre
+    - homepage.icon=calibre.png
+    - homepage.href=https://calibre.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Book library & reader
+    - homepage.weight=2
+    networks:
+    - t2_proxy
+    ports:
+    - 3083:8083
+    profiles:
+    - media
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/calibre:/config
+    - $EXTDRIVE/Dropbox/Calibre:/data/Library
+    - $DATADIR/Books:/data/Books
+    - $DATADIR/Comics:/data/Comics
+    - $DATADIR/Manga:/data/Manga
+  kavita:
+    container_name: kavita
+    environment:
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+    image: lscr.io/linuxserver/kavita:latest
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.kavita-rtr-bypass.entrypoints=https
+    - traefik.http.routers.kavita-rtr-bypass.priority=100
+    - traefik.http.routers.kavita-rtr.entrypoints=https
+    - traefik.http.routers.kavita-rtr.rule=Host(`kavita.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.kavita-rtr.priority=99
+    - traefik.http.routers.kavita-rtr-bypass.middlewares=chain-no-auth@file
+    - traefik.http.routers.kavita-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.kavita-rtr.service=kavita-svc
+    - traefik.http.routers.kavita-rtr-bypass.service=kavita-svc
+    - traefik.http.services.kavita-svc.loadbalancer.server.port=5000
+    - homepage.group=Media
+    - homepage.name=Kavita
+    - homepage.icon=kavita.png
+    - homepage.href=http://kavita.${DOMAINNAME_CLOUD_SERVER}/
+    - homepage.description=Book library & reader
+    - homepage.weight=3
+    networks:
+    - t2_proxy
+    ports:
+    - 5000:5000
+    profiles:
+    - media
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/kavita:/config
+    - $DATADIR/bookmarks:/kavita/config/bookmarks
+    - $DATADIR/Manga:/data/Manga
+    - $DATADIR/Comics:/data/Comics
+    - $DATADIR/Books:/data/Books
+    - $EXTDRIVE/Dropbox/Calibre:/data/Library
+    - $EXTDRIVE/Dropbox/Text:/data/Text
+  komga:
+    container_name: komga
+    environment:
+    - TZ=${TZ:-UTC}
+    image: gotson/komga
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.komga-rtr.entrypoints=https
+    - traefik.http.routers.komga-rtr.rule=Host(`komga.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.komga-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.komga-rtr.service=komga-svc
+    - traefik.http.services.komga-svc.loadbalancer.server.port=25600
+    networks:
+    - t2_proxy
+    ports:
+    - 25600:25600
+    profiles:
+    - media
+    - web
+    - all
+    restart: unless-stopped
+    user: ${PUID:-1000}:${PGID:-1000}
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/:/config
+    - ${DATADIR:-/data}:/data
+  lazylibrarian:
+    container_name: lazylibrarian
+    environment:
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+    image: lscr.io/linuxserver/lazylibrarian:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.lazylibrarian-rtr.entrypoints=https
+    - traefik.http.routers.lazylibrarian-rtr.rule=Host(`lazy.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.lazylibrarian-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.lazylibrarian-rtr.service=lazylibrarian-svc
+    - traefik.http.services.lazylibrarian-svc.loadbalancer.server.port=5299
+    - homepage.group=Media
+    - homepage.name=LazyLibrarian
+    - homepage.icon=lazylibrarian.png
+    - homepage.href=https://lazy.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Book Management
+    - homepage.weight=5
+    networks:
+    - t2_proxy
+    ports:
+    - 5299:5299
+    profiles:
+    - media
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/lazylibrarian:/config
+    - $DATADIR/Books:/books
+    - $DATADIR/Downloads:/downloads

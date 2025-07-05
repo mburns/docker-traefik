@@ -8,31 +8,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  discover-files:
+    runs-on: ubuntu-latest
+    outputs:
+      compose-files: ${{ steps.find-files.outputs.files }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Find Docker Compose files
+        id: find-files
+        uses: ./.github/actions/find-yaml-files
+        with:
+          pattern: "docker-compose*.yml"
+          include-docker-compose-services: "true"
+          output-format: "json"
+
   test-deployment:
     runs-on: ubuntu-latest
-
+    needs: discover-files
     strategy:
       matrix:
-        compose-file:
-          - docker-compose.yml
-          # - docker-compose-services/arr.yml
-          # - docker-compose-services/books.yml
-          - docker-compose-services/common.yml
-          # - docker-compose-services/crowdsec.yml
-          - docker-compose-services/datastore.yml
-          # - docker-compose-services/downloads.yml
-          - docker-compose-services/media.yml
-          - docker-compose-services/meta.yml
-          - docker-compose-services/metrics.yml
-          - docker-compose-services/monitoring.yml
-          - docker-compose-services/net.yml
-          # - docker-compose-services/plex.yml
-          - docker-compose-services/readabilitiy.yml
-          # - docker-compose-services/security.yml
-          - docker-compose-services/tools.yml
-          # - docker-compose-services/tor.yml
-          # - docker-compose-services/usenet.yml
-          - docker-compose-services/web.yml
+        compose-file: ${{ fromJson(needs.discover-files.outputs.compose-files) }}
 
     steps:
     - name: Checkout code
