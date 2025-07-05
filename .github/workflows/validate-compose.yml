@@ -1,0 +1,71 @@
+name: Validate Docker Compose Files
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-compose:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Find Docker Compose files
+      uses: ./.github/actions/find-yaml-files
+      with:
+        pattern: "docker-compose*.yml"
+        
+    - name: Validate Docker Compose files
+      run: |
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            echo "Validating $file..."
+            
+            # Check if env.example exists and use it for validation
+            if [ -f "env.example" ]; then
+              echo "Using env.example for validation..."
+              docker compose -f "$file" --env-file env.example config > /dev/null
+            else
+              echo "No env.example found, validating without environment file..."
+              docker compose -f "$file" config > /dev/null
+            fi
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ $file is valid"
+            else
+              echo "❌ $file has errors"
+              exit 1
+            fi
+          fi
+        done
+
+    - name: Check for latest tags
+      run: |
+        echo "Checking for 'latest' image tags..."
+        if grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"; then
+          echo "⚠️  Found 'latest' tags. Consider pinning to specific versions for stability."
+          echo "Found in:"
+          grep -r ":latest" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"
+        fi
+        
+    - name: Validate secrets structure
+      run: |
+        echo "Checking secrets configuration..."
+        if [ -d "secrets_example" ]; then
+          echo "✅ Secrets example directory exists"
+          ls -la secrets_example/
+        else
+          echo "❌ No secrets example directory found"
+        fi

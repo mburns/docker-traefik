@@ -1,0 +1,36 @@
+services:
+  elasticsearch:
+    container_name: elasticsearch
+    environment:
+    - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+    - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    - xpack.security.enabled=true
+    - discovery.type=single-node
+    - path.repo=/usr/share/elasticsearch/data/snapshot
+    expose:
+    - "9200"
+    image: elasticsearch:8.9.0
+    restart: unless-stopped
+    ulimits:
+      memlock:
+        hard: -1
+        soft: -1
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/elasticsearch:/usr/share/elasticsearch/data
+  redis:
+    container_name: redis
+    entrypoint: redis-server --appendonly yes --maxmemory 1073741824 --maxmemory-policy
+      allkeys-lru
+    image: redis:latest
+    networks:
+    - t2_proxy
+    ports:
+    - 6379:6379
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/redis/data:/data
+    - /etc/timezone:/etc/timezone:ro
+    - /etc/localtime:/etc/localtime:ro

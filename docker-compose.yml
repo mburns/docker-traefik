@@ -1,0 +1,370 @@
+networks:
+  default:
+    driver: bridge
+  obfs4_bridge_external_network: null
+  socket_proxy:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: ${SOCKET_SUBNET:-192.168.91.0/24}
+    name: socket_proxy
+  t2_proxy:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: ${PROXY_SUBNET:-192.168.90.0/24}
+    name: t2_proxy
+secrets:
+  authelia_duo_api_secret_key:
+    file: $DOCKERDIR/secrets/authelia_duo_api_secret_key
+  authelia_jwt_secret:
+    file: $DOCKERDIR/secrets/authelia_jwt_secret
+  authelia_notifier_smtp_password:
+    file: $DOCKERDIR/secrets/authelia_notifier_smtp_password
+  authelia_session_secret:
+    file: $DOCKERDIR/secrets/authelia_session_secret
+  authelia_storage_encryption_key:
+    file: $DOCKERDIR/secrets/authelia_storage_encryption_key
+  authelia_storage_mysql_password:
+    file: $DOCKERDIR/secrets/authelia_storage_mysql_password
+  cf_api_key:
+    file: $DOCKERDIR/secrets/cf_api_key
+  cf_email:
+    file: $DOCKERDIR/secrets/cf_email
+  cf_token:
+    file: $DOCKERDIR/secrets/cf_token
+  guac_db_name:
+    file: $DOCKERDIR/secrets/guac_db_name
+  guac_mysql_password:
+    file: $DOCKERDIR/secrets/guac_mysql_password
+  guac_mysql_user:
+    file: $DOCKERDIR/secrets/guac_mysql_user
+  htpasswd:
+    file: $DOCKERDIR/secrets/htpasswd
+  mysql_root_password:
+    file: $DOCKERDIR/secrets/mysql_root_password
+  plex_claim:
+    file: $DOCKERDIR/secrets/plex_claim
+  traefik_forward_auth:
+    file: $DOCKERDIR/secrets/traefik_forward_auth
+services:
+  homepage:
+    container_name: homepage
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: ${DOMAINNAME_CLOUD_SERVER}
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:3000/
+      timeout: 10s
+    image: ghcr.io/gethomepage/homepage:v0.8.0
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.homepage-rtr.entrypoints=https
+    - traefik.http.routers.homepage-rtr.rule=Host(`$DOMAINNAME_CLOUD_SERVER`,`www.$DOMAINNAME_CLOUD_SERVER`)
+    - traefik.http.routers.homepage-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.homepage-rtr.service=homepage-svc
+    - traefik.http.services.homepage-svc.loadbalancer.server.port=3000
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
+    networks:
+    - t2_proxy
+    - socket_proxy
+    ports:
+    - ${HOMEPAGE_PORT:-3000}:3000
+    profiles:
+    - apps
+    - core
+    - all
+    restart: unless-stopped
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - $DOCKERDIR/appdata/homepage:/app/config
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - ${DATADIR}:/data
+  oauth:
+    container_name: oauth
+    environment:
+    - CONFIG=/config
+    - COOKIE_DOMAIN=$DOMAINNAME_CLOUD_SERVER
+    - INSECURE_COOKIE=false
+    - AUTH_HOST=oauth.$DOMAINNAME_CLOUD_SERVER
+    - URL_PATH=/_oauth
+    - LOG_LEVEL=warn
+    - LOG_FORMAT=text
+    - LIFETIME=86400
+    - DEFAULT_ACTION=auth
+    - DEFAULT_PROVIDER=google
+    image: thomseddon/traefik-forward-auth:latest
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.oauth-rtr.tls=true
+    - traefik.http.routers.oauth-rtr.entrypoints=https
+    - traefik.http.routers.oauth-rtr.rule=Host(`oauth.$DOMAINNAME_CLOUD_SERVER`)
+    - traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.oauth-rtr.service=oauth-svc
+    - traefik.http.services.oauth-svc.loadbalancer.server.port=4181
+    networks:
+    - t2_proxy
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    secrets:
+    - source: traefik_forward_auth
+      target: /config
+  sablier:
+    command:
+    - start
+    - --provider.name=docker
+    - --server.host=0.0.0.0
+    - --server.port=10000
+    container_name: sablier
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      PGID: $PGID
+      PROVIDER_NAME: docker
+      PUID: $PUID
+      TZ: $TZ
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:2375/version
+      timeout: 10s
+    image: sablierapp/sablier:1.8.3
+    labels:
+    - traefik.enable=true
+    - traefik.http.middlewares.dynamic.plugin.sablier.names=sablier_whoami_1
+    - traefik.http.middlewares.dynamic.plugin.sablier.sablierUrl=http://sablier:10000
+    - traefik.http.middlewares.dynamic.plugin.sablier.sessionDuration=1m
+    - traefik.http.middlewares.dynamic.plugin.sablier.dynamic.theme=hacker-terminal
+    - traefik.http.middlewares.blocking.plugin.sablier.names=sablier_whoami_1
+    - traefik.http.middlewares.blocking.plugin.sablier.sablierUrl=http://sablier:10000
+    - traefik.http.middlewares.blocking.plugin.sablier.sessionDuration=1m
+    - traefik.http.middlewares.blocking.plugin.sablier.blocking.timeout=30s
+    - traefik.http.middlewares.group.plugin.sablier.group=sablier
+    - traefik.http.middlewares.group.plugin.sablier.sablierUrl=http://sablier:10000
+    - traefik.http.middlewares.group.plugin.sablier.sessionDuration=1m
+    - traefik.http.middlewares.group.plugin.sablier.blocking.timeout=30s
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
+    networks:
+    - t2_proxy
+    - socket_proxy
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - $DOCKERDIR/appdata/sablier:/etc/sablier
+  socket-proxy:
+    container_name: socket-proxy
+    environment:
+    - LOG_LEVEL=info
+    - EVENTS=1
+    - PING=1
+    - VERSION=1
+    - AUTH=0
+    - SECRETS=0
+    - POST=1
+    - BUILD=0
+    - COMMIT=0
+    - CONFIGS=0
+    - CONTAINERS=1
+    - DISTRIBUTION=0
+    - EXEC=1
+    - IMAGES=1
+    - INFO=1
+    - NETWORKS=1
+    - NODES=0
+    - PLUGINS=0
+    - SERVICES=1
+    - SESSION=0
+    - SWARM=0
+    - SYSTEM=0
+    - TASKS=1
+    - VOLUMES=1
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:2375/version
+      timeout: 10s
+    image: tecnativa/docker-socket-proxy
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
+    networks:
+      socket_proxy:
+        ipv4_address: ${SOCKET_PROXY_IP:-192.168.91.254}
+    ports:
+    - 2375:2375
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+  traefik:
+    command:
+    - --global.checkNewVersion=true
+    - --global.sendAnonymousUsage=true
+    - --entryPoints.http.address=:80
+    - --entryPoints.https.address=:443
+    - --entrypoints.https.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS,$LOCAL_IPS
+    - --entryPoints.traefik.address=:8080
+    - --api=true
+    - --api.dashboard=true
+    - --log=true
+    - --log.filePath=/logs/traefik.log
+    - --log.level=INFO
+    - --accessLog=true
+    - --accessLog.filePath=/logs/access.log
+    - --accessLog.bufferingSize=1000
+    - --accessLog.filters.statusCodes=204-299,400-499,500-599
+    - --providers.docker=true
+    - --providers.docker.endpoint=tcp://socket-proxy:2375
+    - --providers.docker.exposedByDefault=false
+    - --entrypoints.https.http.tls.options=tls-opts@file
+    - --entrypoints.https.http.tls.certresolver=dns-cloudflare
+    - --entrypoints.https.http.tls.domains[0].main=$DOMAINNAME_CLOUD_SERVER
+    - --entrypoints.https.http.tls.domains[0].sans=*.$DOMAINNAME_CLOUD_SERVER
+    - --providers.docker.network=t2_proxy
+    - --providers.docker.swarmMode=false
+    - --providers.file.directory=/rules
+    - --providers.file.watch=true
+    - --certificatesResolvers.dns-cloudflare.acme.email=$CLOUDFLARE_EMAIL
+    - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
+    - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
+    - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+    - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.delayBeforeCheck=90
+    - --metrics.prometheus=true
+    - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+    - --metrics.prometheus.addEntryPointsLabels=true
+    - --metrics.prometheus.addrouterslabels=true
+    - --metrics.prometheus.addServicesLabels=true
+    - --metrics.influxdb2=true
+    - --metrics.influxdb2.address=http://${INFLUXDB_HOST:-192.168.1.111}:${INFLUXDB_PORT:-8086}
+    - --metrics.influxdb2.token=$INFLUXDB_TOKEN
+    - --metrics.influxdb2.org=${INFLUXDB_ORG:-zHome}
+    - --metrics.influxdb2.bucket=${INFLUXDB_BUCKET:-traefik-hs}
+    - --metrics.influxdb2.addEntryPointsLabels=true
+    - --metrics.influxdb2.addrouterslabels=true
+    - --metrics.influxdb2.addServicesLabels=true
+    - --metrics.influxdb2.pushInterval=30s
+    - --metrics.influxdb2.additionallabels.host=$DOMAINNAME_CLOUD_SERVER
+    - --experimental.plugins.sablier.modulename=github.com/acouvreur/sablier
+    - --experimental.plugins.sablier.version=v1.4.1-beta.5
+    - --experimental.plugins.fail2ban.modulename=github.com/tomMoulard/fail2ban
+    - --experimental.plugins.fail2ban.version=v0.6.6
+    container_name: traefik
+    environment:
+    - TZ=$TZ
+    - CF_API_EMAIL_FILE=/run/secrets/cf_email
+    - CF_API_KEY_FILE=/run/secrets/cf_api_key
+    - HTPASSWD_FILE=/run/secrets/htpasswd
+    - DOMAINNAME_CLOUD_SERVER
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - traefik
+      - healthcheck
+      - --ping
+      timeout: 10s
+    image: traefik:2.10
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.http-catchall.entrypoints=http
+    - traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)
+    - traefik.http.routers.http-catchall.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.routers.traefik-rtr.entrypoints=https
+    - traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME_CLOUD_SERVER`)
+    - traefik.http.routers.traefik-rtr.service=api@internal
+    - traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file
+    - homepage.group=Admin
+    - homepage.name=Traefik
+    - homepage.icon=traefik.png
+    - homepage.href=https://traefik.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Load Balancer stats
+    - homepage.weight=4
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
+    networks:
+      socket_proxy: null
+      t2_proxy:
+        ipv4_address: ${TRAEFIK_IP:-192.168.90.254}
+    ports:
+    - mode: host
+      protocol: tcp
+      published: 80
+      target: 80
+    - mode: host
+      protocol: tcp
+      published: 443
+      target: 443
+    - mode: host
+      protocol: tcp
+      published: ${TRAEFIK_DASHBOARD_PORT:-8085}
+      target: 8080
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    secrets:
+    - cf_email
+    - cf_api_key
+    - htpasswd
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - $DOCKERDIR/appdata/traefik2/rules/cloudserver:/rules
+    - $DOCKERDIR/appdata/traefik2/acme/acme.json:/acme.json
+    - $DOCKERDIR/logs/cloudserver/traefik:/logs

@@ -1,0 +1,191 @@
+services:
+  i2p:
+    container_name: i2p
+    image: geti2p/i2p
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.i2p-rtr.entrypoints=https
+    - traefik.http.routers.i2p-rtr.rule=Host(`i2p.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.i2p-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.i2p-rtr.service=i2p-svc
+    - traefik.http.services.i2p-svc.loadbalancer.server.port=7657
+    - homepage.group=Downloaders
+    - homepage.name=I2P
+    - homepage.icon=i2p.png
+    - homepage.href=https://i2p.${DOMAINNAME_CLOUD_SERVER}/
+    - homepage.description=I2P p2p client
+    networks:
+    - t2_proxy
+    ports:
+    - 4444:4444
+    - 7657:7657
+    profiles:
+    - p2p
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/i2p:/i2p/.i2p
+  ipfs:
+    container_name: ipfs
+    environment:
+    - IPFS_PATH=/data/ipfs
+    image: ipfs/kubo:latest
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.ipfs-rtr.entrypoints=https
+    - traefik.http.routers.ipfs-rtr.rule=Host(`ipfs.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.ipfs-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.ipfs-rtr.service=ipfs-svc
+    - traefik.http.services.ipfs-svc.loadbalancer.server.port=5001
+    - homepage.group=Downloaders
+    - homepage.name=IPFS
+    - homepage.icon=ipfs.png
+    - homepage.href=https://ipfs.${DOMAINNAME_CLOUD_SERVER}/webui
+    - homepage.description=IPFS Admin Dashboard
+    networks:
+    - t2_proxy
+    ports:
+    - 4001:4001/tcp
+    - 4001:4001/udp
+    - 5001:5001
+    - 7070:8080
+    profiles:
+    - p2p
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/ipfs:/data/ipfs
+    - $EXTDRIVE/ipfs:/ipfs
+    - $EXTDRIVE/ipns:/ipns
+  oauth:
+    container_name: oauth
+    environment:
+    - CONFIG=/config
+    - COOKIE_DOMAIN=${DOMAINNAME_CLOUD_SERVER}
+    - INSECURE_COOKIE=false
+    - AUTH_HOST=oauth.${DOMAINNAME_CLOUD_SERVER}
+    - URL_PATH=/_oauth
+    - LOG_LEVEL=warn
+    - LOG_FORMAT=text
+    - LIFETIME=86400
+    - DEFAULT_ACTION=auth
+    - DEFAULT_PROVIDER=google
+    image: thomseddon/traefik-forward-auth:latest
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.oauth-rtr.tls=true
+    - traefik.http.routers.oauth-rtr.entrypoints=https
+    - traefik.http.routers.oauth-rtr.rule=Host(`oauth.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.oauth-rtr.service=oauth-svc
+    - traefik.http.services.oauth-svc.loadbalancer.server.port=4181
+    networks:
+    - t2_proxy
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    secrets:
+    - source: traefik_forward_auth
+      target: /config
+  socket-proxy:
+    container_name: socket-proxy
+    environment:
+    - LOG_LEVEL=info
+    - EVENTS=1
+    - PING=1
+    - VERSION=1
+    - AUTH=0
+    - SECRETS=0
+    - POST=1
+    - BUILD=0
+    - COMMIT=0
+    - CONFIGS=0
+    - CONTAINERS=1
+    - DISTRIBUTION=0
+    - EXEC=1
+    - IMAGES=1
+    - INFO=1
+    - NETWORKS=1
+    - NODES=0
+    - PLUGINS=0
+    - SERVICES=1
+    - SESSION=0
+    - SWARM=0
+    - SYSTEM=0
+    - TASKS=1
+    - VOLUMES=1
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:2375/version
+      timeout: 10s
+    image: tecnativa/docker-socket-proxy
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
+    networks:
+      socket_proxy:
+        ipv4_address: ${SOCKET_PROXY_IP:-192.168.91.254}
+    ports:
+    - 2375:2375
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+  wg-easy:
+    cap_add:
+    - NET_ADMIN
+    - SYS_MODULE
+    container_name: wg-easy
+    environment:
+    - WG_HOST=$SERVER_IP
+    - PASSWORD=$WGEASY_PASSWORD
+    - WG_DEFAULT_ADDRESS=192.168.20.x
+    - WG_DEFAULT_DNS=1.1.1.1
+    - WG_ALLOWED_IPS=0.0.0.0/0
+    image: weejewel/wg-easy
+    networks:
+    - default
+    - t2_proxy
+    ports:
+    - 51820:51820/udp
+    - 51821:51821/tcp
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.src_valid_mark=1
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/wireguard:/etc/wireguard
+  zerotier:
+    cap_add:
+    - NET_ADMIN
+    - SYS_ADMIN
+    container_name: zerotier
+    devices:
+    - /dev/net/tun
+    image: zerotier/zerotier-synology:latest
+    network_mode: host
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/zerotier:/var/lib/zerotier-one

@@ -1,0 +1,114 @@
+services:
+  freshrss:
+    container_name: freshrss
+    environment:
+      CRON_MIN: 3,33
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TRUSTED_PROXY: 172.16.0.1/12 192.168.0.1/16 10.0.0.0/8
+      TZ: ${TZ:-UTC}
+    hostname: freshrss
+    image: freshrss/freshrss:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.freshrss-rtr.entrypoints=https
+    - traefik.http.routers.freshrss-rtr.rule=Host(`freshrss.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.freshrss-rtr.service=freshrss-svc
+    - traefik.http.services.freshrss-svc.loadbalancer.server.port=80
+    - homepage.group=Tools
+    - homepage.name=FreshRSS
+    - homepage.icon=freshrss.png
+    - homepage.href=https://freshrss.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Blog feeds
+    - homepage.weight=4
+    logging:
+      options:
+        max-size: 10m
+    networks:
+    - t2_proxy
+    ports:
+    - 8765:80
+    profiles:
+    - tools
+    - web
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/freshrss:/var/www/FreshRSS/data
+    - ${DOCKERDIR:-/opt/docker}/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
+  ladder:
+    container_name: ladder
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    environment:
+    - PORT=8091
+    - LOG_URLS=true
+    image: ghcr.io/kubero-dev/ladder:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.ladder-rtr.entrypoints=https
+    - traefik.http.routers.ladder-rtr.rule=Host(`ladder.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.ladder-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.ladder-rtr.service=ladder-svc
+    - traefik.http.services.ladder-svc.loadbalancer.server.port=8091
+    - homepage.group=Tools
+    - homepage.name=Ladder
+    - homepage.icon=ladder.png
+    - homepage.href=https://ladder.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Paywall bypass
+    networks:
+    - t2_proxy
+    ports:
+    - 8091:8091
+    profiles:
+    - tools
+    - web
+    - all
+    restart: unless-stopped
+  mercury:
+    container_name: mercury
+    image: wangqiru/mercury-parser-api
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.mercury-rtr.entrypoints=https
+    - traefik.http.routers.mercury-rtr.rule=Host(`mercury.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.mercury-rtr.service=mercury-svc
+    - traefik.http.services.mercury-svc.loadbalancer.server.port=3000
+    networks:
+    - t2_proxy
+    ports:
+    - 127.0.0.1:3001:3000
+    profiles:
+    - tools
+    - all
+    restart: unless-stopped
+  readability:
+    container_name: readability
+    image: phpdockerio/readability-js-server
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.readability-rtr.entrypoints=https
+    - traefik.http.routers.readability-rtr.rule=Host(`readability.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.readability-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.readability-rtr.service=readability-svc
+    - traefik.http.services.readability-svc.loadbalancer.server.port=3000
+    networks:
+    - t2_proxy
+    ports:
+    - 127.0.0.1:3000:3000
+    profiles:
+    - tools
+    - all
+    restart: unless-stopped

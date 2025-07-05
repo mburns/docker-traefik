@@ -1,0 +1,88 @@
+name: Lint and Format
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  yaml-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install yamllint
+      run: |
+        python -m pip install --upgrade pip
+        pip install yamllint
+        
+    - name: Run yamllint
+      run: |
+        echo "Linting YAML files..."
+        yamllint -c .yamllint -f github docker-compose*.yml
+        
+    - name: Find YAML files
+      uses: ./.github/actions/find-yaml-files
+      with:
+        pattern: "*.yml"
+        
+    - name: Check YAML syntax
+      run: |
+        echo "Checking YAML syntax..."
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            python -c "import yaml; yaml.safe_load(open('$file', 'r'))" 2>/dev/null
+            if [ $? -eq 0 ]; then
+              echo "✅ $file syntax is valid"
+            else
+              echo "❌ $file has syntax errors"
+              exit 1
+            fi
+          fi
+        done
+        
+    - name: Check for trailing whitespace
+      run: |
+        echo "Checking for trailing whitespace..."
+        found_trailing_whitespace=false
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            if grep -q " $" "$file"; then
+              echo "❌ $file contains trailing whitespace"
+              found_trailing_whitespace=true
+            fi
+          fi
+        done
+        
+        if [[ "$found_trailing_whitespace" == "true" ]]; then
+          echo "❌ Found trailing whitespace in YAML files"
+          exit 1
+        fi
+        
+        echo "✅ No trailing whitespace found"
+        
+    - name: Check for consistent indentation
+      run: |
+        echo "Checking for consistent indentation..."
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            # Check for mixed tabs and spaces
+            if grep -q $'\t' "$file"; then
+              echo "❌ $file contains tabs. Use spaces for indentation."
+              exit 1
+            fi
+          fi
+        done 

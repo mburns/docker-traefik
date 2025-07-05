@@ -1,0 +1,109 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+        
+    - name: Find YAML files
+      uses: ./.github/actions/find-yaml-files
+      with:
+        pattern: "*.yml"
+        
+    - name: Check for exposed secrets
+      run: |
+        echo "Checking for potential secrets in configuration files..."
+        
+        # Check for common secret patterns
+        found_secrets=false
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            # Skip secrets_example directory
+            if [[ "$file" == *"secrets_example"* ]]; then
+              continue
+            fi
+            
+            if grep -i -q "password\|secret\|key\|token" "$file"; then
+              echo "⚠️  Potential secrets found in $file:"
+              grep -i "password\|secret\|key\|token" "$file" | head -5
+              found_secrets=true
+            fi
+          fi
+        done
+        
+        if [[ "$found_secrets" == "true" ]]; then
+          echo "⚠️  Potential secrets found in configuration files"
+          echo "Review the above files for hardcoded secrets"
+        else
+          echo "✅ No obvious secrets found in configuration files"
+        fi
+        
+    - name: Check Docker socket access
+      run: |
+        echo "Checking for Docker socket access..."
+        found_docker_socket=false
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            if grep -q "/var/run/docker.sock" "$file"; then
+              echo "⚠️  Docker socket access found in $file:"
+              grep "/var/run/docker.sock" "$file"
+              found_docker_socket=true
+            fi
+          fi
+        done
+        
+        if [[ "$found_docker_socket" == "true" ]]; then
+          echo "⚠️  Found Docker socket access. Review security implications"
+        else
+          echo "✅ No Docker socket access found"
+        fi
+        
+    - name: Check for privileged containers
+      run: |
+        echo "Checking for privileged containers..."
+        found_privileged=false
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            if grep -q "privileged: true" "$file"; then
+              echo "⚠️  Privileged container found in $file:"
+              grep "privileged: true" "$file"
+              found_privileged=true
+            fi
+          fi
+        done
+        
+        if [[ "$found_privileged" == "true" ]]; then
+          echo "⚠️  Found privileged containers. Review security implications"
+        else
+          echo "✅ No privileged containers found"
+        fi 

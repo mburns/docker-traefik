@@ -1,0 +1,48 @@
+services:
+  # https://gitlab.torproject.org/tpo/anti-censorship/docker-obfs4-bridge/-/raw/main/docker-compose.yml
+  tor-bridge:
+    image: thetorproject/obfs4-bridge:latest
+    container_name: tor-bridge
+    profiles: ["all"]
+    networks:
+      # - obfs4_bridge_external_network
+      - t2_proxy
+    environment:
+      # Exit with an error message if TOR_OR_PORT is unset or empty.
+      - OR_PORT=${TOR_OR_PORT:-9001}
+      # Exit with an error message if TOR_PT_PORT is unset or empty.
+      - PT_PORT=${TOR_PT_PORT:-9002}
+      # Exit with an error message if EMAIL is unset or empty.
+      - EMAIL=${TOR_EMAIL:-tor@example.com}
+      # Nickname with default value: "DockerObfs4Bridge"
+      - NICKNAME=${NICKNAME:-DockerObfs4Bridge}
+    # volumes:
+      # - ${DOCKERDIR:-/opt/docker}/appdata/tor:/var/lib/tor
+    ports:
+      - ${TOR_OR_PORT:-9001}:${TOR_OR_PORT:-9001}
+      - ${TOR_PT_PORT:-9002}:${TOR_PT_PORT:-9002}
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.tor-bridge-rtr.entrypoints=https"
+      - "traefik.http.routers.tor-bridge-rtr.rule=Host(`bridge.${DOMAINNAME_CLOUD_SERVER}`)"
+      ## Middlewares
+      - "traefik.http.routers.tor-bridge-rtr.middlewares=chain-no-auth@file"
+      ## HTTP Services
+      - "traefik.http.routers.tor-bridge-rtr.service=tor-bridge-svc"
+      - "traefik.http.services.tor-bridge-svc.loadbalancer.server.port=${TOR_PT_PORT:-9002}"
+
+  # https://hub.docker.com/r/peterdavehello/tor-socks-proxy/
+  tor:
+    image: peterdavehello/tor-socks-proxy:latest
+    container_name: tor
+    restart: unless-stopped
+    profiles: ["all"]
+    # volumes:
+      # - ${DOCKERDIR:-/opt/docker}/appdata/tor:/var/lib/tor
+    networks:
+      - t2_proxy
+    ports:
+      - 9150:9150
+      # - 53:8853:udp

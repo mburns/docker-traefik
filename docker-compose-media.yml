@@ -1,0 +1,96 @@
+networks:
+  t2_proxy:
+    external: true
+services:
+  metube:
+    container_name: metube
+    environment:
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+    image: ghcr.io/alexta69/metube
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.metube-rtr.entrypoints=https
+    - traefik.http.routers.metube-rtr.rule=Host(`metube.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.metube-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.metube-rtr.service=metube-svc
+    - traefik.http.services.metube-svc.loadbalancer.server.port=8081
+    - homepage.group=Admin
+    - homepage.name=Metube
+    - homepage.href=https://metube.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Youtube frontend
+    - homepage.weight=1
+    networks:
+    - t2_proxy
+    ports:
+    - 8081:8081
+    profiles:
+    - media
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/metube:/data
+    - $DATADIR/Youtube:/downloads
+  picard:
+    container_name: picard
+    environment:
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+    image: mikenye/picard:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.picard-rtr.entrypoints=https
+    - traefik.http.routers.picard-rtr.rule=Host(`picard.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.picard-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.picard-rtr.service=picard-svc
+    - traefik.http.services.picard-svc.loadbalancer.server.port=5800
+    - homepage.group=Media
+    - homepage.name=Picard
+    - homepage.icon=picard.png
+    - homepage.href=https://picard.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Music Tagging
+    - homepage.weight=6
+    networks:
+    - t2_proxy
+    ports:
+    - 5800:5800
+    profiles:
+    - media
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/picard:/config
+    - $DATADIR/Music:/music
+  pinchflat:
+    environment:
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+    image: ghcr.io/kieraneglin/pinchflat:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.pinchflat-rtr.entrypoints=https
+    - traefik.http.routers.pinchflat-rtr.rule=Host(`pinchflat.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.pinchflat-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.pinchflat-rtr.service=pinchflat-svc
+    - traefik.http.services.pinchflat-svc.loadbalancer.server.port=8080
+    - homepage.group=Media
+    - homepage.name=Pinchflat
+    - homepage.icon=pinchflat.png
+    - homepage.href=https://pinchflat.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=YouTube RSS Feed Manager
+    - homepage.weight=4
+    networks:
+    - t2_proxy
+    profiles:
+    - media
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/pinchflat:/app/data

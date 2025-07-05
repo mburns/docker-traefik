@@ -1,0 +1,164 @@
+# Plex
+
+networks:
+  t2_proxy:
+    external: true
+
+services:
+  # Plex Meta Manager - Metadata Management
+  plex-meta-manager:
+    image: lscr.io/linuxserver/plex-meta-manager:latest
+    container_name: plex-meta-manager
+    restart: unless-stopped
+    profiles: ["media", "all"]
+    networks:
+      - t2_proxy
+    volumes:
+      - ${DOCKERDIR:-/opt/docker}/appdata/plex-meta-manager:/config
+      - ${DATADIR:-/data}:/data
+    environment:
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.plex-meta-manager-rtr.entrypoints=https"
+      - "traefik.http.routers.plex-meta-manager-rtr.rule=Host(`pmm.${DOMAINNAME_CLOUD_SERVER}`)"
+      ## Middlewares
+      - "traefik.http.routers.plex-meta-manager-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.plex-meta-manager-rtr.service=plex-meta-manager-svc"
+      - "traefik.http.services.plex-meta-manager-svc.loadbalancer.server.port=8000"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=Plex Meta Manager
+      - homepage.icon=plex-meta-manager.png
+      - homepage.href=https://pmm.${DOMAINNAME_CLOUD_SERVER}
+      - homepage.description=Metadata Management
+      - homepage.weight=7
+
+  # Plex Media Server
+  plex:
+    image: lscr.io/linuxserver/plex:latest  # was: plexinc/pms-docker:latest
+    container_name: plex
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "media", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "32400:32400"
+      - "3005:3005"
+      - "8324:8324"
+      - "32469:32469"
+    volumes:
+      - ${DOCKERDIR:-/opt/docker}/appdata/plex:/config
+      - ${DATADIR:-/data}:/data
+      # - ${EXTDRIVE:-/extdrive}:/extdrive
+      - /dev/dri:/dev/dri
+    environment:
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      PLEX_CLAIM: $PLEX_CLAIM
+      VERSION: latest
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:32400/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.plex-rtr.entrypoints=https"
+      - "traefik.http.routers.plex-rtr.rule=Host(`plex.${DOMAINNAME_CLOUD_SERVER}`)"
+      ## Middlewares
+      - "traefik.http.routers.plex-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.plex-rtr.service=plex-svc"
+      - "traefik.http.services.plex-svc.loadbalancer.server.port=32400"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=Plex
+      - homepage.icon=plex.png
+      - homepage.href=https://plex.${DOMAINNAME_CLOUD_SERVER}
+      - homepage.description=Media server
+      - homepage.weight=2
+      - sablier.enable=true
+      - sablier.group=media
+
+  # Tautulli - Plex Statistics
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "media", "all"]
+    networks:
+      - t2_proxy
+    ports:
+      - "8181:8181"
+    volumes:
+      - ${DOCKERDIR:-/opt/docker}/appdata/tautulli:/config
+      - ${DOCKERDIR:-/opt/docker}/appdata/plex/Library/Application Support/Plex Media Server/Logs:/logs:ro
+    environment:
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8181/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.tautulli-rtr.entrypoints=https"
+      - "traefik.http.routers.tautulli-rtr.rule=Host(`tautulli.${DOMAINNAME_CLOUD_SERVER}`)"
+      ## Middlewares
+      - "traefik.http.routers.tautulli-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.tautulli-rtr.service=tautulli-svc"
+      - "traefik.http.services.tautulli-svc.loadbalancer.server.port=8181"
+      ## Homepage
+      - homepage.group=Media
+      - homepage.name=Tautulli
+      - homepage.icon=tautulli.png
+      - homepage.href=https://tautulli.${DOMAINNAME_CLOUD_SERVER}
+      - homepage.description=Plex Statistics
+      - homepage.weight=8 

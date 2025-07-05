@@ -1,0 +1,394 @@
+services:
+  autoindex:
+    container_name: autoindex
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:80/
+      timeout: 10s
+    image: dceoy/nginx-autoindex:alpine
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.autoindex-rtr.entrypoints=https
+    - traefik.http.routers.autoindex-rtr.rule=Host(`index.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.autoindex-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.autoindex-rtr.service=autoindex-svc
+    - traefik.http.services.autoindex-svc.loadbalancer.server.port=80
+    - homepage.group=Admin
+    - homepage.name=Index
+    - homepage.icon=index.png
+    - homepage.href=https://index.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Downloads directory (read-only)
+    - homepage.weight=5
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
+    networks:
+    - t2_proxy
+    ports:
+    - ${AUTOINDEX_PORT:-8080}:80
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - ${MEDIADIR:-${DATADIR:-/data}}:/var/lib/nginx/html:ro
+  bytestash:
+    container_name: bytestash
+    environment:
+      ALLOW_NEW_ACCOUNTS: "false"
+      BASE_PATH: ""
+      DEBUG: "true"
+      DISABLE_ACCOUNTS: "true"
+      DISABLE_INTERNAL_ACCOUNTS: "false"
+      JWT_SECRET: your-secret
+      OIDC_ENABLED: "false"
+      TOKEN_EXPIRY: 24h
+    image: ghcr.io/jordan-dalby/bytestash:latest
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.bytestash-rtr.entrypoints=https
+    - traefik.http.routers.bytestash-rtr.rule=Host(`bytestash.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.bytestash-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.bytestash-rtr.service=bytestash-svc
+    - traefik.http.services.bytestash-svc.loadbalancer.server.port=5000
+    - homepage.group=Admin
+    - homepage.name=bytestash
+    - homepage.href=https://bytestash.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Stash text snippets
+    - homepage.weight=1
+    networks:
+    - t2_proxy
+    ports:
+    - 5180:5000
+    profiles:
+    - apps
+    - all
+    restart: always
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/bytestash:/data/snippets
+  dozzle:
+    container_name: dozzle
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      DOZZLE_FILTER: status=running
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+    image: amir20/dozzle:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.dozzle-rtr.entrypoints=https
+    - traefik.http.routers.dozzle-rtr.rule=Host(`dozzle.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.dozzle-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.dozzle-rtr.service=dozzle-svc
+    - traefik.http.services.dozzle-svc.loadbalancer.server.port=8080
+    - homepage.group=Admin
+    - homepage.name=Dozzle
+    - homepage.icon=dozzle.png
+    - homepage.href=https://dozzle.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Real-time Docker Log Viewer
+    networks:
+    - t2_proxy
+    - socket_proxy
+    ports:
+    - 8082:8080
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+  emulatorjs:
+    container_name: emulatorjs
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=Etc/UTC
+    image: lscr.io/linuxserver/emulatorjs:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.emulatorjs-rtr.entrypoints=https
+    - traefik.http.routers.emulatorjs-rtr.rule=Host(`emulatorjs.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.emulatorjs-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.emulatorjs-rtr.service=emulatorjs-svc
+    - traefik.http.services.emulatorjs-svc.loadbalancer.server.port=80
+    networks:
+    - t2_proxy
+    ports:
+    - 3006:3000
+    - 8087:80
+    - 4002:4001
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/emulatorjs:/config
+    - $EXTDRIVE/Dropbox/roms:/data
+  filebrowser:
+    container_name: filebrowser
+    environment:
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+    image: filebrowser/filebrowser:s6
+    labels:
+    - sablier.enable=true
+    - traefik.enable=true
+    - traefik.http.routers.filebrowser-rtr.entrypoints=https
+    - traefik.http.routers.filebrowser-rtr.rule=Host(`fb.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.filebrowser-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.filebrowser-rtr.service=filebrowser-svc
+    - traefik.http.services.filebrowser-svc.loadbalancer.server.port=80
+    networks:
+    - t2_proxy
+    ports:
+    - 81:80
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/config:/config
+    - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/database:/database
+    - ${EXTDRIVE:-/extdrive}:/data
+  glances:
+    container_name: glances
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      GLANCES_OPT: -w
+    image: nicolargo/glances:latest-full
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.glances-rtr.entrypoints=https
+    - traefik.http.routers.glances-rtr.rule=Host(`glances.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.glances-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.glances-rtr.service=glances-svc
+    - traefik.http.services.glances-svc.loadbalancer.server.port=61208
+    networks:
+    - t2_proxy
+    - socket_proxy
+    - default
+    pid: host
+    ports:
+    - 61208:61208
+    profiles:
+    - monitoring
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/glances/glances.conf:/glances/conf/glances.conf
+    - ${DATADIR:-/data}:/data/data:ro
+    - ${DOCKERDIR:-/opt/docker}:/data/docker:ro
+  it-tools:
+    container_name: it-tools
+    image: corentinth/it-tools
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.it-tools-rtr.entrypoints=https
+    - traefik.http.routers.it-tools-rtr.rule=Host(`tools.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.it-tools-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.it-tools-rtr.service=it-tools-svc
+    - traefik.http.services.it-tools-svc.loadbalancer.server.port=80
+    - homepage.group=Tools
+    - homepage.name=IT Tools
+    - homepage.icon=tools.png
+    - homepage.href=https://tools.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Random IT Tools
+    - homepage.weight=3
+    networks:
+    - t2_proxy
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+  qdirstat:
+    container_name: qdirstat
+    environment:
+      CLEAN_TMP_DIR: 1
+      DISPLAY_HEIGHT: 960
+      DISPLAY_WIDTH: 1600
+      GROUP_ID: ${PGID:-1000}
+      KEEP_APP_RUNNING: 1
+      TZ: ${TZ:-UTC}
+      UMASK: 2
+      USER_ID: ${PUID:-1000}
+      VNC_PASSWORD: $QDIRSTAT_VNC_PASSWD
+    image: jlesage/qdirstat:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.qdirstat-rtr.entrypoints=https
+    - traefik.http.routers.qdirstat-rtr.rule=Host(`qdir.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.qdirstat-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.qdirstat-rtr.service=qdirstat-svc
+    - traefik.http.services.qdirstat-svc.loadbalancer.server.port=5800
+    networks:
+    - t2_proxy
+    ports:
+    - 5800:5800
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    volumes:
+    - /volume1:/storage:ro
+    - ${DOCKERDIR:-/opt/docker}/appdata/qdirstat/config:/config:rw
+  scrutiny:
+    cap_add:
+    - SYS_RAWIO
+    container_name: scrutiny
+    devices:
+    - /dev/sda
+    - /dev/nvme0
+    image: ghcr.io/analogj/scrutiny:master-omnibus
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.scrutiny-rtr.entrypoints=https
+    - traefik.http.routers.scrutiny-rtr.rule=Host(`scrutiny.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.scrutiny-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.scrutiny-rtr.service=scrutiny-svc
+    - traefik.http.services.scrutiny-svc.loadbalancer.server.port=8080
+    - homepage.group=Admin
+    - homepage.name=Scrutiny
+    - homepage.icon=scrutiny.png
+    - homepage.href=https://scrutiny.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Hard Drive S.M.A.R.T Monitoring
+    - homepage.weight=5
+    networks:
+    - t2_proxy
+    ports:
+    - 9004:8080
+    profiles:
+    - apps
+    - admin
+    - all
+    volumes:
+    - /run/udev:/run/udev:ro
+    - ${DOCKERDIR:-/opt/docker}/appdata/scrutiny:/opt/scrutiny/config
+    - ${DOCKERDIR:-/opt/docker}/appdata/influxdb2:/opt/scrutiny/influxdb
+  serge:
+    container_name: serge
+    image: ghcr.io/serge-chat/serge:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.serge-rtr.entrypoints=https
+    - traefik.http.routers.serge-rtr.rule=Host(`serge.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.serge-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.serge-rtr.service=serge-svc
+    - traefik.http.services.serge-svc.loadbalancer.server.port=8008
+    networks:
+    - t2_proxy
+    ports:
+    - 8009:8008
+    profiles:
+    - apps
+    - tool
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/serge:/serge/db
+    - $EXTDRIVE/weights:/usr/src/app/weights
+  sitespeed:
+    container_name: sitespeed
+    image: dceoy/nginx-autoindex:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.sitespeed-rtr.entrypoints=https
+    - traefik.http.routers.sitespeed-rtr.rule=Host(`sitespeed.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.sitespeed-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.sitespeed-rtr.service=sitespeed-svc
+    - traefik.http.services.sitespeed-svc.loadbalancer.server.port=80
+    networks:
+    - t2_proxy
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/sitespeed:/var/lib/nginx/html:ro
+  uptime-kuma:
+    container_name: uptime-kuma
+    image: louislam/uptime-kuma
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.uptime-kuma-rtr.entrypoints=https
+    - traefik.http.routers.uptime-kuma-rtr.rule=Host(`kuma.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.uptime-kuma-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.uptime-kuma-rtr.service=uptime-kuma-svc
+    - traefik.http.services.uptime-kuma-svc.loadbalancer.server.port=3001
+    networks:
+    - t2_proxy
+    - default
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/uptime-kuma:/app/data
+  whoami:
+    container_name: whoami
+    image: traefik/whoami
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.whoami-rtr.entrypoints=https
+    - traefik.http.routers.whoami-rtr.rule=Host(`whoami.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.whoami-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.whoami-rtr.service=whoami-svc
+    - traefik.http.services.whoami-svc.loadbalancer.server.port=80
+    networks:
+    - t2_proxy
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+  whodb:
+    image: clidey/whodb
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.whodb-rtr.entrypoints=https
+    - traefik.http.routers.whodb-rtr.rule=Host(`whodb.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.whodb-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.whodb-rtr.service=whodb-svc
+    - traefik.http.services.whodb-svc.loadbalancer.server.port=8080
+    - homepage.group=Admin
+    - homepage.name=whodb
+    - homepage.href=https://whodb.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=DB Exploration tool
+    - homepage.weight=1
+    networks:
+    - t2_proxy
+    ports:
+    - 9134:8080
+    profiles:
+    - apps
+    - all
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/whodb:/db

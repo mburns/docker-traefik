@@ -1,0 +1,55 @@
+extends: default
+
+ignore: |
+  appdata/*
+  ./appdata/crowdsec/config/local_api_credentials.yaml
+
+rules:
+  # 80 chars should be enough, but don't fail if a line is longer
+  line-length: disable
+  
+  # Allow both `on` and `On` in keys
+  truthy:
+    check-keys: false
+    
+  # Allow comments
+  comments-indentation: disable
+  
+  # Allow trailing spaces in some cases
+  trailing-spaces: disable
+  
+  # Allow empty lines at end of file
+  document-end: disable
+  
+  # Allow multiple documents in one file
+  document-start: disable
+  
+  # Allow unquoted strings
+  quoted-strings: disable
+  
+  # Allow flow style
+  #flow-style: disable
+  
+  # Allow anchors and aliases
+  #anchors: disable
+  
+  # Allow block scalar styles
+  #block-mapping: disable
+  
+  # Allow flow mapping
+  #flow-mapping: disable
+  
+  # Allow flow sequence
+  #flow-sequence: disable
+  
+  # Allow indentation
+  indentation: disable
+  
+  # Allow key ordering
+  key-duplicates: enable
+  
+  # Allow new line at end of file
+  new-line-at-end-of-file: disable
+  
+  # Allow new lines
+  new-lines: disable

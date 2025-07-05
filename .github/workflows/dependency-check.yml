@@ -1,0 +1,108 @@
+name: Dependency Check
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 3 * * 1' # Weekly on Monday at 3 AM
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Find Docker Compose files
+      uses: ./.github/actions/find-yaml-files
+      with:
+        pattern: "docker-compose*.yml"
+        
+    - name: Extract Docker images
+      run: |
+        echo "Extracting Docker images from compose files..."
+        echo "$FOUND_FILES" | while read file; do
+          if [[ -n "$file" ]]; then
+            echo "Processing $file..."
+            docker compose -f "$file" config | grep "image:" | sed 's/.*image: //' | sort -u >> images.txt
+          fi
+        done
+        
+        echo "Found images:"
+        cat images.txt
+        
+    - name: Check for latest tags
+      run: |
+        echo "Checking for 'latest' tags..."
+        if grep ":latest" images.txt; then
+          echo "⚠️  Found images with 'latest' tags:"
+          grep ":latest" images.txt
+          echo "Consider pinning to specific versions for better stability."
+        fi
+        
+    - name: Check image vulnerabilities
+      run: |
+        echo "Checking for known vulnerabilities in images..."
+        while read image; do
+          if [[ "$image" != "" ]]; then
+            echo "Checking $image..."
+            trivy image --severity HIGH,CRITICAL "$image" || true
+          fi
+        done < images.txt
+        
+    - name: Check for deprecated images
+      run: |
+        echo "Checking for potentially deprecated images..."
+        
+        # List of known deprecated or problematic images
+        deprecated_images=(
+          "alpine:3.12"
+          "alpine:3.13"
+          "alpine:3.14"
+          "nginx:1.19"
+          "nginx:1.20"
+        )
+        
+        for deprecated in "${deprecated_images[@]}"; do
+          if grep -q "$deprecated" images.txt; then
+            echo "⚠️  Found potentially deprecated image: $deprecated"
+          fi
+        done
+        
+    - name: Generate dependency report
+      run: |
+        echo "Generating dependency report..."
+        echo "# Docker Image Dependencies" > dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Images Used" >> dependency-report.md
+        echo "" >> dependency-report.md
+        while read image; do
+          if [[ "$image" != "" ]]; then
+            echo "- \`$image\`" >> dependency-report.md
+          fi
+        done < images.txt
+        
+        echo "" >> dependency-report.md
+        echo "## Recommendations" >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "1. Pin all images to specific versions" >> dependency-report.md
+        echo "2. Regularly update images for security patches" >> dependency-report.md
+        echo "3. Use multi-stage builds where possible" >> dependency-report.md
+        echo "4. Consider using distroless images for better security" >> dependency-report.md
+        
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report
+        path: dependency-report.md 

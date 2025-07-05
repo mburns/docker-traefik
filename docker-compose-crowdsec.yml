@@ -1,0 +1,49 @@
+services:
+  cloudflare-bouncer:
+    container_name: cloudflare-bouncer
+    image: crowdsecurity/cloudflare-bouncer
+    networks:
+    - t2_proxy
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+  crowdsec:
+    container_name: crowdsec
+    environment:
+      AGENT_PASSWORD: $CROWDSEC_AGENT_PASSWORD
+      AGENT_USERNAME: $CROWDSEC_AGENT_USERNAME
+      COLLECTIONS: crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors
+        crowdsecurity/iptables crowdsecurity/linux fulljackz/proxmox
+      CUSTOM_HOSTNAME: home-server
+      DISABLE_LOCAL_API: "true"
+      GID: ${GID-1000}
+      LOCAL_API_URL: $CROWDSEC_LOCAL_API_URL
+    image: crowdsecurity/crowdsec
+    ports:
+    - 8008:8080
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/logs/cloudserver:/logs/cloudserver:ro
+    - /var/log:/var/log:ro
+    - $EXTDRIVE/zbox/var/log:/logs/zbox:ro
+    - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/data:/var/lib/crowdsec/data
+    - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/config:/etc/crowdsec
+  traefik-bouncer:
+    container_name: traefik-bouncer
+    environment:
+      CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT
+      CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
+      GIN_MODE: release
+    image: fbonalair/traefik-crowdsec-bouncer
+    networks:
+    - t2_proxy
+    profiles:
+    - core
+    - all
+    restart: unless-stopped

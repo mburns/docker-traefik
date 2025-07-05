@@ -1,0 +1,79 @@
+x-common-environment:
+  environment:
+    PGID: ${PGID:-1000}
+    PUID: ${PUID:-1000}
+    TZ: ${TZ:-UTC}
+x-common-healthcheck:
+  healthcheck:
+    interval: 30s
+    retries: 3
+    start_period: 40s
+    test:
+    - CMD
+    - wget
+    - --no-verbose
+    - --tries=1
+    - --spider
+    - http://localhost:${HEALTH_CHECK_PORT:-80}/
+    timeout: 10s
+x-common-homepage:
+  labels:
+  - homepage.group=${HOMEPAGE_GROUP:-Tools}
+  - homepage.name=${HOMEPAGE_NAME}
+  - homepage.icon=${HOMEPAGE_ICON:-default.png}
+  - homepage.href=https://${SERVICE_NAME}.${DOMAINNAME_CLOUD_SERVER}
+  - homepage.description=${HOMEPAGE_DESCRIPTION}
+  - homepage.weight=${HOMEPAGE_WEIGHT:-5}
+x-common-logging:
+  logging:
+    driver: json-file
+    options:
+      max-file: "3"
+      max-size: 10m
+      tag: '{{.Name}}'
+x-common-resources:
+  deploy:
+    resources:
+      limits:
+        cpus: "0.5"
+        memory: 512M
+      reservations:
+        cpus: "0.25"
+        memory: 256M
+x-common-resources-high:
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 1G
+      reservations:
+        cpus: "0.5"
+        memory: 512M
+x-common-resources-low:
+  deploy:
+    resources:
+      limits:
+        cpus: "0.25"
+        memory: 256M
+      reservations:
+        cpus: "0.1"
+        memory: 128M
+x-common-sablier:
+  labels:
+  - sablier.enable=true
+  - sablier.group=mygroup
+x-common-security:
+  read_only: false
+  security_opt:
+  - no-new-privileges:true
+  tmpfs:
+  - /tmp
+  - /var/tmp
+x-common-traefik:
+  labels:
+  - traefik.enable=true
+  - traefik.http.routers.${SERVICE_NAME}-rtr.entrypoints=https
+  - traefik.http.routers.${SERVICE_NAME}-rtr.rule=Host(`${SERVICE_NAME}.${DOMAINNAME_CLOUD_SERVER}`)
+  - traefik.http.routers.${SERVICE_NAME}-rtr.middlewares=chain-oauth@file
+  - traefik.http.routers.${SERVICE_NAME}-rtr.service=${SERVICE_NAME}-svc
+  - traefik.http.services.${SERVICE_NAME}-svc.loadbalancer.server.port=${SERVICE_PORT:-80}

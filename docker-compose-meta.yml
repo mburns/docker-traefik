@@ -1,0 +1,93 @@
+services:
+  certdumper:
+    container_name: traefik_certdumper
+    environment:
+      DOMAIN: ${DOMAINNAME_CLOUD_SERVER}
+    image: humenius/traefik-certs-dumper:latest
+    network_mode: none
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/traefik2/acme:/traefik:ro
+    - ${DOCKERDIR:-/opt/docker}/shared/certs/${DOMAINNAME_CLOUD_SERVER}:/output:rw
+  ddns-updater:
+    container_name: ddns-updater
+    environment:
+      BACKUP_DIRECTORY: /updater/data/backups
+      BACKUP_PERIOD: 96h
+      HTTP_TIMEOUT: 10s
+      LISTENING_PORT: 8000
+      LOG_LEVEL: info
+      PERIOD: 12h
+      PGID: ${PGID:-1000}
+      PUBLICIP_DNS_TIMEOUT: 3s
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+      UPDATE_COOLDOWN_PERIOD: 5m
+    image: qmcgaw/ddns-updater
+    network_mode: bridge
+    ports:
+    - 8000:8000/tcp
+    profiles:
+    - core
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/ddns-updater:/updater/data
+  deunhealth:
+    container_name: deunhealth
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      HEALTH_SERVER_ADDRESS: 127.0.0.1:9999
+      LOG_LEVEL: info
+      TZ: ${TZ:-UTC}
+    image: qmcgaw/deunhealth
+    networks:
+    - socket_proxy
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+  dockergc:
+    container_name: docker-gc
+    environment:
+      CLEAN_UP_VOLUMES: 1
+      CRON: 0 0 0 * * ?
+      DOCKER_HOST: tcp://socket-proxy:2375
+      DRY_RUN: 0
+      FORCE_CONTAINER_REMOVAL: 0
+      FORCE_IMAGE_REMOVAL: 1
+      GRACE_PERIOD_SECONDS: 604800
+      TZ: ${TZ:-UTC}
+    image: clockworksoul/docker-gc-cron:latest
+    networks:
+    - socket_proxy
+    profiles:
+    - apps
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
+  watchtower:
+    container_name: watchtower
+    depends_on:
+    - socket-proxy
+    environment:
+      DOCKER_API_VERSION: "1.40"
+      DOCKER_HOST: tcp://socket-proxy:2375
+      TZ: ${TZ:-UTC}
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "true"
+      WATCHTOWER_NO_STARTUP_MESSAGE: "false"
+      WATCHTOWER_NOTIFICATIONS_LEVEL: info
+      WATCHTOWER_REMOVE_VOLUMES: "true"
+      WATCHTOWER_SCHEDULE: 0 30 12 * * *
+    image: containrrr/watchtower
+    networks:
+    - socket_proxy
+    profiles:
+    - meta
+    - all
+    restart: unless-stopped
