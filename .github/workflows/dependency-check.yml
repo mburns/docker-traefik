@@ -23,9 +23,13 @@ jobs:
     - name: Extract Docker images
       run: |
         echo "Extracting Docker images from compose files..."
-        find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | while read file; do
+        find . -type f \( -name "docker-compose*.yml" -o -name "docker-compose*.yaml" \) \
+          ! -path "./appdata/*" \
+          ! -path "./data/*" \
+          ! -path "./secrets/*" \
+          ! -path "./.git/*" | while read file; do
           echo "Processing $file..."
-          docker-compose -f "$file" config | grep "image:" | sed 's/.*image: //' | sort -u >> images.txt
+          docker compose -f "$file" config | grep "image:" | sed 's/.*image: //' | sort -u >> images.txt
         done
         
         echo "Found images:"

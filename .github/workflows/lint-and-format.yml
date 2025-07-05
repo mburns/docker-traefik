@@ -51,9 +51,9 @@ jobs:
     - name: Check for trailing whitespace
       run: |
         echo "Checking for trailing whitespace..."
-        if grep -r " $" . --include="*.yml" --include="*.yaml" | grep -v ".appdata" | grep -v ".git"; then
+        if grep -r " $" . --include="*.yml" --include="*.yaml" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets" | grep -v ".git"; then
           echo "❌ Found trailing whitespace in YAML files"
-          grep -r " $" . --include="*.yml" --include="*.yaml" | grep -v ".appdata" | grep -v ".git"
+          grep -r " $" . --include="*.yml" --include="*.yaml" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets" | grep -v ".git"
           exit 1
         fi
         

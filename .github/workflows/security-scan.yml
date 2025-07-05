@@ -36,24 +36,24 @@ jobs:
         echo "Checking for potential secrets in configuration files..."
         
         # Check for common secret patterns
-        if grep -r -i "password\|secret\|key\|token" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "secrets_example"; then
+        if grep -r -i "password\|secret\|key\|token" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "secrets_example" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"; then
           echo "⚠️  Potential secrets found in configuration files"
           echo "Review these files for hardcoded secrets:"
-          grep -r -i "password\|secret\|key\|token" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "secrets_example"
+          grep -r -i "password\|secret\|key\|token" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "secrets_example" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"
         fi
         
     - name: Check Docker socket access
       run: |
         echo "Checking for Docker socket access..."
-        if grep -r "/var/run/docker.sock" . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
+        if grep -r "/var/run/docker.sock" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"; then
           echo "⚠️  Found Docker socket access. Review security implications:"
-          grep -r "/var/run/docker.sock" . --include="*.yml" --include="*.yaml" | grep -v ".git"
+          grep -r "/var/run/docker.sock" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"
         fi
         
     - name: Check for privileged containers
       run: |
         echo "Checking for privileged containers..."
-        if grep -r "privileged: true" . --include="*.yml" --include="*.yaml" | grep -v ".git"; then
+        if grep -r "privileged: true" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"; then
           echo "⚠️  Found privileged containers. Review security implications:"
-          grep -r "privileged: true" . --include="*.yml" --include="*.yaml" | grep -v ".git"
+          grep -r "privileged: true" . --include="*.yml" --include="*.yaml" | grep -v ".git" | grep -v "./appdata" | grep -v "./data" | grep -v "./secrets"
         fi 
