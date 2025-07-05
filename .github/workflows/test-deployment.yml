@@ -15,9 +15,24 @@ jobs:
       matrix:
         compose-file:
           - docker-compose.yml
-          - docker-compose-media.yml
-          - docker-compose-web.yml
-          - docker-compose-tools.yml
+          # - docker-compose-services/arr.yml
+          # - docker-compose-services/books.yml
+          - docker-compose-services/common.yml
+          # - docker-compose-services/crowdsec.yml
+          - docker-compose-services/datastore.yml
+          # - docker-compose-services/downloads.yml
+          - docker-compose-services/media.yml
+          - docker-compose-services/meta.yml
+          - docker-compose-services/metrics.yml
+          - docker-compose-services/monitoring.yml
+          - docker-compose-services/net.yml
+          # - docker-compose-services/plex.yml
+          - docker-compose-services/readabilitiy.yml
+          # - docker-compose-services/security.yml
+          - docker-compose-services/tools.yml
+          # - docker-compose-services/tor.yml
+          # - docker-compose-services/usenet.yml
+          - docker-compose-services/web.yml
 
     steps:
     - name: Checkout code
