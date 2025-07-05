@@ -7,6 +7,10 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-compose:
     runs-on: ubuntu-latest
@@ -28,7 +32,16 @@ jobs:
         echo "$FOUND_FILES" | while read file; do
           if [[ -n "$file" ]]; then
             echo "Validating $file..."
-            docker compose -f "$file" config > /dev/null
+            
+            # Check if env.example exists and use it for validation
+            if [ -f "env.example" ]; then
+              echo "Using env.example for validation..."
+              docker compose -f "$file" --env-file env.example config > /dev/null
+            else
+              echo "No env.example found, validating without environment file..."
+              docker compose -f "$file" config > /dev/null
+            fi
+            
             if [ $? -eq 0 ]; then
               echo "✅ $file is valid"
             else
