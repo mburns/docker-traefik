@@ -33,7 +33,11 @@ jobs:
     - name: Check YAML syntax
       run: |
         echo "Checking YAML syntax..."
-        find . \( -path "./appdata" -prune -o -path "./data" -prune -o -path "./secrets" -prune -o -path "./.git" -prune -o -type f \( -name "*.yml" -o -name "*.yaml" \) \) | while read file; do
+        find . -type f \( -name "*.yml" -o -name "*.yaml" \) | while read file; do
+          # Skip files in excluded directories
+          if [[ "$file" == *"/.git/"* ]] || [[ "$file" == *"/appdata/"* ]] || [[ "$file" == *"/data/"* ]] || [[ "$file" == *"/secrets/"* ]]; then
+            continue
+          fi
           
           python -c "import yaml; yaml.safe_load(open('$file', 'r'))" 2>/dev/null
           if [ $? -eq 0 ]; then
@@ -56,7 +60,11 @@ jobs:
     - name: Check for consistent indentation
       run: |
         echo "Checking for consistent indentation..."
-        find . \( -path "./appdata" -prune -o -path "./data" -prune -o -path "./secrets" -prune -o -path "./.git" -prune -o -type f \( -name "*.yml" -o -name "*.yaml" \) \) | while read file; do
+        find . -type f \( -name "*.yml" -o -name "*.yaml" \) | while read file; do
+          # Skip files in excluded directories
+          if [[ "$file" == *"/.git/"* ]] || [[ "$file" == *"/appdata/"* ]] || [[ "$file" == *"/data/"* ]] || [[ "$file" == *"/secrets/"* ]]; then
+            continue
+          fi
 
           # Check for mixed tabs and spaces
           if grep -q $'\t' "$file"; then
