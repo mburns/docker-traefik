@@ -2,106 +2,106 @@ networks:
   t2_proxy:
     external: true
 services:
-  grafana:
-    container_name: grafana
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: $GRAFANA_PASSWORD
-      TZ: ${TZ:-UTC}
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:3000/api/health
-      timeout: 10s
-    image: grafana/grafana:latest
-    labels:
-    - sablier.enable=true
-    - sablier.group=mygroup
-    - traefik.enable=true
-    - traefik.http.routers.grafana-rtr.entrypoints=https
-    - traefik.http.routers.grafana-rtr.rule=Host(`grafana.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.grafana-rtr.service=grafana-svc
-    - traefik.http.services.grafana-svc.loadbalancer.server.port=3000
-    - homepage.group=Monitoring
-    - homepage.name=Grafana
-    - homepage.icon=grafana.png
-    - homepage.href=https://grafana.${DOMAINNAME_CLOUD_SERVER}
-    - homepage.description=Metrics dashboard
-    - homepage.weight=1
-    logging:
-      driver: json-file
-      options:
-        max-file: "3"
-        max-size: 10m
-        tag: '{{.Name}}'
-    networks:
-    - t2_proxy
-    ports:
-    - ${GRAFANA_PORT:-3000}:3000
-    profiles:
-    - monitoring
-    - all
-    restart: unless-stopped
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/grafana:/var/lib/grafana
-  influxdb:
-    container_name: influxdb
-    environment:
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: $INFLUXDB_TOKEN
-      DOCKER_INFLUXDB_INIT_BUCKET: $INFLUXDB_BUCKET
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_ORG: $INFLUXDB_ORG
-      DOCKER_INFLUXDB_INIT_PASSWORD: $INFLUXDB_PASSWORD
-      DOCKER_INFLUXDB_INIT_USERNAME: $INFLUXDB_USERNAME
-      TZ: ${TZ:-UTC}
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - influx
-      - ping
-      timeout: 10s
-    image: influxdb:2.7
-    labels:
-    - sablier.enable=true
-    - sablier.group=mygroup
-    - traefik.enable=true
-    - traefik.http.routers.influxdb-rtr.entrypoints=https
-    - traefik.http.routers.influxdb-rtr.rule=Host(`influxdb.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.influxdb-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.influxdb-rtr.service=influxdb-svc
-    - traefik.http.services.influxdb-svc.loadbalancer.server.port=8086
-    - homepage.group=Monitoring
-    - homepage.name=InfluxDB
-    - homepage.icon=influxdb.png
-    - homepage.href=https://influxdb.${DOMAINNAME_CLOUD_SERVER}
-    - homepage.description=Time series database
-    - homepage.weight=3
-    logging:
-      driver: json-file
-      options:
-        max-file: "3"
-        max-size: 10m
-        tag: '{{.Name}}'
-    networks:
-    - t2_proxy
-    ports:
-    - ${INFLUXDB_PORT:-8086}:8086
-    profiles:
-    - monitoring
-    - all
-    restart: unless-stopped
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/influxdb:/var/lib/influxdb2
+  # grafana:
+  #   container_name: grafana
+  #   environment:
+  #     GF_SECURITY_ADMIN_PASSWORD: $GRAFANA_PASSWORD
+  #     TZ: ${TZ:-UTC}
+  #   healthcheck:
+  #     interval: 30s
+  #     retries: 3
+  #     start_period: 40s
+  #     test:
+  #     - CMD
+  #     - wget
+  #     - --no-verbose
+  #     - --tries=1
+  #     - --spider
+  #     - http://localhost:3000/api/health
+  #     timeout: 10s
+  #   image: grafana/grafana:latest
+  #   labels:
+  #   - sablier.enable=true
+  #   - sablier.group=mygroup
+  #   - traefik.enable=true
+  #   - traefik.http.routers.grafana-rtr.entrypoints=https
+  #   - traefik.http.routers.grafana-rtr.rule=Host(`grafana.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.grafana-rtr.service=grafana-svc
+  #   - traefik.http.services.grafana-svc.loadbalancer.server.port=3000
+  #   - homepage.group=Monitoring
+  #   - homepage.name=Grafana
+  #   - homepage.icon=grafana.png
+  #   - homepage.href=https://grafana.${DOMAINNAME_CLOUD_SERVER}
+  #   - homepage.description=Metrics dashboard
+  #   - homepage.weight=1
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-file: "3"
+  #       max-size: 10m
+  #       tag: '{{.Name}}'
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - ${GRAFANA_PORT:-3000}:3000
+  #   profiles:
+  #   - monitoring
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/grafana:/var/lib/grafana
+  # influxdb:
+  #   container_name: influxdb
+  #   environment:
+  #     DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: $INFLUXDB_TOKEN
+  #     DOCKER_INFLUXDB_INIT_BUCKET: $INFLUXDB_BUCKET
+  #     DOCKER_INFLUXDB_INIT_MODE: setup
+  #     DOCKER_INFLUXDB_INIT_ORG: $INFLUXDB_ORG
+  #     DOCKER_INFLUXDB_INIT_PASSWORD: $INFLUXDB_PASSWORD
+  #     DOCKER_INFLUXDB_INIT_USERNAME: $INFLUXDB_USERNAME
+  #     TZ: ${TZ:-UTC}
+  #   healthcheck:
+  #     interval: 30s
+  #     retries: 3
+  #     start_period: 40s
+  #     test:
+  #     - CMD
+  #     - influx
+  #     - ping
+  #     timeout: 10s
+  #   image: influxdb:2.7
+  #   labels:
+  #   - sablier.enable=true
+  #   - sablier.group=mygroup
+  #   - traefik.enable=true
+  #   - traefik.http.routers.influxdb-rtr.entrypoints=https
+  #   - traefik.http.routers.influxdb-rtr.rule=Host(`influxdb.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.influxdb-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.influxdb-rtr.service=influxdb-svc
+  #   - traefik.http.services.influxdb-svc.loadbalancer.server.port=8086
+  #   - homepage.group=Monitoring
+  #   - homepage.name=InfluxDB
+  #   - homepage.icon=influxdb.png
+  #   - homepage.href=https://influxdb.${DOMAINNAME_CLOUD_SERVER}
+  #   - homepage.description=Time series database
+  #   - homepage.weight=3
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-file: "3"
+  #       max-size: 10m
+  #       tag: '{{.Name}}'
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - ${INFLUXDB_PORT:-8086}:8086
+  #   profiles:
+  #   - monitoring
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/influxdb:/var/lib/influxdb2
   loki:
     command: -config.file=/etc/loki/local-config.yaml
     container_name: loki

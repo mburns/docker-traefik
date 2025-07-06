@@ -66,6 +66,19 @@ services:
     - ${DOCKERDIR:-/opt/docker}/appdata/picard:/config
     - $DATADIR/Music:/music
   pinchflat:
+    container_name: pinchflat
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:8080/
+      timeout: 10s
     environment:
       PGID: ${PGID:-1000}
       PUID: ${PUID:-1000}

@@ -72,22 +72,40 @@ services:
     - ${DOCKERDIR:-/opt/docker}/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
   watchtower:
     container_name: watchtower
-    depends_on:
-    - socket-proxy
+    command:
+    - --cleanup
+    - --schedule=0 0 2 * * *
+    - --label-enable
+    - --include-stopped
+    - --revive-stopped
+    - --remove-volumes
+    - --notifications=shoutrrr
+    # - --notification-url=$WATCHTOWER_NOTIFICATION_URL
     environment:
-      DOCKER_API_VERSION: "1.40"
       DOCKER_HOST: tcp://socket-proxy:2375
       TZ: ${TZ:-UTC}
-      WATCHTOWER_CLEANUP: "true"
-      WATCHTOWER_INCLUDE_STOPPED: "true"
-      WATCHTOWER_NO_STARTUP_MESSAGE: "false"
-      WATCHTOWER_NOTIFICATIONS_LEVEL: info
-      WATCHTOWER_REMOVE_VOLUMES: "true"
-      WATCHTOWER_SCHEDULE: 0 30 12 * * *
-    image: containrrr/watchtower
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - pgrep
+      - watchtower
+      timeout: 10s
+    image: containrrr/watchtower:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
     networks:
     - socket_proxy
+    - t2_proxy
     profiles:
-    - meta
+    - web
     - all
     restart: unless-stopped
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock

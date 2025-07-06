@@ -1,179 +1,350 @@
-# Description
+# Docker Traefik Stack
 
-This is the updated docker-compose repo of all the media, home, and web server apps described in the following guides on our website:
+A comprehensive Docker Compose stack for self-hosted services with Traefik as a reverse proxy, featuring media management, monitoring, security, and development tools.
 
-- [Docker Media Server Ubuntu: Compose for 23 Awesome Apps](https://www.smarthomebeginner.com/docker-media-server-2022/)
-- [Ultimate Traefik Docker Compose Guide [2022] with LetsEncrypt](https://www.smarthomebeginner.com/traefik-docker-compose-guide-2022/)
-- [WordPress on Docker with Nginx, Traefik, LE SSL, Security, and Speed](https://www.smarthomebeginner.com/wordpress-on-docker-traefik/)
-- [Ultimate Synology NAS Docker Compose Media Server 2022](https://www.smarthomebeginner.com/synology-nas-docker-media-server-2022/)
+## 🚀 Features
 
-### Obsolete Posts (for educational purposes):
+- **Reverse Proxy**: Traefik with automatic SSL certificates via Cloudflare DNS
+- **Media Management**: Plex, Sonarr, Radarr, Lidarr, Readarr, and more
+- **Download Management**: SABnzbd, qBittorrent, Transmission, JDownloader
+- **Monitoring**: Grafana, Prometheus, InfluxDB, Netdata
+- **Security**: Authelia, CrowdSec, Fail2Ban, Vault
+- **Development**: VSCode, Homepage dashboard
+- **Network**: WireGuard, ZeroTier, I2P, IPFS
+- **Tools**: File management, RSS feeds, search engines
 
-The following posts have been updated/replaced by the posts linked above:
+## 📋 Prerequisites
 
-- [Docker Media Server with Traefik 2 Reverse Proxy](https://www.smarthomebeginner.com/traefik-2-docker-tutorial/)
-- [Docker Media Server without Reverse Proxy ](https://www.smarthomebeginner.com/docker-home-media-server-2018-basic/)
-- [Docker Media Server with Traefik 1 Reverse Proxy](https://www.smarthomebeginner.com/traefik-reverse-proxy-tutorial-for-docker/)
-- [Synology Docker Media Server with Traefik, Docker Compose, and Cloudflare](https://www.smarthomebeginner.com/synology-docker-media-server/)
+- Docker and Docker Compose installed
+- A domain name with Cloudflare DNS
+- Cloudflare API token with DNS edit permissions
+- Linux server with sufficient resources
 
-### Description of Compose Files in this Repo
+## 🛠️ Quick Start
 
-- docker-compose-t2.yml - this is my main stack with most apps/services (home aserver), including Traefik
-- docker-compose-npm.yml - this is the basic media server stack with Nginx Proxy Manager instead of Traefik
-- docker-compose-t2-web.yml - web server specific stack for WordPress and non-WordPress sites with Nginx and Traefik
-- docker-compose-t2-synology.yml - apps/services that I run on Synology NAS using Docker Compose for Homelab use
+> **New to Docker Traefik Stack?** Check out the [Getting Started Guide](GETTING_STARTED.md) for a step-by-step walkthrough.
 
-<div style="padding:20px;border: 3px solid red;">
-Please note that docker-compose files in the <strong>archives</strong> folder is not actively maintained. They may need updates/rework.
-</div>
+### Option 1: Complete Automated Setup (Recommended for New Users)
 
-Almost any app/service from the docker-compose files listed above can be copy-pasted to any other compose file in this repo.
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd docker-traefik
+   ```
 
-## MY SETUP
+2. **Run the master setup script:**
+   ```bash
+   ./scripts/setup-master.sh --all
+   ```
 
-- Home Server (docker-compose-t2.yml) - Ubuntu 22.04 Proxmox LXC Container on AMD Ryzen 7 4800u ASROCK 4x4 Box 
-- Media Server (docker-compose-t2-media-db.yml) - Ubuntu 22.04 Proxmox LXC Container on AMD Ryzen 7 4800u ASROCK 4x4 Box 
-- Web Server (docker-compose-t2-web.yml) - Digital Ocean VPS (2 cores and 2 GB RAM)
-- Synology (docker-compose-t2-synology.yml) - Synology DS918+ NAS.
+   This will automatically:
+   - Install Docker and Docker Compose
+   - Configure your environment
+   - Set up core services
+   - Harden security
+   - Optimize performance
+   - Configure monitoring
+   - Set up backups
+   - Run health checks
 
-I use Syncthing to keep certain key files synched between various systems.
+### Option 2: Step-by-Step Setup
 
-## What apps are included in this stack?
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd docker-traefik
+   ```
 
-The apps I use are scattered around in several different docker-compose files. Click the links below for specific installation guides.
+2. **Run the configuration wizard:**
+   ```bash
+   ./scripts/config-wizard.sh
+   ```
 
- Some apps are used in more than one host and some on only one. 
+3. **Run the quick start script:**
+   ```bash
+   ./scripts/quick-start.sh
+   ```
 
-### FRONTENDS
+### Option 2: Manual Setup
 
-- Traefik - Reverse Proxy
-- Nginx Proxy Manager - Reverse Proxy 
-- Docker Socket Proxy - Secure Proxy for Docker API
-- Traefik Custom Error Pages
-- OAuth - Google OAuth 2 Forward Authentication
-- Authelia - Private Forward Authentication
-- [Portainer](https://www.smarthomebeginner.com/portainer-docker-compose-guide/) - Container Management
-- Organizr - Dashboard for Apps
-- Heimdall - Dashboard for Apps
-- Homepage - Dashboard for Apps
-- Dashy - Dashboard for Apps
-- Autoindex - Plain text Index to All Files
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd docker-traefik
+   ```
 
-### SMART HOME
+2. **Copy and configure environment variables:**
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
 
-- Home Assistant Core - Home Automation
-- HA-Dockermon - Manage Docker containers in Home Assistant
-- Mosquitto - MQTT Broker
-- MotionEye - Video Surveillance
-- ZoneMinder - Video Surveillance
-- MiFlora - MiFlora MQTT Daemon (MiFlora Plant Sensors)
+3. **Create required directories:**
+   ```bash
+   sudo mkdir -p /opt/docker/{appdata,logs,secrets}
+   sudo mkdir -p /data/{Movies,TV,Music,Books,Downloads}
+   sudo chown -R $USER:$USER /opt/docker /data
+   ```
 
-### DATABASE
+4. **Create secrets:**
+   ```bash
+   # Create secret files
+   echo "your-cloudflare-email" > /opt/docker/secrets/cf_email
+   echo "your-cloudflare-api-key" > /opt/docker/secrets/cf_api_key
+   echo "your-htpasswd-hash" > /opt/docker/secrets/htpasswd
+   echo "your-traefik-forward-auth-config" > /opt/docker/secrets/traefik_forward_auth
+   ```
 
-- MariaDB - MySQL Database
-- phpMyAdmin - Database management
-- [InfluxDB](https://www.smarthomebeginner.com/influxdb-docker-compose-guide/) - Database for sensor data
-- Postgres - Database
-- [Grafana](https://www.smarthomebeginner.com/grafana-docker-compose-guide/) - Graphical data visualization for InfluxDB data
-- Varken - Monitor Plex, Sonarr, Radarr, and Other Data
-- Redis - Key value store
-- Redis Commander - Redis management
+5. **Start core services:**
+   ```bash
+   docker-compose --profile core up -d
+   ```
 
-### DOWNLOADERS
+6. **Start additional services:**
+   ```bash
+   # Media services
+   docker-compose --profile media up -d
+   
+   # All services
+   docker-compose --profile all up -d
+   ```
 
-- jDownloader - Download management
-- TransmissionBT with VPN - Torrent Downloader.
-- SABnzbd - Binary newsgrabber, NZB downloader
-- Nzbget - Binary newsgrabber, NZB downloader
-- qBittorrent with Wireguard VPN from [Surfshark](https://bit.ly/shb-surfshark) - Torrent downloader
+## 📁 Service Profiles
 
-### INDEXERS
+- **core**: Essential services (Traefik, OAuth, Socket Proxy)
+- **apps**: Web applications and tools
+- **media**: Media management services
+- **arrs**: *Arr services (Sonarr, Radarr, etc.)
+- **downloads**: Download managers
+- **monitoring**: Monitoring and metrics
+- **security**: Security services
+- **web**: Web browsers and development tools
+- **all**: All services
 
-- NZBHydra2 - NZB meta search 
-- Jackett - Torrent proxy
-- Prowlarr - Torrent proxy
+## 🎛️ Service Management
 
-### PVRS
+### Management Scripts
 
-- Lidarr - Music Management
-- Radarr - Movie management
-- Sonarr - TV Shows management
-- LazyLibrarian - Books Management
-- Readarr - Books Management
+Use these scripts for easy service management:
 
-### MEDIA SERVER
+```bash
+# Service management
+./scripts/manage-services.sh help
+./scripts/manage-services.sh start core
+./scripts/manage-services.sh status all
+./scripts/manage-services.sh logs traefik
+./scripts/manage-services.sh update all
 
-- AirSonic - Music Server
-- NaviDrome - Music Server
-- FunkWhale - Music Server
-- Calibre - Ebook/Audiobook Server
-- Calibre-Web - Ebook/Audiobook Reader
-- [Plex](https://www.smarthomebeginner.com/plex-docker-compose/) - Media Server
-- Emby - Media Server
-- [Jellyfin](https://www.smarthomebeginner.com/jellyfin-docker-compose/) - Media Server
-- Ombi - Media Requests
-- Tautulli - Previously PlexPy. Plex statistics and monitoring
-- Plex-Sync - For Syncing watched status between plex servers
-- PhotoShow - Personal Photo Gallery and viewer
-- TellyTv- IPTV proxy for Plex
-- xTeve- IPTV proxy for Plex
+# Status dashboard
+./scripts/status-dashboard.sh
+./scripts/status-dashboard.sh -p core
+./scripts/status-dashboard.sh -l traefik
 
-### MEDIA FILE MANAGEMENT
+# Configuration wizard
+./scripts/config-wizard.sh
 
-- Bazarr - Subtitle Management
-- Picard - Music Library Tagging and Management
-- Handbrake - Video Conversion, Transcoding, and Compression
-- MKVToolNix - Video Editing, Remuxing (changing media container while keeping original source quality)
-- MakeMKV - Video Editing (Ripping from Disks)
-- FileBot - File renamer
-- Tiny Media Manager - Media Files Management
+# Quick start
+./scripts/quick-start.sh
 
-### UTILITIES
+# Docker installation
+./scripts/install-docker.sh
 
-- Firefox - Web Broswer
-- Glances - System Information
-- APCUPSD - APC UPS Management
-- Guacamole - Remote desktop, SSH, on Telnet on any HTML5 Browser
-- Guacamole Daemon - Needed for Guacamole
-- [Dozzle](https://www.smarthomebeginner.com/dozzle-docker-compose-guide/) - Docker logs viewer
-- qDirStat - Directory Statistics
-- StatPing - Status Page & Monitoring Server
-- SmokePing - Network Latency Monitoring
-- VS Code Server - Code Editor
-- Logarr - Log Management
-- Monitorr - Webfront to display the status of any webapp or service
-- Cloud Commander - Web File Manager
-- Cloud9 - Cloud IDE
-- SMTP To Telegram - Sends all incoming Email messages to Telegram
-- UniFi Controller - Controller for Ubiquiti UniFi Network Gear
-- Rclone - Mount Cloud/Google Drive
-- MergerFS - Merge local and remote file systems
-- Gluetun - VPN client for docker containers and more
-- DeUnhealth - Auto restart containers on VPN restart
-- [AdGuard Home](https://www.smarthomebeginner.com/adguard-home-docker-compose-guide/) - DNS Sinkhole / Ad-blocker
+# Migration and upgrades
+./scripts/migrate.sh backup
+./scripts/migrate.sh upgrade
+./scripts/migrate.sh validate
 
-### WEB
+# Security hardening
+./scripts/security-hardening.sh audit
+./scripts/security-hardening.sh all
 
-- Nginx - Web Server
-- php7 - PHP-FPM
+# Performance optimization
+./scripts/performance-optimization.sh analyze
+./scripts/performance-optimization.sh all
 
-### MAINTENANCE
+# Master setup (complete automation)
+./scripts/setup-master.sh --all
+```
 
-- Watchtower - Automatic Docker Container Updates
-- Docker-GC - Automatic Docker Garbage Collection
-- Traefik Certificate Dumper - Extract Traefik SSL Certs
-- Cloudflare DDNS - Dynamic IP Updater
-- Cloudflare Companion - Automatic CNAME creation for services
-- WhoAmI - For testing.
+### Quick Commands
 
-## Starting and Stopping
+```bash
+# Check status
+./scripts/status-dashboard.sh
 
-I use bash_aliases to simplify starting and stopping containers/stack. Included in the repo is an example of bash_aliases I use (replace USER with your Linux username). Here are some example alias commands:
+# Start core services
+./scripts/manage-services.sh start core
 
-- <strong>dcup2</strong> - Start Docker Traefik 2 stack
-- <strong>dcdown2</strong> - Stop Docker Traefik 2 stack
-- <strong>dcrec2</strong> - Start or recreate a specific service
-- <strong>dcstop2</strong> - Stop a specific service
-- <strong>dcrestart2</strong> - Restart a specific service
-- <strong>dclogs2</strong> - See real-time logs for the corresponding stack or service
-- <strong>dcpull2</strong> - Pull new images for the corresponding stack or service
+# View logs
+./scripts/manage-services.sh logs [service]
+
+# Update all services
+./scripts/manage-services.sh update all
+
+# Create backup
+./scripts/manage-services.sh backup
+
+# Run health check
+./scripts/manage-services.sh health
+
+# Clean up
+./scripts/manage-services.sh clean
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Key environment variables to configure:
+
+- `DOMAINNAME_CLOUD_SERVER`: Your domain name
+- `CLOUDFLARE_EMAIL`: Cloudflare account email
+- `CLOUDFLARE_IPS`: Cloudflare IP ranges
+- `PUID/PGID`: User/group IDs for file permissions
+- `TZ`: Timezone
+
+### Networks
+
+- `t2_proxy`: Main network for services behind Traefik
+- `socket_proxy`: Network for Docker socket access
+- `default`: Default bridge network
+
+### Volumes
+
+- `/opt/docker/appdata`: Application data
+- `/opt/docker/logs`: Log files
+- `/data`: Media and data storage
+- `/downloads`: Download directory
+
+## 🔒 Security
+
+### Authentication
+
+- **OAuth**: Google OAuth via Traefik Forward Auth
+- **Authelia**: Multi-factor authentication
+- **CrowdSec**: Intrusion detection and prevention
+
+### SSL/TLS
+
+- Automatic SSL certificates via Let's Encrypt
+- Cloudflare DNS challenge for wildcard certificates
+- HSTS and security headers
+
+### Network Security
+
+- Docker socket proxy for secure container access
+- Network isolation between services
+- Firewall rules and rate limiting
+
+## 📊 Monitoring
+
+### Metrics Collection
+
+- **Prometheus**: Metrics collection
+- **InfluxDB**: Time-series database
+- **Grafana**: Dashboards and visualization
+- **Netdata**: Real-time system monitoring
+
+### Logging
+
+- Centralized logging with Loki
+- Log rotation and retention
+- Structured logging with JSON format
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **SSL Certificate Issues**
+   - Verify Cloudflare API credentials
+   - Check DNS records are properly configured
+   - Ensure domain is proxied through Cloudflare
+
+2. **Permission Issues**
+   - Verify PUID/PGID match your user
+   - Check directory permissions
+   - Ensure Docker socket access
+
+3. **Network Issues**
+   - Verify network configuration
+   - Check firewall rules
+   - Ensure ports are not conflicting
+
+### Debug Commands
+
+```bash
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f [service-name]
+
+# Check Traefik configuration
+docker-compose exec traefik traefik version
+
+# Test network connectivity
+docker-compose exec [service] ping [target]
+```
+
+## 📈 Performance Optimization
+
+### Resource Limits
+
+Services have resource limits configured:
+- CPU: 0.25-2.0 cores per service
+- Memory: 256M-2G per service
+- Storage: Appropriate volume mounts
+
+### Scaling
+
+- Use Docker Compose profiles to run only needed services
+- Monitor resource usage with Grafana dashboards
+- Adjust resource limits based on hardware capabilities
+
+## 🔄 Updates
+
+### Automatic Updates
+
+Watchtower automatically updates containers:
+- Scheduled updates at 2 AM daily
+- Cleanup of old images and volumes
+- Notification support via Shoutrrr
+
+### Manual Updates
+
+```bash
+# Update specific service
+docker-compose pull [service-name]
+docker-compose up -d [service-name]
+
+# Update all services
+docker-compose pull
+docker-compose up -d
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- [Traefik](https://traefik.io/) for the reverse proxy
+- [LinuxServer.io](https://www.linuxserver.io/) for container images
+- [Homepage](https://github.com/benphelps/homepage) for the dashboard
+- All the open-source projects that make this stack possible
+
+## 📞 Support
+
+For support and questions:
+- Check the troubleshooting section
+- Review service-specific documentation
+- Open an issue on GitHub
+- Join our community discussions

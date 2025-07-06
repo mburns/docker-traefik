@@ -32,9 +32,9 @@ services:
     - ${DOCKERDIR:-/opt/docker}/appdata/grafana:/var/lib/grafana
     - ${DOCKERDIR:-/opt/docker}/appdata/grafana/provisioning/:/etc/grafana/provisioning/
   lidarr-exporter:
+    container_name: lidarr-exporter
     command:
     - lidarr
-    container_name: lidarr-exporter
     environment:
       APIKEY: $LIDARR_API_KEY
       ENABLE_ADDITIONAL_METRICS: true

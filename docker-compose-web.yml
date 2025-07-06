@@ -268,44 +268,6 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/vscode:/config
     - ${DATADIR:-/data}:/data
-  watchtower:
-    command:
-    - --cleanup
-    - --schedule=0 0 2 * * *
-    - --label-enable
-    - --include-stopped
-    - --revive-stopped
-    - --remove-volumes
-    - --notifications=shoutrrr
-    - --notification-url=$WATCHTOWER_NOTIFICATION_URL
-    container_name: watchtower
-    environment:
-      DOCKER_HOST: tcp://socket-proxy:2375
-      TZ: ${TZ:-UTC}
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - pgrep
-      - watchtower
-      timeout: 10s
-    image: containrrr/watchtower:latest
-    logging:
-      driver: json-file
-      options:
-        max-file: "3"
-        max-size: 10m
-        tag: '{{.Name}}'
-    networks:
-    - socket_proxy
-    profiles:
-    - web
-    - all
-    restart: unless-stopped
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
   whoogle:
     container_name: whoogle
     environment:

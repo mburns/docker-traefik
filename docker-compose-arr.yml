@@ -55,7 +55,7 @@ services:
     profiles:
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     security_opt:
     - no-new-privileges:true
     volumes:
@@ -158,7 +158,7 @@ services:
     - media
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/kapowarr:/app/db
     - ${DATADIR:-/data}:/data
@@ -202,7 +202,7 @@ services:
     - media
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/lidarr:/config
     - ${DATADIR:-/data}:/data
@@ -270,7 +270,7 @@ services:
     profiles:
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/maintainerr:/opt/data
     - ${DOWNLOADSDIR:-/downloads}:/config/Downloads
@@ -411,7 +411,7 @@ services:
     - media
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/radarr:/config
     - ${DATADIR:-/data}:/data/
@@ -450,7 +450,7 @@ services:
     - media
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/readarr:/config
     - ${DATADIR:-/data}:/data
@@ -489,7 +489,7 @@ services:
     - media
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/sonarr:/config
     - $DATADIR/complete/sonarr:/data/complete/sonarr
@@ -591,7 +591,7 @@ services:
     - media
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/whisparr:/config
     - ${DATADIR:-/data}:/data
@@ -624,6 +624,6 @@ services:
     profiles:
     - arrs
     - all
-    restart: "no"
+    restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/wizarr/database:/data/database
