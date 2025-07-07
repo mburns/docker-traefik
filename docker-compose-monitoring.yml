@@ -290,7 +290,7 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/promtail:/etc/promtail
     - /var/log:/var/log
-    - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    # - /var/lib/docker/containers:/var/lib/docker/containers:ro
   uptime-kuma:
     container_name: uptime-kuma
     environment:

@@ -42,57 +42,50 @@ services:
 
   # Plex Media Server
   plex:
-    image: lscr.io/linuxserver/plex:latest  # was: plexinc/pms-docker:latest
+    image: plexinc/pms-docker:latest
     container_name: plex
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    profiles: ["apps", "media", "all"]
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "all"]
     networks:
       - t2_proxy
     ports:
-      - "32400:32400"
-      - "3005:3005"
-      - "8324:8324"
-      - "32469:32469"
+      - "32400:32400/tcp"
+      - "3005:3005/tcp"
+      - "8324:8324/tcp"
+      - "32469:32469/tcp"
+      - "1900:1900/udp" # conflicts with xTeVe and Synology default ports
+      - "32410:32410/udp"
+      - "32412:32412/udp"
+      - "32413:32413/udp"
+      - "32414:32414/udp"
+      - "33400:33400/tcp"
+    devices:
+      - /dev/dri:/dev/dri # for hardware transcoding
     volumes:
-      - ${DOCKERDIR:-/opt/docker}/appdata/plex:/config
-      - ${DATADIR:-/data}:/data
-      # - ${EXTDRIVE:-/extdrive}:/extdrive
-      - /dev/dri:/dev/dri
+      - $DOCKERDIR/appdata/plex:/config
+      - $DOWNLOADSDIR:/data/downloads
+      - $DATADIR:/data/media
+      # - $EXTDRIVE/ssd/sitespeed:/data/files
+      - /dev/shm:/transcode # Offload transcoding to RAM if you have enough RAM
     environment:
-      TZ: ${TZ:-UTC}
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      PLEX_CLAIM: $PLEX_CLAIM
-      VERSION: latest
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:32400/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        tag: "{{.Name}}"
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2G
-        reservations:
-          cpus: '1.0'
-          memory: 1G
+      TZ: $TZ
+      HOSTNAME: "sPlex"
+      # PLEX_CLAIM_FILE: /run/secrets/plex_claim
+      PLEX_UID: $PUID
+      PLEX_GID: $PGID
+      ADVERTISE_IP: "http://$SERVER_IP:32400/,http://$SERVER_IP_LOCAL:32400,https://splex.$DOMAINNAME_CLOUD_SERVER"
+      # ALLOWED_NETWORKS: $LOCAL_NETWORK
+    secrets:
+      - plex_claim
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.plex-rtr.entrypoints=https"
-      - "traefik.http.routers.plex-rtr.rule=Host(`plex.${DOMAINNAME_CLOUD_SERVER}`)"
+      - "traefik.http.routers.plex-rtr.rule=Host(`splex.$DOMAINNAME_CLOUD_SERVER`)"
       ## Middlewares
-      - "traefik.http.routers.plex-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.plex-rtr.middlewares=chain-no-auth@file"
       ## HTTP Services
       - "traefik.http.routers.plex-rtr.service=plex-svc"
       - "traefik.http.services.plex-svc.loadbalancer.server.port=32400"
@@ -100,11 +93,12 @@ services:
       - homepage.group=Media
       - homepage.name=Plex
       - homepage.icon=plex.png
-      - homepage.href=https://plex.${DOMAINNAME_CLOUD_SERVER}
-      - homepage.description=Media server
-      - homepage.weight=2
-      - sablier.enable=true
-      - sablier.group=media
+      - homepage.href=https://splex.mirwin.net
+      - homepage.description=Plex
+      # - homepage.weight=1
+      - homepage.widget.type=plex
+      - homepage.widget.url=http://plex:32400
+      - homepage.widget.key=${PLEX_API_KEY}
 
   # Tautulli - Plex Statistics
   tautulli:

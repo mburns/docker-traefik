@@ -1,0 +1,59 @@
+services:
+  i2p:
+    container_name: i2p
+    image: geti2p/i2p
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.i2p-rtr.entrypoints=https
+    - traefik.http.routers.i2p-rtr.rule=Host(`i2p.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.i2p-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.i2p-rtr.service=i2p-svc
+    - traefik.http.services.i2p-svc.loadbalancer.server.port=7657
+    - homepage.group=Downloaders
+    - homepage.name=I2P
+    - homepage.icon=i2p.png
+    - homepage.href=https://i2p.${DOMAINNAME_CLOUD_SERVER}/
+    - homepage.description=I2P p2p client
+    networks:
+    - t2_proxy
+    ports:
+    - 4444:4444
+    - 7657:7657
+    profiles:
+    - p2p
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/i2p:/i2p/.i2p
+  ipfs:
+    container_name: ipfs
+    environment:
+    - IPFS_PATH=/data/ipfs
+    image: ipfs/kubo:latest
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.ipfs-rtr.entrypoints=https
+    - traefik.http.routers.ipfs-rtr.rule=Host(`ipfs.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.ipfs-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.ipfs-rtr.service=ipfs-svc
+    - traefik.http.services.ipfs-svc.loadbalancer.server.port=5001
+    - homepage.group=Downloaders
+    - homepage.name=IPFS
+    - homepage.icon=ipfs.png
+    - homepage.href=https://ipfs.${DOMAINNAME_CLOUD_SERVER}/webui
+    - homepage.description=IPFS Admin Dashboard
+    networks:
+    - t2_proxy
+    ports:
+    - 4001:4001/tcp
+    - 4001:4001/udp
+    - 5001:5001
+    - 7070:8080
+    profiles:
+    - p2p
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/ipfs:/data/ipfs
+    - $EXTDRIVE/ipfs:/ipfs
+    - $EXTDRIVE/ipns:/ipns

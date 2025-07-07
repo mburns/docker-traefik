@@ -10,40 +10,62 @@ services:
     restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/cloudflare-bouncer/cfg.yaml:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+  # CrowdSec - Intrusion Detection
   crowdsec:
+    image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
-    environment:
-      AGENT_PASSWORD: $CROWDSEC_AGENT_PASSWORD
-      AGENT_USERNAME: $CROWDSEC_AGENT_USERNAME
-      COLLECTIONS: crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors
-        crowdsecurity/iptables crowdsecurity/linux fulljackz/proxmox
-      CUSTOM_HOSTNAME: home-server
-      DISABLE_LOCAL_API: "true"
-      GID: ${GID-1000}
-      LOCAL_API_URL: $CROWDSEC_LOCAL_API_URL
-    image: crowdsecurity/crowdsec
-    ports:
-    - 8008:8080
-    profiles:
-    - core
-    - all
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/logs/cloudserver:/logs/cloudserver:ro
-    - /var/log:/var/log:ro
-    - $EXTDRIVE/zbox/var/log:/logs/zbox:ro
-    - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/data:/var/lib/crowdsec/data
-    - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec/config:/etc/crowdsec
-  traefik-bouncer:
-    container_name: traefik-bouncer
-    environment:
-      CROWDSEC_AGENT_HOST: $CROWDSEC_LAPI_HOST:$CROWDSEC_LAPI_PORT
-      CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_BOUNCER_TRAEFIK_API_KEY
-      GIN_MODE: release
-    image: fbonalair/traefik-crowdsec-bouncer
+    profiles: ["apps", "security", "all"]
     networks:
-    - t2_proxy
-    profiles:
-    - core
-    - all
-    restart: unless-stopped
+      - t2_proxy
+    ports:
+      - "${CROWDSEC_PORT:-8080}:8080"
+    volumes:
+      - ${DOCKERDIR:-/opt/docker}/appdata/crowdsec:/etc/crowdsec
+      - /var/log:/var/log:ro
+      # - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    environment:
+      TZ: ${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - sablier.enable=true
+      - sablier.group=mygroup
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.crowdsec-rtr.entrypoints=https"
+      - "traefik.http.routers.crowdsec-rtr.rule=Host(`crowdsec.${DOMAINNAME_CLOUD_SERVER}`)"
+      ## Middlewares
+      - "traefik.http.routers.crowdsec-rtr.middlewares=chain-oauth@file"
+      ## HTTP Services
+      - "traefik.http.routers.crowdsec-rtr.service=crowdsec-svc"
+      - "traefik.http.services.crowdsec-svc.loadbalancer.server.port=8080"
+      ## Homepage
+      - homepage.group=Security
+      - homepage.name=CrowdSec
+      - homepage.icon=crowdsec.png
+      - homepage.href=https://crowdsec.${DOMAINNAME_CLOUD_SERVER}
+      - homepage.description=Intrusion detection
+      - homepage.weight=2
+      - sablier.enable=true
+      - sablier.group=security
