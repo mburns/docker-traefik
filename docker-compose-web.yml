@@ -2,56 +2,56 @@ networks:
   t2_proxy:
     external: true
 services:
-  firefox:
-    container_name: firefox
-    environment:
-      PGID: ${PGID:-1000}
-      PUID: ${PUID:-1000}
-      TZ: ${TZ:-UTC}
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:3000/
-      timeout: 10s
-    image: lscr.io/linuxserver/firefox:latest
-    labels:
-    - sablier.enable=true
-    - sablier.group=mygroup
-    - traefik.enable=true
-    - traefik.http.routers.firefox-rtr.entrypoints=https
-    - traefik.http.routers.firefox-rtr.rule=Host(`firefox.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.firefox-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.firefox-rtr.service=firefox-svc
-    - traefik.http.services.firefox-svc.loadbalancer.server.port=3000
-    - homepage.group=Web
-    - homepage.name=Firefox
-    - homepage.icon=firefox.png
-    - homepage.href=https://firefox.${DOMAINNAME_CLOUD_SERVER}
-    - homepage.description=Web browser
-    - homepage.weight=1
-    logging:
-      driver: json-file
-      options:
-        max-file: "3"
-        max-size: 10m
-        tag: '{{.Name}}'
-    networks:
-    - t2_proxy
-    ports:
-    - ${FIREFOX_PORT:-3000}:3000
-    profiles:
-    - web
-    - all
-    restart: unless-stopped
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/firefox:/config
+  # firefox:
+  #   container_name: firefox
+  #   environment:
+  #     PGID: ${PGID:-1000}
+  #     PUID: ${PUID:-1000}
+  #     TZ: ${TZ:-UTC}
+  #   # healthcheck:
+  #   #   interval: 30s
+  #   #   retries: 3
+  #   #   start_period: 40s
+  #   #   test:
+  #   #   - CMD
+  #   #   - wget
+  #   #   - --no-verbose
+  #   #   - --tries=1
+  #   #   - --spider
+  #   #   - http://localhost:3000/
+  #   #   timeout: 10s
+  #   image: lscr.io/linuxserver/firefox:latest
+  #   labels:
+  #   - sablier.enable=true
+  #   - sablier.group=mygroup
+  #   - traefik.enable=true
+  #   - traefik.http.routers.firefox-rtr.entrypoints=https
+  #   - traefik.http.routers.firefox-rtr.rule=Host(`firefox.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.firefox-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.firefox-rtr.service=firefox-svc
+  #   - traefik.http.services.firefox-svc.loadbalancer.server.port=3000
+  #   - homepage.group=Web
+  #   - homepage.name=Firefox
+  #   - homepage.icon=firefox.png
+  #   - homepage.href=https://firefox.${DOMAINNAME_CLOUD_SERVER}
+  #   - homepage.description=Web browser
+  #   - homepage.weight=1
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-file: "3"
+  #       max-size: 10m
+  #       tag: '{{.Name}}'
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - ${FIREFOX_PORT:-3000}:3000
+  #   profiles:
+  #   - web
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/firefox:/config
   flaresolverr:
     container_name: flaresolverr
     environment:
@@ -74,46 +74,6 @@ services:
     - tools
     - all
     restart: unless-stopped
-  freshrss:
-    container_name: freshrss
-    environment:
-      CRON_MIN: 3,33
-      PGID: ${PGID:-1000}
-      PUID: ${PUID:-1000}
-      TRUSTED_PROXY: 172.16.0.1/12 192.168.0.1/16 10.0.0.0/8
-      TZ: ${TZ:-UTC}
-    hostname: freshrss
-    image: freshrss/freshrss:latest
-    labels:
-    - sablier.enable=true
-    - sablier.group=mygroup
-    - traefik.enable=true
-    - traefik.http.routers.freshrss-rtr.entrypoints=https
-    - traefik.http.routers.freshrss-rtr.rule=Host(`freshrss.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.freshrss-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.freshrss-rtr.service=freshrss-svc
-    - traefik.http.services.freshrss-svc.loadbalancer.server.port=80
-    - homepage.group=Tools
-    - homepage.name=FreshRSS
-    - homepage.icon=freshrss.png
-    - homepage.href=https://freshrss.${DOMAINNAME_CLOUD_SERVER}
-    - homepage.description=Blog feeds
-    - homepage.weight=4
-    logging:
-      options:
-        max-size: 10m
-    networks:
-    - t2_proxy
-    ports:
-    - 8765:80
-    profiles:
-    - tools
-    - web
-    - all
-    restart: unless-stopped
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/freshrss:/var/www/FreshRSS/data
-    - ${DOCKERDIR:-/opt/docker}/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
   lounge:
     container_name: lounge
     image: ghcr.io/thelounge/thelounge:latest

@@ -55,17 +55,17 @@ services:
       PGID: $PGID
       PUID: $PUID
       TZ: $TZ
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:3000/
+    # healthcheck:
+    #   interval: 30s
+    #   retries: 3
+    #   start_period: 40s
+    #   test:
+    #   - CMD
+    #   - wget
+    #   - --no-verbose
+    #   - --tries=1
+    #   - --spider
+    #   - http://localhost:3000/
       timeout: 10s
     image: ghcr.io/gethomepage/homepage:v0.8.0
     labels:
@@ -143,18 +143,18 @@ services:
       PROVIDER_NAME: docker
       PUID: $PUID
       TZ: $TZ
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:2375/version
-      timeout: 10s
+    # healthcheck:
+    #   interval: 30s
+    #   retries: 3
+    #   start_period: 40s
+    #   test:
+    #   - CMD
+    #   - wget
+    #   - --no-verbose
+    #   - --tries=1
+    #   - --spider
+    #   - http://localhost:2375/version
+    #   timeout: 10s
     image: sablierapp/sablier:1.8.3
     labels:
     - traefik.enable=true
@@ -213,18 +213,18 @@ services:
     - SYSTEM=0
     - TASKS=1
     - VOLUMES=1
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:2375/version
-      timeout: 10s
+    # healthcheck:
+    #   interval: 30s
+    #   retries: 3
+    #   start_period: 40s
+    #   test:
+    #   - CMD
+    #   - wget
+    #   - --no-verbose
+    #   - --tries=1
+    #   - --spider
+    #   - http://localhost:2375/version
+    #   timeout: 10s
     image: tecnativa/docker-socket-proxy
     logging:
       driver: json-file
@@ -304,16 +304,16 @@ services:
     - CF_API_KEY_FILE=/run/secrets/cf_api_key
     - HTPASSWD_FILE=/run/secrets/htpasswd
     - DOMAINNAME_CLOUD_SERVER
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - traefik
-      - healthcheck
-      - --ping
-      timeout: 10s
+    # healthcheck:
+    #   interval: 30s
+    #   retries: 3
+    #   start_period: 40s
+    #   test:
+    #   - CMD
+    #   - traefik
+    #   - healthcheck
+    #   - --ping
+    #   timeout: 10s
     image: traefik:2.10
     labels:
     - traefik.enable=true

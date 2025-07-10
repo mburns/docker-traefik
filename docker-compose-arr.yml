@@ -13,18 +13,18 @@ services:
       PGID: ${PGID:-1000}
       PUID: ${PUID:-1000}
       TZ: ${TZ:-UTC}
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:6767/
-      timeout: 10s
+    # healthcheck:
+    #   interval: 30s
+    #   retries: 3
+    #   start_period: 40s
+    #   test:
+    #   - CMD
+    #   - wget
+    #   - --no-verbose
+    #   - --tries=1
+    #   - --spider
+    #   - http://localhost:6767/
+    #   timeout: 10s
     image: lscr.io/linuxserver/bazarr
     labels:
     - traefik.enable=true
@@ -76,18 +76,18 @@ services:
     - PUID=${PUID:-1000}
     - PGID=${PGID:-1000}
     - AUTO_UPDATE=true
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:9117/
-      timeout: 10s
+    # healthcheck:
+    #   interval: 30s
+    #   retries: 3
+    #   start_period: 40s
+    #   test:
+    #   - CMD
+    #   - wget
+    #   - --no-verbose
+    #   - --tries=1
+    #   - --spider
+    #   - http://localhost:9117/
+    #   timeout: 10s
     image: lscr.io/linuxserver/jackett:latest
     labels:
     - traefik.enable=true
@@ -322,18 +322,18 @@ services:
       PGID: ${PGID:-1000}
       PUID: ${PUID:-1000}
       TZ: ${TZ:-UTC}
-    healthcheck:
-      interval: 30s
-      retries: 3
-      start_period: 40s
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://localhost:9696/
-      timeout: 10s
+    # healthcheck:
+    #   interval: 30s
+    #   retries: 3
+    #   start_period: 40s
+    #   test:
+    #   - CMD
+    #   - wget
+    #   - --no-verbose
+    #   - --tries=1
+    #   - --spider
+    #   - http://localhost:9696/
+    #   timeout: 10s
     image: ghcr.io/linuxserver/prowlarr:develop
     labels:
     - traefik.enable=true

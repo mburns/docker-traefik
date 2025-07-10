@@ -110,62 +110,62 @@ services:
     - apps
     - all
     restart: unless-stopped
-  emulatorjs:
-    container_name: emulatorjs
-    environment:
-    - PUID=1000
-    - PGID=1000
-    - TZ=Etc/UTC
-    image: lscr.io/linuxserver/emulatorjs:latest
-    labels:
-    - sablier.enable=true
-    - sablier.group=mygroup
-    - traefik.enable=true
-    - traefik.http.routers.emulatorjs-rtr.entrypoints=https
-    - traefik.http.routers.emulatorjs-rtr.rule=Host(`emulatorjs.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.emulatorjs-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.emulatorjs-rtr.service=emulatorjs-svc
-    - traefik.http.services.emulatorjs-svc.loadbalancer.server.port=80
-    networks:
-    - t2_proxy
-    ports:
-    - 3006:3000
-    - 8087:80
-    - 4002:4001
-    profiles:
-    - apps
-    - all
-    restart: unless-stopped
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/emulatorjs:/config
-    - $EXTDRIVE/Dropbox/roms:/data
-  filebrowser:
-    container_name: filebrowser
-    environment:
-      PGID: ${PGID:-1000}
-      PUID: ${PUID:-1000}
-      TZ: ${TZ:-UTC}
-    image: filebrowser/filebrowser:s6
-    labels:
-    - sablier.enable=true
-    - traefik.enable=true
-    - traefik.http.routers.filebrowser-rtr.entrypoints=https
-    - traefik.http.routers.filebrowser-rtr.rule=Host(`fb.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.filebrowser-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.filebrowser-rtr.service=filebrowser-svc
-    - traefik.http.services.filebrowser-svc.loadbalancer.server.port=80
-    networks:
-    - t2_proxy
-    ports:
-    - 81:80
-    profiles:
-    - apps
-    - all
-    restart: unless-stopped
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/config:/config
-    - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/database:/database
-    - ${EXTDRIVE:-/extdrive}:/data
+  # emulatorjs:
+  #   container_name: emulatorjs
+  #   environment:
+  #   - PUID=1000
+  #   - PGID=1000
+  #   - TZ=Etc/UTC
+  #   image: lscr.io/linuxserver/emulatorjs:latest
+  #   labels:
+  #   - sablier.enable=true
+  #   - sablier.group=mygroup
+  #   - traefik.enable=true
+  #   - traefik.http.routers.emulatorjs-rtr.entrypoints=https
+  #   - traefik.http.routers.emulatorjs-rtr.rule=Host(`emulatorjs.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.emulatorjs-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.emulatorjs-rtr.service=emulatorjs-svc
+  #   - traefik.http.services.emulatorjs-svc.loadbalancer.server.port=80
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - 3006:3000
+  #   - 8087:80
+  #   - 4002:4001
+  #   profiles:
+  #   - apps
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/emulatorjs:/config
+  #   - $EXTDRIVE/Dropbox/roms:/data
+  # filebrowser:
+  #   container_name: filebrowser
+  #   environment:
+  #     PGID: ${PGID:-1000}
+  #     PUID: ${PUID:-1000}
+  #     TZ: ${TZ:-UTC}
+  #   image: filebrowser/filebrowser:s6
+  #   labels:
+  #   - sablier.enable=true
+  #   - traefik.enable=true
+  #   - traefik.http.routers.filebrowser-rtr.entrypoints=https
+  #   - traefik.http.routers.filebrowser-rtr.rule=Host(`fb.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.filebrowser-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.filebrowser-rtr.service=filebrowser-svc
+  #   - traefik.http.services.filebrowser-svc.loadbalancer.server.port=80
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - 81:80
+  #   profiles:
+  #   - apps
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/config:/config
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/database:/database
+  #   - ${EXTDRIVE:-/extdrive}:/data
   glances:
     container_name: glances
     environment:
@@ -220,39 +220,39 @@ services:
     - apps
     - all
     restart: unless-stopped
-  qdirstat:
-    container_name: qdirstat
-    environment:
-      CLEAN_TMP_DIR: 1
-      DISPLAY_HEIGHT: 960
-      DISPLAY_WIDTH: 1600
-      GROUP_ID: ${PGID:-1000}
-      KEEP_APP_RUNNING: 1
-      TZ: ${TZ:-UTC}
-      UMASK: 2
-      USER_ID: ${PUID:-1000}
-      VNC_PASSWORD: ${QDIRSTAT_VNC_PASSWD:-password}
-    image: jlesage/qdirstat:latest
-    labels:
-    - sablier.enable=true
-    - sablier.group=mygroup
-    - traefik.enable=true
-    - traefik.http.routers.qdirstat-rtr.entrypoints=https
-    - traefik.http.routers.qdirstat-rtr.rule=Host(`qdir.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.qdirstat-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.qdirstat-rtr.service=qdirstat-svc
-    - traefik.http.services.qdirstat-svc.loadbalancer.server.port=5800
-    networks:
-    - t2_proxy
-    ports:
-    - 5800:5800
-    profiles:
-    - apps
-    - all
-    restart: unless-stopped
-    volumes:
-    - /volume1:/storage:ro
-    - ${DOCKERDIR:-/opt/docker}/appdata/qdirstat/config:/config:rw
+  # qdirstat:
+  #   container_name: qdirstat
+  #   environment:
+  #     CLEAN_TMP_DIR: 1
+  #     DISPLAY_HEIGHT: 960
+  #     DISPLAY_WIDTH: 1600
+  #     GROUP_ID: ${PGID:-1000}
+  #     KEEP_APP_RUNNING: 1
+  #     TZ: ${TZ:-UTC}
+  #     UMASK: 2
+  #     USER_ID: ${PUID:-1000}
+  #     VNC_PASSWORD: ${QDIRSTAT_VNC_PASSWD:-password}
+  #   image: jlesage/qdirstat:latest
+  #   labels:
+  #   - sablier.enable=true
+  #   - sablier.group=mygroup
+  #   - traefik.enable=true
+  #   - traefik.http.routers.qdirstat-rtr.entrypoints=https
+  #   - traefik.http.routers.qdirstat-rtr.rule=Host(`qdir.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.qdirstat-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.qdirstat-rtr.service=qdirstat-svc
+  #   - traefik.http.services.qdirstat-svc.loadbalancer.server.port=5800
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - 5800:5800
+  #   profiles:
+  #   - apps
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - /volume1:/storage:ro
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/qdirstat/config:/config:rw
   scrutiny:
     cap_add:
     - SYS_RAWIO

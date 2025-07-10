@@ -1,211 +1,245 @@
-services:
-  grafana:
-    container_name: grafana
-    environment:
-      GF_AUTH_ANONYMOUS_ENABLED: true
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
-      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel,cloudflare-app
-    image: grafana/grafana-enterprise:latest
-    labels:
-    - traefik.enable=true
-    - traefik.http.routers.grafana-rtr.entrypoints=https
-    - traefik.http.routers.grafana-rtr.rule=Host(`grafana.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.grafana-rtr.service=grafana-svc
-    - traefik.http.services.grafana-svc.loadbalancer.server.port=3000
-    - homepage.group=Admin
-    - homepage.name=Grafana
-    - homepage.icon=grafama.png
-    - homepage.href=https://grafana.${DOMAINNAME_CLOUD_SERVER}
-    - homepage.description=Pretty graphs
-    - homepage.weight=4
-    networks:
-    - t2_proxy
-    ports:
-    - 3069:3000
-    profiles:
-    - apps
-    - all
-    restart: unless-stopped
-    user: "472"
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/grafana:/var/lib/grafana
-    - ${DOCKERDIR:-/opt/docker}/appdata/grafana/provisioning/:/etc/grafana/provisioning/
-  lidarr-exporter:
-    container_name: lidarr-exporter
-    command:
-    - lidarr
-    environment:
-      APIKEY: $LIDARR_API_KEY
-      ENABLE_ADDITIONAL_METRICS: true
-      PORT: 9709
-      URL: http://lidarr:8686
-    image: ghcr.io/onedr0p/exportarr:latest
-    networks:
-    - t2_proxy
-    ports:
-    - 9709:9709
-    profiles:
-    - all
-    - media
-    - arrs
-    restart: "no"
-  loki:
-    command: -config.file=/etc/loki/config.yaml
-    container_name: loki
-    image: grafana/loki:2.9.2
-    networks:
-    - t2_proxy
-    ports:
-    - 3100:3100
-    profiles:
-    - monitoring
-    - all
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/loki:/etc/loki
-  node-exporter:
-    command:
-    - --path.procfs=/host/proc
-    - --path.sysfs=/host/sys
-    - --collector.filesystem.ignored-mount-points
-    # - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
-    container_name: node-exporter
-    image: prom/node-exporter:latest
-    networks:
-    - t2_proxy
-    ports:
-    - 9100:9100
-    profiles:
-    - monitoring
-    - all
-    restart: unless-stopped
-    volumes:
-    - /proc:/host/proc:ro
-    - /sys:/host/sys:ro
-    - /:/rootfs:ro
-  prometheus:
-    command:
-    - --config.file=/etc/prometheus/prometheus.yml
-    - --storage.tsdb.path=/prometheus
-    - --web.console.libraries=/usr/share/prometheus/console_libraries
-    - --web.console.templates=/usr/share/prometheus/consoles
-    - --web.enable-lifecycle
-    - --web.enable-admin-api
-    container_name: prometheus
-    image: prom/prometheus:latest
-    networks:
-    - default
-    ports:
-    - 9090:9090
-    profiles:
-    - dbs
-    - all
-    restart: unless-stopped
-    user: ${PUID:-1000}:${PGID:-1000}
-    volumes:
-    - ${DOCKERDIR:-/opt/docker}/appdata/prometheus/config:/etc/prometheus
-    - ${DOCKERDIR:-/opt/docker}/appdata/prometheus/data:/prometheus
-  promtail:
-    command: -config.file=/etc/promtail/config.yml
-    container_name: promtail
-    image: grafana/promtail:2.9.2
-    networks:
-    - t2_proxy
-    profiles:
-    - monitoring
-    - all
-    volumes:
-    - /var/log:/var/log
-  prowlarr-exporter:
-    command:
-    - prowlarr
-    container_name: prowlarr-exporter
-    environment:
-      APIKEY: $PROWLARR_API_KEY
-      ENABLE_ADDITIONAL_METRICS: true
-      PORT: 9710
-      URL: http://prowlarr:9696
-    image: ghcr.io/onedr0p/exportarr:latest
-    networks:
-    - t2_proxy
-    ports:
-    - 9710:9710
-    profiles:
-    - all
-    - apps
-    restart: unless-stopped
-  radarr-exporter:
-    command:
-    - radarr
-    container_name: radarr-exporter
-    environment:
-      APIKEY: $RADARR_API_KEY
-      ENABLE_ADDITIONAL_METRICS: true
-      PORT: 9707
-      URL: http://radarr:7878
-    image: ghcr.io/onedr0p/exportarr:latest
-    networks:
-    - t2_proxy
-    ports:
-    - 9707:9707
-    profiles:
-    - all
-    - metrics
-    - arrs
-    restart: "no"
-  readarr-exporter:
-    command:
-    - readarr
-    container_name: readarr-exporter
-    environment:
-      APIKEY: $READARR_API_KEY
-      ENABLE_ADDITIONAL_METRICS: true
-      PORT: 9716
-      URL: http://readarr:8787
-    image: ghcr.io/onedr0p/exportarr:latest
-    networks:
-    - t2_proxy
-    ports:
-    - 9716:9716
-    profiles:
-    - all
-    - metrics
-    - arrs
-    restart: "no"
-  sabnzbd-exporter:
-    command:
-    - sabnzbd
-    container_name: sabnzbd-exporter
-    environment:
-      APIKEY: $SABNZBD_API_KEY
-      ENABLE_ADDITIONAL_METRICS: true
-      PORT: 9712
-      URL: http://sabnzbd:8080
-    image: ghcr.io/onedr0p/exportarr:latest
-    networks:
-    - t2_proxy
-    ports:
-    - 9712:9712
-    profiles:
-    - all
-    - downloads
-    restart: unless-stopped
-  sonarr-exporter:
-    command:
-    - sonarr
-    container_name: sonarr-exporter
-    environment:
-      APIKEY: $SONARR_API_KEY
-      ENABLE_ADDITIONAL_METRICS: true
-      PORT: 9708
-      URL: http://sonarr:8989
-    image: ghcr.io/onedr0p/exportarr:latest
-    networks:
-    - t2_proxy
-    ports:
-    - 9708:9708
-    profiles:
-    - all
-    - metrics
-    - arrs
-    restart: "no"
+# services:
+#   grafana:
+#     container_name: grafana
+#     environment:
+#       GF_AUTH_ANONYMOUS_ENABLED: true
+#       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+#       GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel,cloudflare-app
+#     image: grafana/grafana-enterprise:latest
+#     labels:
+#     - traefik.enable=true
+#     - traefik.http.routers.grafana-rtr.entrypoints=https
+#     - traefik.http.routers.grafana-rtr.rule=Host(`grafana.${DOMAINNAME_CLOUD_SERVER}`)
+#     - traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file
+#     - traefik.http.routers.grafana-rtr.service=grafana-svc
+#     - traefik.http.services.grafana-svc.loadbalancer.server.port=3000
+#     - homepage.group=Admin
+#     - homepage.name=Grafana
+#     - homepage.icon=grafama.png
+#     - homepage.href=https://grafana.${DOMAINNAME_CLOUD_SERVER}
+#     - homepage.description=Pretty graphs
+#     - homepage.weight=4
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 3069:3000
+#     profiles:
+#     - apps
+#     - all
+#     restart: unless-stopped
+#     user: "472"
+#     volumes:
+#     - ${DOCKERDIR:-/opt/docker}/appdata/grafana:/var/lib/grafana
+#     - ${DOCKERDIR:-/opt/docker}/appdata/grafana/provisioning/:/etc/grafana/provisioning/
+#   lidarr-exporter:
+#     container_name: lidarr-exporter
+#     command:
+#     - lidarr
+#     environment:
+#       APIKEY: $LIDARR_API_KEY
+#       ENABLE_ADDITIONAL_METRICS: true
+#       PORT: 9709
+#       URL: http://lidarr:8686
+#     image: ghcr.io/onedr0p/exportarr:latest
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 9709:9709
+#     profiles:
+#     - all
+#     - media
+#     - arrs
+#     restart: "no"
+#   loki:
+#     command: -config.file=/etc/loki/config.yaml
+#     container_name: loki
+#     image: grafana/loki:2.9.2
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 3100:3100
+#     profiles:
+#     - monitoring
+#     - all
+#     volumes:
+#     - ${DOCKERDIR:-/opt/docker}/appdata/loki:/etc/loki
+#   node-exporter:
+#     command:
+#     - --path.procfs=/host/proc
+#     - --path.sysfs=/host/sys
+#     - --collector.filesystem.ignored-mount-points
+#     # - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+#     container_name: node-exporter
+#     image: prom/node-exporter:latest
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 9100:9100
+#     profiles:
+#     - monitoring
+#     - all
+#     restart: unless-stopped
+#     volumes:
+#     - /proc:/host/proc:ro
+#     - /sys:/host/sys:ro
+#     - /:/rootfs:ro
+  # prometheus:
+  #   command:
+  #   - --config.file=/etc/prometheus/prometheus.yml
+  #   - --storage.tsdb.path=/prometheus
+  #   - --web.console.libraries=/etc/prometheus/console_libraries
+  #   - --web.console.templates=/etc/prometheus/consoles
+  #   - --storage.tsdb.retention.time=200h
+  #   - --web.enable-lifecycle
+  #   container_name: prometheus
+  #   environment:
+  #     TZ: ${TZ:-UTC}
+  #   healthcheck:
+  #     interval: 30s
+  #     retries: 3
+  #     start_period: 40s
+  #     test:
+  #     - CMD
+  #     - wget
+  #     - --no-verbose
+  #     - --tries=1
+  #     - --spider
+  #     - http://localhost:9090/-/healthy
+  #     timeout: 10s
+  #   image: prom/prometheus:latest
+  #   labels:
+  #   - sablier.enable=true
+  #   - sablier.group=mygroup
+  #   - traefik.enable=true
+  #   - traefik.http.routers.prometheus-rtr.entrypoints=https
+  #   - traefik.http.routers.prometheus-rtr.rule=Host(`prometheus.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.prometheus-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.prometheus-rtr.service=prometheus-svc
+  #   - traefik.http.services.prometheus-svc.loadbalancer.server.port=9090
+  #   - homepage.group=Monitoring
+  #   - homepage.name=Prometheus
+  #   - homepage.icon=prometheus.png
+  #   - homepage.href=https://prometheus.${DOMAINNAME_CLOUD_SERVER}
+  #   - homepage.description=Metrics collection
+  #   - homepage.weight=2
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-file: "3"
+  #       max-size: 10m
+  #       tag: '{{.Name}}'
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - ${PROMETHEUS_PORT:-9090}:9090
+  #   profiles:
+  #   - monitoring
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/prometheus:/etc/prometheus
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/prometheus/data:/prometheus
+#   promtail:
+#     command: -config.file=/etc/promtail/config.yml
+#     container_name: promtail
+#     image: grafana/promtail:2.9.2
+#     networks:
+#     - t2_proxy
+#     profiles:
+#     - monitoring
+#     - all
+#     volumes:
+#     - /var/log:/var/log
+#   prowlarr-exporter:
+#     command:
+#     - prowlarr
+#     container_name: prowlarr-exporter
+#     environment:
+#       APIKEY: $PROWLARR_API_KEY
+#       ENABLE_ADDITIONAL_METRICS: true
+#       PORT: 9710
+#       URL: http://prowlarr:9696
+#     image: ghcr.io/onedr0p/exportarr:latest
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 9710:9710
+#     profiles:
+#     - all
+#     - apps
+#     restart: unless-stopped
+#   radarr-exporter:
+#     command:
+#     - radarr
+#     container_name: radarr-exporter
+#     environment:
+#       APIKEY: $RADARR_API_KEY
+#       ENABLE_ADDITIONAL_METRICS: true
+#       PORT: 9707
+#       URL: http://radarr:7878
+#     image: ghcr.io/onedr0p/exportarr:latest
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 9707:9707
+#     profiles:
+#     - all
+#     - metrics
+#     - arrs
+#     restart: "no"
+#   readarr-exporter:
+#     command:
+#     - readarr
+#     container_name: readarr-exporter
+#     environment:
+#       APIKEY: $READARR_API_KEY
+#       ENABLE_ADDITIONAL_METRICS: true
+#       PORT: 9716
+#       URL: http://readarr:8787
+#     image: ghcr.io/onedr0p/exportarr:latest
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 9716:9716
+#     profiles:
+#     - all
+#     - metrics
+#     - arrs
+#     restart: "no"
+#   sabnzbd-exporter:
+#     command:
+#     - sabnzbd
+#     container_name: sabnzbd-exporter
+#     environment:
+#       APIKEY: $SABNZBD_API_KEY
+#       ENABLE_ADDITIONAL_METRICS: true
+#       PORT: 9712
+#       URL: http://sabnzbd:8080
+#     image: ghcr.io/onedr0p/exportarr:latest
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 9712:9712
+#     profiles:
+#     - all
+#     - downloads
+#     restart: unless-stopped
+#   sonarr-exporter:
+#     command:
+#     - sonarr
+#     container_name: sonarr-exporter
+#     environment:
+#       APIKEY: $SONARR_API_KEY
+#       ENABLE_ADDITIONAL_METRICS: true
+#       PORT: 9708
+#       URL: http://sonarr:8989
+#     image: ghcr.io/onedr0p/exportarr:latest
+#     networks:
+#     - t2_proxy
+#     ports:
+#     - 9708:9708
+#     profiles:
+#     - all
+#     - metrics
+#     - arrs
+#     restart: "no"

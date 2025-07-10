@@ -39,6 +39,7 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/freshrss:/var/www/FreshRSS/data
     - ${DOCKERDIR:-/opt/docker}/appdata/freshrss/extensions:/var/www/FreshRSS/extensions
+
   ladder:
     container_name: ladder
     deploy:
@@ -76,39 +77,39 @@ services:
     - web
     - all
     restart: unless-stopped
-  mercury:
-    container_name: mercury
-    image: wangqiru/mercury-parser-api
-    labels:
-    - traefik.enable=true
-    - traefik.http.routers.mercury-rtr.entrypoints=https
-    - traefik.http.routers.mercury-rtr.rule=Host(`mercury.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.mercury-rtr.service=mercury-svc
-    - traefik.http.services.mercury-svc.loadbalancer.server.port=3000
-    networks:
-    - t2_proxy
-    ports:
-    - 127.0.0.1:3001:3000
-    profiles:
-    - tools
-    - all
-    restart: unless-stopped
-  readability:
-    container_name: readability
-    image: phpdockerio/readability-js-server
-    labels:
-    - traefik.enable=true
-    - traefik.http.routers.readability-rtr.entrypoints=https
-    - traefik.http.routers.readability-rtr.rule=Host(`readability.${DOMAINNAME_CLOUD_SERVER}`)
-    - traefik.http.routers.readability-rtr.middlewares=chain-oauth@file
-    - traefik.http.routers.readability-rtr.service=readability-svc
-    - traefik.http.services.readability-svc.loadbalancer.server.port=3000
-    networks:
-    - t2_proxy
-    ports:
-    - 127.0.0.1:3000:3000
-    profiles:
-    - tools
-    - all
-    restart: unless-stopped
+  # mercury:
+  #   container_name: mercury
+  #   image: wangqiru/mercury-parser-api
+  #   labels:
+  #   - traefik.enable=true
+  #   - traefik.http.routers.mercury-rtr.entrypoints=https
+  #   - traefik.http.routers.mercury-rtr.rule=Host(`mercury.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.mercury-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.mercury-rtr.service=mercury-svc
+  #   - traefik.http.services.mercury-svc.loadbalancer.server.port=3000
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - 127.0.0.1:3001:3000
+  #   profiles:
+  #   - tools
+  #   - all
+  #   restart: unless-stopped
+  # readability:
+  #   container_name: readability
+  #   image: phpdockerio/readability-js-server
+  #   labels:
+  #   - traefik.enable=true
+  #   - traefik.http.routers.readability-rtr.entrypoints=https
+  #   - traefik.http.routers.readability-rtr.rule=Host(`readability.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.readability-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.readability-rtr.service=readability-svc
+  #   - traefik.http.services.readability-svc.loadbalancer.server.port=3000
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - 127.0.0.1:3000:3000
+  #   profiles:
+  #   - tools
+  #   - all
+  #   restart: unless-stopped
