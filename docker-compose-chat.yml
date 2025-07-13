@@ -1,0 +1,21 @@
+services:
+  lounge:
+    container_name: lounge
+    image: ghcr.io/thelounge/thelounge:latest
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.lounge-rtr.entrypoints=https
+    - traefik.http.routers.lounge-rtr.rule=Host(`lounge.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.lounge-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.lounge-rtr.service=lounge-svc
+    - traefik.http.services.lounge-svc.loadbalancer.server.port=9000
+    networks:
+    - t2_proxy
+    ports:
+    - 9003:9000
+    profiles:
+    - tools
+    - all
+    restart: always
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/lounge:/var/opt/thelounge

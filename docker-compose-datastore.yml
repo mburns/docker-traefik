@@ -17,6 +17,7 @@ services:
         soft: -1
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/elasticsearch:/usr/share/elasticsearch/data
+
   redis:
     container_name: redis
     entrypoint: redis-server --appendonly yes --maxmemory 1073741824 --maxmemory-policy

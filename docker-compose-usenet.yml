@@ -54,6 +54,7 @@ services:
     - $DATADIR/Downloads:/downloads
     - $DATADIR/Intermediates:/intermediates
     - $DATADIR/NZB:/nzb
+
   # SABnzbd - Binary newsgrabber (NZB downloader)
   # Disable SABNnzbd's built-in HTTPS support for traefik proxy to work
   sabnzbd:

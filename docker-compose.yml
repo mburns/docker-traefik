@@ -14,6 +14,7 @@ networks:
       config:
       - subnet: ${PROXY_SUBNET:-192.168.90.0/24}
     name: t2_proxy
+
 secrets:
   authelia_duo_api_secret_key:
     file: $DOCKERDIR/secrets/authelia_duo_api_secret_key
@@ -47,6 +48,7 @@ secrets:
     file: $DOCKERDIR/secrets/plex_claim
   traefik_forward_auth:
     file: $DOCKERDIR/secrets/traefik_forward_auth
+
 services:
   homepage:
     container_name: homepage
@@ -99,6 +101,7 @@ services:
     - $DOCKERDIR/appdata/homepage:/app/config
     - /var/run/docker.sock:/var/run/docker.sock:ro
     - ${DATADIR}:/data
+
   oauth:
     container_name: oauth
     environment:
@@ -130,6 +133,7 @@ services:
     secrets:
     - source: traefik_forward_auth
       target: /config
+
   sablier:
     command:
     - start
@@ -186,6 +190,7 @@ services:
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
     - $DOCKERDIR/appdata/sablier:/etc/sablier
+
   socket-proxy:
     container_name: socket-proxy
     environment:
@@ -245,6 +250,7 @@ services:
     # - no-new-privileges:true
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
+
   traefik:
     command:
     - --global.checkNewVersion=true

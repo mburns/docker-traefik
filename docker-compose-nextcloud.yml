@@ -1,0 +1,11 @@
+services:
+  # nextcloud:
+  #   container_name: nextcloud
+  #   image: nextcloud:latest
+  #   ports:
+  #   - 8080:80
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/nextcloud:/var/www/html
+  #   - ${DATADIR:-/data}:/data
+  #   - /etc/timezone:/etc/timezone:ro
+  #   - /etc/localtime:/etc/localtime:ro

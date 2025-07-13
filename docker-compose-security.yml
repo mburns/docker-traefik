@@ -174,3 +174,35 @@
   #     - homepage.href=https://vault.${DOMAINNAME_CLOUD_SERVER}
   #     - homepage.description=Secrets management
   #     - homepage.weight=4
+
+  # vaultwarden:
+  #   container_name: vaultwarden
+  #   environment:
+  #   - DOMAIN=https://vaultwarden.${DOMAINNAME_CLOUD_SERVER}
+  #   - LOGIN_RATELIMIT_MAX_BURST=10
+  #   - LOGIN_RATELIMIT_SECONDS=60
+  #   - ADMIN_RATELIMIT_MAX_BURST=10
+  #   - ADMIN_RATELIMIT_SECONDS=60
+  #   - ADMIN_TOKEN=$VAULTWARDEN_TOKEN
+  #   - SENDS_ALLOWED=true
+  #   - EMERGENCY_ACCESS_ALLOWED=true
+  #   - WEB_VAULT_ENABLED=true
+  #   image: vaultwarden/server:latest
+  #   labels:
+  #   - sablier.enable=true
+  #   - traefik.enable=true
+  #   - traefik.http.routers.vaultwarden-rtr.entrypoints=https
+  #   - traefik.http.routers.vaultwarden-rtr.rule=Host(`vaultwarden.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.vaultwarden-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.vaultwarden-rtr.service=vaultwarden-svc
+  #   - traefik.http.services.vaultwarden-svc.loadbalancer.server.port=80
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - 9991:80
+  #   profiles:
+  #   - tools
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/vaultwarden:/data

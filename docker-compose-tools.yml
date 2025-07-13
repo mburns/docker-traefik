@@ -45,6 +45,7 @@ services:
   #   - no-new-privileges:true
   #   volumes:
   #   - ${MEDIADIR:-${DATADIR:-/data}}:/var/lib/nginx/html:ro
+
   bytestash:
     container_name: bytestash
     environment:
@@ -79,6 +80,7 @@ services:
     restart: always
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/bytestash:/data/snippets
+
   dozzle:
     container_name: dozzle
     environment:
@@ -110,6 +112,7 @@ services:
     - apps
     - all
     restart: unless-stopped
+
   # emulatorjs:
   #   container_name: emulatorjs
   #   environment:
@@ -139,6 +142,7 @@ services:
   #   volumes:
   #   - ${DOCKERDIR:-/opt/docker}/appdata/emulatorjs:/config
   #   - $EXTDRIVE/Dropbox/roms:/data
+
   # filebrowser:
   #   container_name: filebrowser
   #   environment:
@@ -166,6 +170,58 @@ services:
   #   - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/config:/config
   #   - ${DOCKERDIR:-/opt/docker}/appdata/filebrowser/database:/database
   #   - ${EXTDRIVE:-/extdrive}:/data
+
+  # firefox:
+  #   container_name: firefox
+  #   environment:
+  #     PGID: ${PGID:-1000}
+  #     PUID: ${PUID:-1000}
+  #     TZ: ${TZ:-UTC}
+  #   # healthcheck:
+  #   #   interval: 30s
+  #   #   retries: 3
+  #   #   start_period: 40s
+  #   #   test:
+  #   #   - CMD
+  #   #   - wget
+  #   #   - --no-verbose
+  #   #   - --tries=1
+  #   #   - --spider
+  #   #   - http://localhost:3000/
+  #   #   timeout: 10s
+  #   image: lscr.io/linuxserver/firefox:latest
+  #   labels:
+  #   - sablier.enable=true
+  #   - sablier.group=mygroup
+  #   - traefik.enable=true
+  #   - traefik.http.routers.firefox-rtr.entrypoints=https
+  #   - traefik.http.routers.firefox-rtr.rule=Host(`firefox.${DOMAINNAME_CLOUD_SERVER}`)
+  #   - traefik.http.routers.firefox-rtr.middlewares=chain-oauth@file
+  #   - traefik.http.routers.firefox-rtr.service=firefox-svc
+  #   - traefik.http.services.firefox-svc.loadbalancer.server.port=3000
+  #   - homepage.group=Web
+  #   - homepage.name=Firefox
+  #   - homepage.icon=firefox.png
+  #   - homepage.href=https://firefox.${DOMAINNAME_CLOUD_SERVER}
+  #   - homepage.description=Web browser
+  #   - homepage.weight=1
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-file: "3"
+  #       max-size: 10m
+  #       tag: '{{.Name}}'
+  #   networks:
+  #   - t2_proxy
+  #   ports:
+  #   - ${FIREFOX_PORT:-3000}:3000
+  #   profiles:
+  #   - web
+  #   - all
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ${DOCKERDIR:-/opt/docker}/appdata/firefox:/config
+
   glances:
     container_name: glances
     environment:
@@ -196,6 +252,7 @@ services:
     - ${DOCKERDIR:-/opt/docker}/appdata/glances/glances.conf:/glances/conf/glances.conf
     - ${DATADIR:-/data}:/data/data:ro
     - ${DOCKERDIR:-/opt/docker}:/data/docker:ro
+
   it-tools:
     container_name: it-tools
     image: corentinth/it-tools
@@ -220,6 +277,7 @@ services:
     - apps
     - all
     restart: unless-stopped
+
   # qdirstat:
   #   container_name: qdirstat
   #   environment:
@@ -253,6 +311,7 @@ services:
   #   volumes:
   #   - /volume1:/storage:ro
   #   - ${DOCKERDIR:-/opt/docker}/appdata/qdirstat/config:/config:rw
+
   scrutiny:
     cap_add:
     - SYS_RAWIO
@@ -286,6 +345,7 @@ services:
     - /run/udev:/run/udev:ro
     - ${DOCKERDIR:-/opt/docker}/appdata/scrutiny:/opt/scrutiny/config
     - ${DOCKERDIR:-/opt/docker}/appdata/influxdb2:/opt/scrutiny/influxdb
+
   serge:
     container_name: serge
     image: ghcr.io/serge-chat/serge:latest
@@ -310,6 +370,7 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/serge:/serge/db
     - $EXTDRIVE/weights:/usr/src/app/weights
+
   sitespeed:
     container_name: sitespeed
     image: dceoy/nginx-autoindex:latest
@@ -330,6 +391,7 @@ services:
     restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/sitespeed:/var/lib/nginx/html:ro
+
   uptime-kuma:
     container_name: uptime-kuma
     image: louislam/uptime-kuma
@@ -351,6 +413,7 @@ services:
     restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/uptime-kuma:/app/data
+
   whoami:
     container_name: whoami
     image: traefik/whoami
@@ -369,6 +432,7 @@ services:
     - apps
     - all
     restart: unless-stopped
+
   whodb:
     container_name: whodb
     deploy:
@@ -413,3 +477,104 @@ services:
     - all
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/whodb:/db
+
+  vscode:
+    container_name: vscode
+    environment:
+      PASSWORD: $VSCODE_PASSWORD
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-UTC}
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 40s
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost:8443/
+      timeout: 10s
+    image: lscr.io/linuxserver/code-server:latest
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.vscode-rtr.entrypoints=https
+    - traefik.http.routers.vscode-rtr.rule=Host(`vscode.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.vscode-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.vscode-rtr.service=vscode-svc
+    - traefik.http.services.vscode-svc.loadbalancer.server.port=8443
+    - homepage.group=Web
+    - homepage.name=VSCode
+    - homepage.icon=vscode.png
+    - homepage.href=https://vscode.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Code editor
+    - homepage.weight=2
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+        tag: '{{.Name}}'
+    networks:
+    - t2_proxy
+    ports:
+    - ${VSCODE_PORT:-8443}:8443
+    profiles:
+    - web
+    - all
+    restart: unless-stopped
+    volumes:
+    - ${DOCKERDIR:-/opt/docker}/appdata/vscode:/config
+    - ${DATADIR:-/data}:/data
+
+  whoogle:
+    container_name: whoogle
+    environment:
+    - WHOOGLE_ALT_TW=farside.link/nitter
+    - WHOOGLE_ALT_YT=farside.link/invidious
+    - WHOOGLE_ALT_IG=farside.link/bibliogram/u
+    - WHOOGLE_ALT_RD=farside.link/libreddit
+    - WHOOGLE_ALT_MD=farside.link/scribe
+    - WHOOGLE_ALT_TL=farside.link/lingva
+    - WHOOGLE_ALT_IMG=farside.link/rimgo
+    - WHOOGLE_ALT_WIKI=farside.link/wikiless
+    - WHOOGLE_ALT_IMDB=farside.link/libremdb
+    - WHOOGLE_ALT_QUORA=farside.link/quetre
+    - WHOOGLE_CONFIG_DISABLE=1
+    - WHOOGLE_CONFIG_SEARCH_LANGUAGE=lang_en
+    - WHOOGLE_CONFIG_GET_ONLY=1
+    - WHOOGLE_CONFIG_COUNTRY=US
+    - WHOOGLE_CONFIG_PREFERENCES_ENCRYPTED=1
+    image: ${WHOOGLE_IMAGE:-benbusby/whoogle-search}
+    labels:
+    - sablier.enable=true
+    - sablier.group=mygroup
+    - traefik.enable=true
+    - traefik.http.routers.whoogle-rtr.entrypoints=https
+    - traefik.http.routers.whoogle-rtr.rule=Host(`whoogle.${DOMAINNAME_CLOUD_SERVER}`)
+    - traefik.http.routers.whoogle-rtr.middlewares=chain-oauth@file
+    - traefik.http.routers.whoogle-rtr.service=whoogle-svc
+    - traefik.http.services.whoogle-svc.loadbalancer.server.port=5000
+    - homepage.group=Tools
+    - homepage.name=Whoogle
+    - homepage.icon=whoogle.png
+    - homepage.href=https://whoogle.${DOMAINNAME_CLOUD_SERVER}
+    - homepage.description=Google proxy
+    mem_limit: 256mb
+    memswap_limit: 256mb
+    networks:
+    - t2_proxy
+    pids_limit: 50
+    ports:
+    - 8202:5000
+    profiles:
+    - tools
+    - all
+    restart: unless-stopped
+    tmpfs:
+    - /config/:size=10M,uid=927,gid=927,mode=1700
+    user: whoogle

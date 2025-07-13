@@ -61,6 +61,7 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/bazarr:/config
     - ${DATADIR:-/data}:/data
+
   jackett:
     container_name: jackett
     deploy:
@@ -125,6 +126,7 @@ services:
     - ${DOCKERDIR:-/opt/docker}/appdata/jackett:/config
     - /tmp/jackett:/downloads
     - /etc/localtime:/etc/localtime:ro
+
   kapowarr:
     container_name: kapowarr
     environment:
@@ -164,6 +166,7 @@ services:
     - ${DATADIR:-/data}:/data
     - ${DOWNLOADSDIR:-/downloads}:/config/Downloads
     - /etc/localtime:/etc/localtime:ro
+
   lidarr:
     container_name: lidarr
     environment:
@@ -208,6 +211,7 @@ services:
     - ${DATADIR:-/data}:/data
     - ${DOWNLOADSDIR:-/downloads}:/downloads
     - /etc/localtime:/etc/localtime:ro
+
   lidatube:
     container_name: lidatube
     environment:
@@ -242,6 +246,7 @@ services:
     - ${DOWNLOADSDIR:-/downloads}:/lidatube/downloads
     - ${DATADIR:-/data}:/data
     - /etc/localtime:/etc/localtime:ro
+
   maintainerr:
     container_name: maintainerr
     environment:
@@ -274,6 +279,7 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/maintainerr:/opt/data
     - ${DOWNLOADSDIR:-/downloads}:/config/Downloads
+
   overseerr:
     container_name: overseerr
     environment:
@@ -308,6 +314,7 @@ services:
     restart: unless-stopped
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/overseerr:/app/config
+
   prowlarr:
     container_name: prowlarr
     deploy:
@@ -419,6 +426,7 @@ services:
     - /etc/localtime:/etc/localtime:ro
     - $DATADIR/complete/radarr:/data/complete/radarr
     - $DATADIR/Movies:/data/Movies
+
   readarr:
     container_name: readarr
     environment:
@@ -497,6 +505,7 @@ services:
     - $DATADIR/complete/sonarr:/data/complete/sonarr
     - $DATADIR/TV:/data/TV
     - /etc/localtime:/etc/localtime:ro
+
   tdarr:
     container_name: tdarr
     environment:
@@ -538,6 +547,7 @@ services:
     - ${INCOMPLETEDIR:-/incomplete}:/data/temp
     - $DATADIR/Photos:/data/media:ro
     - $COMPLETEDIR/tdarr:/data/output
+
   tdarr-node1:
     container_name: tdarr-node1
     devices:
@@ -565,6 +575,7 @@ services:
     - $DATADIR/transcode:/data/temp
     - $DATADIR/Photos/zVideos:/data/media:ro
     - $DATADIR/zvideos:/data/output
+
   whisparr:
     container_name: whisparr
     environment:
@@ -598,6 +609,7 @@ services:
     - ${DOCKERDIR:-/opt/docker}/appdata/whisparr:/config
     - ${DATADIR:-/data}:/data
     - /etc/localtime:/etc/localtime:ro
+
   wizarr:
     container_name: wizarr
     environment:

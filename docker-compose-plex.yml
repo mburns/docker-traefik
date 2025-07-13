@@ -155,4 +155,4 @@ services:
       - homepage.icon=tautulli.png
       - homepage.href=https://tautulli.${DOMAINNAME_CLOUD_SERVER}
       - homepage.description=Plex Statistics
-      - homepage.weight=8 
+      - homepage.weight=8

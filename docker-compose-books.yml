@@ -1,6 +1,7 @@
 networks:
   t2_proxy:
     external: true
+
 services:
   audiobookshelf:
     container_name: audiobookshelf
@@ -31,6 +32,7 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/audiobookshelf:/config
     - ${EXTDRIVE:-/extdrive}:/data
+
   calibre:
     container_name: calibre
     environment:
@@ -69,6 +71,7 @@ services:
     - $DATADIR/Books:/data/Books
     - $DATADIR/Comics:/data/Comics
     - $DATADIR/Manga:/data/Manga
+
   kavita:
     container_name: kavita
     environment:
@@ -110,6 +113,7 @@ services:
     - $DATADIR/Books:/data/Books
     - $EXTDRIVE/Dropbox/Calibre:/data/Library
     - $EXTDRIVE/Dropbox/Text:/data/Text
+
   komga:
     container_name: komga
     environment:
@@ -135,6 +139,7 @@ services:
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/:/config
     - ${DATADIR:-/data}:/data
+
   lazylibrarian:
     container_name: lazylibrarian
     environment:

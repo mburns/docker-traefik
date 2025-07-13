@@ -58,6 +58,7 @@ services:
     # - no-new-privileges:true
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
+
   wg-easy:
     cap_add:
     - NET_ADMIN
@@ -85,6 +86,7 @@ services:
     - net.ipv4.conf.all.src_valid_mark=1
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/wireguard:/etc/wireguard
+
   zerotier:
     cap_add:
     - NET_ADMIN
