@@ -64,8 +64,8 @@ x-common-sablier:
   - sablier.group=mygroup
 x-common-security:
   read_only: false
-  security_opt:
-  - no-new-privileges:true
+  # security_opt:
+  # - no-new-privileges:true
   tmpfs:
   - /tmp
   - /var/tmp

@@ -56,8 +56,8 @@ services:
     - arrs
     - all
     restart: unless-stopped
-    security_opt:
-    - no-new-privileges:true
+    # security_opt:
+    # - no-new-privileges:true
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/bazarr:/config
     - ${DATADIR:-/data}:/data
@@ -119,8 +119,8 @@ services:
     - arrs
     - all
     restart: unless-stopped
-    security_opt:
-    - no-new-privileges:true
+    # security_opt:
+    # - no-new-privileges:true
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/jackett:/config
     - /tmp/jackett:/downloads
@@ -366,11 +366,12 @@ services:
     - arrs
     - all
     restart: unless-stopped
-    security_opt:
-    - no-new-privileges:true
+    # security_opt:
+    # - no-new-privileges:true
     volumes:
     - ${DOCKERDIR:-/opt/docker}/appdata/prowlarr:/config
     - /etc/localtime:/etc/localtime:ro
+
   radarr:
     container_name: radarr
     environment:
@@ -455,6 +456,7 @@ services:
     - ${DOCKERDIR:-/opt/docker}/appdata/readarr:/config
     - ${DATADIR:-/data}:/data
     - /etc/localtime:/etc/localtime:ro
+
   sonarr:
     container_name: sonarr
     environment:

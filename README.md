@@ -24,30 +24,7 @@ A comprehensive Docker Compose stack for self-hosted services with Traefik as a 
 
 > **New to Docker Traefik Stack?** Check out the [Getting Started Guide](GETTING_STARTED.md) for a step-by-step walkthrough.
 
-### Option 1: Complete Automated Setup (Recommended for New Users)
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd docker-traefik
-   ```
-
-2. **Run the master setup script:**
-   ```bash
-   ./scripts/setup-master.sh --all
-   ```
-
-   This will automatically:
-   - Install Docker and Docker Compose
-   - Configure your environment
-   - Set up core services
-   - Harden security
-   - Optimize performance
-   - Configure monitoring
-   - Set up backups
-   - Run health checks
-
-### Option 2: Step-by-Step Setup
+### Option 1: Automated Setup (Recommended for New Users)
 
 1. **Clone the repository:**
    ```bash
@@ -145,25 +122,6 @@ Use these scripts for easy service management:
 
 # Quick start
 ./scripts/quick-start.sh
-
-# Docker installation
-./scripts/install-docker.sh
-
-# Migration and upgrades
-./scripts/migrate.sh backup
-./scripts/migrate.sh upgrade
-./scripts/migrate.sh validate
-
-# Security hardening
-./scripts/security-hardening.sh audit
-./scripts/security-hardening.sh all
-
-# Performance optimization
-./scripts/performance-optimization.sh analyze
-./scripts/performance-optimization.sh all
-
-# Master setup (complete automation)
-./scripts/setup-master.sh --all
 ```
 
 ### Quick Commands

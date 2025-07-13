@@ -93,8 +93,8 @@ services:
     - core
     - all
     restart: unless-stopped
-    security_opt:
-    - no-new-privileges:true
+    # security_opt:
+    # - no-new-privileges:true
     volumes:
     - $DOCKERDIR/appdata/homepage:/app/config
     - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -241,8 +241,8 @@ services:
     - core
     - all
     restart: unless-stopped
-    security_opt:
-    - no-new-privileges:true
+    # security_opt:
+    # - no-new-privileges:true
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
   traefik:
@@ -362,8 +362,8 @@ services:
     - cf_email
     - cf_api_key
     - htpasswd
-    security_opt:
-    - no-new-privileges:true
+    # security_opt:
+    # - no-new-privileges:true
     volumes:
     - $DOCKERDIR/appdata/traefik2/rules/cloudserver:/rules
     - $DOCKERDIR/appdata/traefik2/acme/acme.json:/acme.json
